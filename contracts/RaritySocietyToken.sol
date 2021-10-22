@@ -43,7 +43,7 @@ contract RaritySocietyToken is IRaritySocietyToken, Ownable, ERC721Checkpointabl
     constructor(
         address _minter,
         IProxyRegistry _proxyRegistry
-    ) ERC721('Rarity Society', 'RARITY') {
+    ) ERC721('Rarity Society', 'RARITY') ERC721Checkpointable('Rarity Society') {
         minter = _minter;
         proxyRegistry = _proxyRegistry;
     }

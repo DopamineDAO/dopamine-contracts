@@ -259,6 +259,7 @@ contract ERC721 is Context, ERC165, IERC721, IERC721Metadata {
      * 1. Credits the `creator` with the mint.
      * 2. Shows transfer from the `creator` to `to`.
      *
+     *
      * Requirements:
      *
      * - `tokenId` must not exist.

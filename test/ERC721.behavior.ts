@@ -41,13 +41,13 @@ export function shouldBehaveLikeERC721(): void {
 
 		describe("balanceOf()", function () {
       it("returns the number of tokens held by an address", async function () {
-        expect(await this.token.balanceOf(this.deployer.address)).to.equal(
+        expect(await this.token.balanceOf(this.from.address)).to.equal(
           BigNumber.from("2")
         );
       });
 
       it("returns 0 for addresses with no owned tokens", async function () {
-        expect(await this.token.balanceOf(this.receiver.address)).to.equal(
+        expect(await this.token.balanceOf(this.to.address)).to.equal(
           BigNumber.from("0")
         );
       });
@@ -61,7 +61,7 @@ export function shouldBehaveLikeERC721(): void {
 
     describe("ownerOf()", function () {
       it("returns the address of the owner of a token", async function () {
-        expect(await this.token.ownerOf(TOKEN_ID_0)).to.equal(this.deployer.address);
+        expect(await this.token.ownerOf(TOKEN_ID_0)).to.equal(this.from.address);
       });
 
       it("throws for queries to tokens assigned to the zero address", async function () {
@@ -72,9 +72,6 @@ export function shouldBehaveLikeERC721(): void {
     });
 
     context("transfer functions", function () {
-
-			beforeEach(async function () {
-			});
 
 			const expectedTransferBehavior = function(transferFunc: TransferFn, tokenId: BigNumberish) {
 
@@ -87,7 +84,7 @@ export function shouldBehaveLikeERC721(): void {
 						fromBalance = await this.token.balanceOf(this.from.address);
 						toBalance = await this.token.balanceOf(this.to.address);
 						tx = transferFunc.bind(this)(this.from.address, this.to.address, tokenId, this.sender);
-						return await Promise.resolve(tx);
+						await Promise.resolve(tx);
 					});
 
 					it("adjust's the owner's balance", async function () {
@@ -103,7 +100,7 @@ export function shouldBehaveLikeERC721(): void {
 					});
 
 					it('transfers ownership to the receiver', async function () {
-						expect(await this.token.ownerOf(tokenId));
+						expect(await this.token.ownerOf(tokenId)).to.equal(this.to.address);
 					});
 
 					it('emits a Transfer event', async function () {
@@ -132,7 +129,7 @@ export function shouldBehaveLikeERC721(): void {
 
 				it("throws when sender is not owner, authorized operator, or approved address", async function () {
 					await expect(
-						transferFunc.bind(this)(this.deployer.address, this.receiver.address, TOKEN_ID_0, this.receiver)).to.be.revertedWith("ERC721: transfer caller is not owner nor approved")
+						transferFunc.bind(this)(this.from.address, this.to.address, TOKEN_ID_0, this.receiver)).to.be.revertedWith("ERC721: transfer caller is not owner nor approved")
 				});
 
 				context('when owner invokes transfer to receiver', function () {
@@ -304,8 +301,8 @@ export function shouldBehaveLikeERC721(): void {
 
 			context('when owner grants operator approval', function () {
 				beforeEach(async function () {
-						tx = this.token.setApprovalForAll(this.operator.address, true);
-						return await Promise.resolve(tx);
+					tx = this.token.setApprovalForAll(this.operator.address, true);
+					return await Promise.resolve(tx);
 				});
 				setApprovalForAllBehavior(true);
 			});

@@ -1,5 +1,7 @@
+import { ethers, network } from "hardhat";
 import { Event } from "ethers";
 import { expect } from "chai";
+import { TransactionReceipt } from "@ethersproject/abstract-provider";
 import { BigNumber } from "ethers";
 
 interface Map {
@@ -14,11 +16,20 @@ const INTERFACE_ID_MAP: Map = {
 	ERC721Enumerable: '0x780e9d63',
 }
 
+export interface ReceiptWithEvents extends TransactionReceipt {
+	events: Event[]
+}
+
 export type TokensFromEvents = {
   minted: Number[];
   burned: Number[];
   existing: Number[];
 };
+
+export const extractEvents = (receipt: TransactionReceipt, name: string) => {
+	const events = (receipt as ReceiptWithEvents).events;
+	return events.filter((e: Event) => e.event == name);
+}
 
 export const extractTokensFromEvents = (events: Event[]) => {
 		const minted = events.reduce((a:Number[], e:Event) => {
@@ -50,4 +61,21 @@ export function supportsInterfaces(interfaces:string[]) {
 			});
 		});
 	});
+}
+
+export async function getChainId() {
+		return (await ethers.provider.getNetwork()).chainId;
+}
+
+export async function startMining() {
+	await network.provider.send('evm_setAutomine', [true]);
+}
+
+export async function stopMining() {
+	await network.provider.send('evm_setAutomine', [false]);
+	await network.provider.send('evm_setIntervalMining', [0]);
+}
+
+export async function mineBlock() {
+	await network.provider.send('evm_mine');
 }

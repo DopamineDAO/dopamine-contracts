@@ -34,5 +34,6 @@ describe("RaritySocietyToken", function () {
 	shouldBehaveLikeERC721();
 	shouldBehaveLikeERC721Enumerable();
 	shouldBehaveLikeERC721Metadata();
+	shouldBehaveLikeERC721Checkpointable();
 
 });
