@@ -1,4 +1,4 @@
-import { utils, Bytes, BigNumber, BigNumberish, constants, Event } from "ethers";
+import { Bytes, BigNumber, BigNumberish, constants, Event } from "ethers";
 import { TransactionResponse, TransactionReceipt } from "@ethersproject/abstract-provider";
 import {
   MockERC721Receiver__factory,
@@ -451,24 +451,24 @@ export function shouldBehaveLikeERC721Metadata(): void {
 			supportsInterfaces(["ERC721Metadata"]);
 		});
 
-		it('returns the name', async function () {
-			expect(await this.token.name()).to.equal("Rarity Society");
-		});
+			it('returns the name', async function () {
+				expect(await this.token.name()).to.equal("Rarity Society");
+			});
 
-		it('returns the symbol', async function () {
-			expect(await this.token.symbol()).to.equal("RARITY");
-		});
+			it('returns the symbol', async function () {
+				expect(await this.token.symbol()).to.equal("RARITY");
+			});
 
-		it('returns the correct URI for a token', async function () {
-			await this.token.mint();
-			expect(await this.token.tokenURI(TOKEN_ID_0)).to.equal("https://raritysociety.com/0");
-		});
+			it('returns the correct URI for a token', async function () {
+				await this.token.mint();
+				expect(await this.token.tokenURI(TOKEN_ID_0)).to.equal("https://raritysociety.com/0");
+			});
 
-		it('throws for URI queries of nonexistent tokens', async function () {
-			await expect(
-				this.token.tokenURI(TOKEN_ID_0)
-			).to.be.revertedWith("ERC721Metadata: URI query for nonexistent token");
-		});
+			it('throws for URI queries of nonexistent tokens', async function () {
+				await expect(
+					this.token.tokenURI(TOKEN_ID_0)
+				).to.be.revertedWith("ERC721Metadata: URI query for nonexistent token");
+			});
 
 	});
 }

@@ -2,6 +2,8 @@ import { ethers, network } from "hardhat";
 import { Event } from "ethers";
 import { expect } from "chai";
 import { TransactionReceipt } from "@ethersproject/abstract-provider";
+import { IRaritySocietyToken } from "../../typechain";
+import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import { BigNumber } from "ethers";
 
 interface Map {
@@ -24,6 +26,11 @@ export type TokensFromEvents = {
   minted: Number[];
   burned: Number[];
   existing: Number[];
+};
+
+export const encodeParameters = (types: string[], values: unknown[]): string => {
+  const abi = new ethers.utils.AbiCoder();
+  return abi.encode(types, values);
 };
 
 export const extractEvents = (receipt: TransactionReceipt, name: string) => {
@@ -78,4 +85,29 @@ export async function stopMining() {
 
 export async function mineBlock() {
 	await network.provider.send('evm_mine');
+}
+
+export async function advanceBlocks(blocks: number) {
+  for (let i = 0; i < blocks; i++) {
+	    await mineBlock();
+	}
+}
+
+export async function setNextBlockTimestamp(timestamp: number) {
+	await network.provider.send('evm_setNextBlockTimestamp', [timestamp]);
+}
+
+export async function impersonate(address: string) {
+	await network.provider.send('hardhat_impersonateAccount', [address]);
+	return ethers.getSigner(address);
+}
+
+export async function stopImpersonating(address: string) {
+	await network.provider.send('hardhat_stopImpersonatingAccount', [address]);
+}
+
+export async function mintN(token: IRaritySocietyToken, n:Number) {
+	for (let i=0; i<n; i++) {
+		await token.mint();
+	}
 }

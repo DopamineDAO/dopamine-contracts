@@ -8,7 +8,6 @@ import { raritySocietyTokenFixture, RaritySocietyTokenFixture } from "./shared/f
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import { shouldBehaveLikeERC721, shouldBehaveLikeERC721Enumerable, shouldBehaveLikeERC721Metadata} from './ERC721.behavior';
 import { shouldBehaveLikeERC721Checkpointable } from './ERC721Checkpointable.behavior';
-import { shouldBehaveLikeRaritySocietyToken } from './RaritySocietyToken.behavior';
 
 const { createFixtureLoader } = waffle;
 
