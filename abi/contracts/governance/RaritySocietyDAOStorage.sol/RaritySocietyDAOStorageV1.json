@@ -1,0 +1,15 @@
+[
+  "function admin() view returns (address)",
+  "function impl() view returns (address)",
+  "function latestProposalIds(address) view returns (uint256)",
+  "function pendingAdmin() view returns (address)",
+  "function proposalCount() view returns (uint256)",
+  "function proposalThreshold() view returns (uint256)",
+  "function proposals(uint256) view returns (uint256 id, address proposer, uint256 quorumVotes, uint256 eta, uint256 startBlock, uint256 endBlock, uint256 forVotes, uint256 againstVotes, uint256 abstainVotes, bool vetoed, bool canceled, bool executed)",
+  "function quorumVotesBPS() view returns (uint256)",
+  "function timelock() view returns (address)",
+  "function token() view returns (address)",
+  "function vetoer() view returns (address)",
+  "function votingDelay() view returns (uint256)",
+  "function votingPeriod() view returns (uint256)"
+]

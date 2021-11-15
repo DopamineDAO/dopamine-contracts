@@ -27,6 +27,12 @@ node_modules/
 # typechain
 typechain
 
-#Hardhat files
+# Hardhat files
 cache
 artifacts
+
+# Certain ABI files
+abi/@openzeppelin
+abi/contracts/test
+abi/contracts/erc721
+abi/contracts/interfaces
