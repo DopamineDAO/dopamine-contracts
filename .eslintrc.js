@@ -4,15 +4,15 @@ module.exports = {
     mocha: true,
   },
   root: true,
-  plugins: ['@typescript-eslint/eslint-plugin'],
   parser: '@typescript-eslint/parser',
+  plugins: ['@typescript-eslint'],
   parserOptions: {
     project: './tsconfig.json',
     sourceType: 'module',
   },
   extends: [
     'plugin:@typescript-eslint/recommended',
-    'plugin:prettier/recommended',
+    'plugin:prettier/recommended'
   ],
   ignorePatterns: ['**/*.js', 'dist', '**/*.d.ts'],
 };

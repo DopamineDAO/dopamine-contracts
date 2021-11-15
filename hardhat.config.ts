@@ -5,6 +5,7 @@ import "@nomiclabs/hardhat-etherscan";
 import "@nomiclabs/hardhat-waffle";
 import "@typechain/hardhat";
 import "hardhat-gas-reporter";
+import "@nomiclabs/hardhat-ethers";
 import "solidity-coverage";
 
 dotenv.config();
@@ -14,14 +15,17 @@ dotenv.config();
 
 const config: HardhatUserConfig = {
   solidity: {
-		version: '0.8.9',
-		settings: {
-			optimizer: {
-				enabled: true,
-				runs: 10_000,
-			},
-		},
-	},
+    version: "0.8.9",
+    settings: {
+      optimizer: {
+        enabled: true,
+        runs: 10_000,
+      },
+    },
+  },
+  typechain: {
+    outDir: "typechain",
+  },
   networks: {
     ropsten: {
       url: process.env.ROPSTEN_URL || "",

@@ -19,7 +19,8 @@
   },
 	"include": [
 		"./tasks",
-		"./test"
+		"./test",
+		"./typechain"
 	],
 	"files": ["./hardhat.config.ts"],
   "exclude": ["**/dist"]
