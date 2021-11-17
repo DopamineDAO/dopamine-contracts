@@ -37,7 +37,7 @@ contract RaritySocietyDAOProxy is RaritySocietyDAOProxyStorage {
 
 	function setImpl(address impl_) public {
 		require(msg.sender == admin, "setImpl may only be called by admin");
-		require(Address.isContract(impl_), "implementation is not a contract");
+		require(impl_ != address(0), "implementation is not a contract");
 
 		address oldImpl = impl;
 		impl = impl_;

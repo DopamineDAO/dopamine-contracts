@@ -10,6 +10,8 @@ import "solidity-coverage";
 import "hardhat-abi-exporter";
 
 import "./tasks/deploy";
+import "./tasks/propose";
+import "./tasks/mint";
 
 dotenv.config();
 
@@ -31,9 +33,12 @@ const config: HardhatUserConfig = {
   },
   networks: {
     ropsten: {
-      url: process.env.ROPSTEN_URL || "",
-      accounts:
-        process.env.PRIVATE_KEY !== undefined ? [process.env.PRIVATE_KEY] : [],
+      url: `https://ropsten.infura.io/v3/${process.env.PROJECT_ID}`,
+      accounts: [process.env.PRIVATE_KEY!].filter(Boolean),
+    },
+    rinkeby: {
+      url: `https://rinkeby.infura.io/v3/${process.env.PROJECT_ID}`,
+      accounts: [process.env.PRIVATE_KEY!].filter(Boolean),
     },
   },
   gasReporter: {
