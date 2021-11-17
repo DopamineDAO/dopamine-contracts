@@ -9,6 +9,8 @@ import "@nomiclabs/hardhat-ethers";
 import "solidity-coverage";
 import "hardhat-abi-exporter";
 
+import "./tasks/deploy";
+
 dotenv.config();
 
 // You need to export an object to set up your config
@@ -38,11 +40,11 @@ const config: HardhatUserConfig = {
     enabled: process.env.REPORT_GAS !== undefined,
     currency: "USD",
   },
-	abiExporter: {
-		path: './abi',
-		clear: true,
-		pretty: true,
-	},
+  abiExporter: {
+    path: "./abi",
+    clear: true,
+    pretty: true,
+  },
   etherscan: {
     apiKey: process.env.ETHERSCAN_API_KEY,
   },
