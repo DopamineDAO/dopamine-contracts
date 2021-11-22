@@ -5,6 +5,8 @@ import { Constants } from "./constants";
 import {
   RaritySocietyToken,
   RaritySocietyToken__factory,
+  MockERC721Token__factory,
+  MockERC721Token,
   MockRaritySocietyDAOImpl__factory,
   MockRaritySocietyDAOImpl,
   RaritySocietyDAOImpl__factory,
@@ -46,6 +48,15 @@ export async function raritySocietyTokenFixture(
   const registry = await registryFactory.deploy();
   const token = await tokenFactory.deploy(deployer.address, registry.address);
   return { token, registry };
+}
+
+export async function erc721TokenFixture(
+  signers: Signer[]
+): Promise<MockERC721Token> {
+  const deployer: SignerWithAddress = signers[0] as SignerWithAddress;
+  const tokenFactory = new MockERC721Token__factory(deployer);
+  const token = await tokenFactory.deploy(deployer.address);
+  return token;
 }
 
 export async function timelockFixture(signers: Signer[]): Promise<Timelock> {

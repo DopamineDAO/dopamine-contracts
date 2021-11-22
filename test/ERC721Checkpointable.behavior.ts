@@ -1,4 +1,4 @@
-import { BigNumber } from "ethers";
+import { BigNumber, constants } from "ethers";
 import {
   TransactionResponse,
   TransactionReceipt,
@@ -215,7 +215,7 @@ export function shouldBehaveLikeERC721Checkpointable(): void {
 
           beforeEach(async function () {
             mintRx = await (await this.token.mint()).wait();
-            tx = await delegateFunc.bind(this)(this.from, this.from.address);
+            tx = await delegateFunc.bind(this)(this.from, constants.AddressZero);
             rx = await tx.wait();
             await mineBlock();
           });
@@ -1273,5 +1273,21 @@ export function shouldBehaveLikeERC721Checkpointable(): void {
         });
       });
     });
+
+		describe("uint32 downcasting functionality", function () {
+			it("throws when given a uint whose value does not fit within 32 bytes", async function () {
+					await expect(
+            this.token.testSafe32(BigNumber.from(0xFFFFFFFF).add(1))
+					).to.be.revertedWith(
+						"value does not fit within 32 bits"
+					);
+			});
+			it("does not throw when given a number less than or equal to the uint32 max", async function () {
+					await expect(
+            this.token.testSafe32(BigNumber.from(0xFFFFFFFF))
+					).not.to.be.reverted;
+			});
+		});
+
   });
 }

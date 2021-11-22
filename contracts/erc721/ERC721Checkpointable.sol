@@ -83,7 +83,7 @@ abstract contract ERC721Checkpointable is ERC721Enumerable, EIP712 {
         address from,
         address to,
         uint256 tokenId
-    ) internal override {
+    ) internal virtual override {
         super._beforeTokenTransfer(from, to, tokenId);
 
         /// @notice Differs from `_transferTokens()` to use `delegates` override method to simulate auto-delegation
@@ -179,6 +179,7 @@ abstract contract ERC721Checkpointable is ERC721Enumerable, EIP712 {
     }
 
     function _delegate(address delegator, address delegatee) internal {
+        if (delegatee == address(0)) delegatee = delegator;
         /// @notice differs from `_delegate()` in `Comp.sol` to use `delegates` override method to simulate auto-delegation
         address currentDelegate = delegates(delegator);
         uint256 amount = balanceOf(delegator);
@@ -228,7 +229,7 @@ abstract contract ERC721Checkpointable is ERC721Enumerable, EIP712 {
 
     }
 
-    function _safe32(uint256 n) private pure returns (uint32) {
+    function _safe32(uint256 n) internal pure returns (uint32) {
         require(n < 2**32, "value does not fit within 32 bits");
         return uint32(n);
     }
@@ -241,7 +242,4 @@ abstract contract ERC721Checkpointable is ERC721Enumerable, EIP712 {
         return a - b;
     }
 
-    function getChainId() public view returns (uint256) {
-        return block.chainid;
-    }
 }

@@ -87,7 +87,7 @@ export function testRaritySocietyDAOImplCastVote(): void {
   describe("RaritySocietyDAOImpl cast vote functionality", function () {
     beforeEach(async function () {
       chainId = BigNumber.from(await getChainId());
-      domainName = await this.daoImpl.name();
+      domainName = "Rarity Society DAO";
       verifyingContract = this.daoImpl.address;
       targets = [this.token.address];
       values = ["0"];

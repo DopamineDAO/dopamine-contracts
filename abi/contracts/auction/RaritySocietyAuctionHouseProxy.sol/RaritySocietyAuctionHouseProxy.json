@@ -1,0 +1,11 @@
+[
+  "event AdminChanged(address previousAdmin, address newAdmin)",
+  "event BeaconUpgraded(address indexed beacon)",
+  "event Upgraded(address indexed implementation)",
+  "function admin() returns (address admin_)",
+  "function c_0x5eca8c6e(bytes32 c__0x5eca8c6e) pure",
+  "function changeAdmin(address newAdmin)",
+  "function implementation() returns (address implementation_)",
+  "function upgradeTo(address newImplementation)",
+  "function upgradeToAndCall(address newImplementation, bytes data) payable"
+]

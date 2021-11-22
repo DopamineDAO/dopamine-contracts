@@ -2,7 +2,9 @@ import { Fixture } from "ethereum-waffle";
 import { Signer } from "@ethersproject/abstract-signer";
 import { waffle, ethers } from "hardhat";
 import { Wallet } from "@ethersproject/wallet";
-import { raritySocietyTokenFixture } from "./shared/fixtures";
+import {
+  erc721TokenFixture,
+} from "./shared/fixtures";
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import {
   shouldBehaveLikeERC721,
@@ -13,7 +15,7 @@ import { shouldBehaveLikeERC721Checkpointable } from "./ERC721Checkpointable.beh
 
 const { createFixtureLoader } = waffle;
 
-describe("RaritySocietyToken", function () {
+describe("ERC721 features", function () {
   let loadFixture: <T>(fixture: Fixture<T>) => Promise<T>;
   let signers: SignerWithAddress[];
 
@@ -24,18 +26,18 @@ describe("RaritySocietyToken", function () {
     loadFixture = createFixtureLoader([this.deployer] as Signer[] as Wallet[]);
   });
 
-  beforeEach("instantiate Rarity Society token fixture", async function () {
-    ({ token: this.token, registry: this.registry } = await loadFixture(
-      raritySocietyTokenFixture
-    ));
+  beforeEach("instantiate ERC721token fixture", async function () {
+    this.token = await loadFixture(
+      erc721TokenFixture
+    );
     this.from = this.deployer;
     this.to = this.receiver;
     this.sender = this.deployer;
     this.contract = this.token;
   });
 
-  shouldBehaveLikeERC721();
-  shouldBehaveLikeERC721Enumerable();
-  shouldBehaveLikeERC721Metadata();
-  shouldBehaveLikeERC721Checkpointable();
+   shouldBehaveLikeERC721();
+   shouldBehaveLikeERC721Enumerable();
+   shouldBehaveLikeERC721Metadata();
+   shouldBehaveLikeERC721Checkpointable();
 });

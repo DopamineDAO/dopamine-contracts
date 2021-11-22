@@ -196,6 +196,7 @@ export function testRaritySocietyDAOImplLifecycle(): void {
         await this.daoImpl.cancel(1);
         await mineBlock();
         expect((await this.daoImpl.proposals(1)).canceled).to.equal(true);
+        expect(await this.daoImpl.state(1)).to.equal(STATES.CANCELED);
       });
 
       it("allows cancellation by anyone if proposer votes drops below threshold", async function () {
@@ -288,12 +289,27 @@ export function testRaritySocietyDAOImplLifecycle(): void {
     });
 
     describe("state: vetoed", function () {
+			it("throws when vetoed by non-vetoer", async function () {
+        await expect(
+          this.daoImpl.veto(1)
+        ).to.be.revertedWith("only vetoer can veto");
+			});
+
+			it("disallows vetoing once veto power is burned", async function () {
+				await this.daoImpl.connect(this.vetoer).revokeVetoPower();
+				await mineBlock();
+        await expect(
+          this.daoImpl.connect(this.vetoer).veto(1)
+        ).to.be.revertedWith("veto power burned");
+			});
+
       it("allows vetoing proposals", async function () {
         expect((await this.daoImpl.proposals(1)).vetoed).to.equal(false);
         expect(await this.daoImpl.state(1)).to.equal(STATES.PENDING);
         await this.daoImpl.connect(this.vetoer).veto(1);
         await mineBlock();
         expect((await this.daoImpl.proposals(1)).vetoed).to.equal(true);
+        expect(await this.daoImpl.state(1)).to.equal(STATES.VETOED);
       });
 
       it("throws when trying to veto an executed proposal", async function () {

@@ -1,10 +1,15 @@
 import { constants } from "ethers";
 import { expect } from "chai";
 import { Constants } from "../shared/constants";
-import { mintN } from "../shared/utils";
+import { supportsInterfaces, mintN } from "../shared/utils";
 
 export function testRaritySocietyDAOImplSettings(): void {
   describe("RaritySocietyDAOImpl settings functionality", function () {
+
+    describe("supports governance interfaces", function () {
+      supportsInterfaces(["ERC165"]);
+    });
+
     describe("initialize", function () {
       it("throws when not invoked by the admin", async function () {
         await expect(
@@ -262,6 +267,44 @@ export function testRaritySocietyDAOImplSettings(): void {
           .to.emit(this.daoImpl, Constants.EVENT_NEW_PENDING_ADMIN)
           .withArgs(constants.AddressZero, this.deployer.address);
       });
+    });
+
+    describe("Setting admin", function () {
+      it("throws when the pending admin has yet to be set", async function () {
+        await expect(
+          this.daoImpl.acceptAdmin()
+        ).to.be.revertedWith("pending admin only");
+      });
+
+      it("throws when not accepted by the pending admin", async function () {
+				await this.daoImpl.connect(this.admin).setPendingAdmin(this.admin.address);
+        await expect(
+          this.daoImpl.acceptAdmin()
+        ).to.be.revertedWith("pending admin only");
+      });
+
+			it("appropriately sets the admin and unsets the pending admin", async function () {
+				await this.daoImpl.connect(this.admin).setPendingAdmin(this.deployer.address);
+				await this.daoImpl.acceptAdmin();
+				expect(await this.daoImpl.pendingAdmin()).to.equal(
+					constants.AddressZero
+				);
+				expect(await this.daoImpl.admin()).to.equal(
+					this.deployer.address
+				);
+			});
+
+			it("emits NewPendingAdmin and NewAdmin events", async function () {
+				await this.daoImpl.connect(this.admin).setPendingAdmin(this.deployer.address);
+				const tx = await this.daoImpl.acceptAdmin();
+				await expect(tx)
+					.to.emit(this.daoImpl, Constants.EVENT_NEW_ADMIN)
+					.withArgs(this.admin.address, this.deployer.address);
+				await expect(tx)
+					.to.emit(this.daoImpl, Constants.EVENT_NEW_PENDING_ADMIN)
+					.withArgs(this.deployer.address, constants.AddressZero);
+			});
+
     });
 
     describe("vetoer settings", function () {

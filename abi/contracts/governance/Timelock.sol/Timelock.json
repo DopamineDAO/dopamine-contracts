@@ -10,6 +10,7 @@
   "function MINIMUM_DELAY() view returns (uint256)",
   "function acceptAdmin()",
   "function admin() view returns (address)",
+  "function c_0xb7ded11c(bytes32 c__0xb7ded11c) pure",
   "function cancelTransaction(address target, uint256 value, string signature, bytes data, uint256 eta)",
   "function delay() view returns (uint256)",
   "function executeTransaction(address target, uint256 value, string signature, bytes data, uint256 eta) returns (bytes)",

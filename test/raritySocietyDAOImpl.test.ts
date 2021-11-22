@@ -38,6 +38,8 @@ describe("RaritySocietyDAO", function () {
         daoImplFactory: this.daoImplFactory,
         daoImpl: this.daoImpl,
       } = await loadFixture(raritySocietyDAOImplFixture));
+			this.contract = this.daoImpl;
+			await this.token.createDrop("", 99);
     }
   );
 

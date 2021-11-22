@@ -184,6 +184,17 @@ export function shouldBehaveLikeERC721(): void {
             )
           ).to.be.revertedWith("ERC721: operator query for nonexistent token");
         });
+
+				it("throws when receiver is the 0 address", async function () {
+          await expect(
+            transferFunc.bind(this)(
+              this.from.address,
+              constants.AddressZero,
+              tokenId,
+              this.sender
+            )
+          ).to.be.revertedWith("ERC721: transfer to the zero address");
+        });
       };
 
       const expectedTransferFunctionBehavior = function (
@@ -500,24 +511,38 @@ export function shouldBehaveLikeERC721(): void {
       });
     });
   });
+
+	describe("Minting and burning mechanics", function () {
+		it("throws when minting the same token twice", async function () {
+      await this.token.mintToken(0);
+			await expect(
+				this.token.mintToken(0)
+			).to.be.revertedWith("ERC721: token already minted");
+		});
+
+		it("throws when minting to the zero address", async function () {
+			await expect(
+				this.token.mintTokenTo(0, constants.AddressZero)
+			).to.be.revertedWith("ERC721: mint to the zero address");
+		});
+	});
 }
 
 export function shouldBehaveLikeERC721Enumerable(): void {
   describe("ERC721Enumerable functionality", function () {
-    let circulatingTokens: number[];
+    const circulatingTokens = [1, 2];
 
     beforeEach(async function () {
-      const events: Event[] = [];
-      events.push(...(await (await this.token.mint()).wait()).events);
-      events.push(...(await (await this.token.mint()).wait()).events);
-      events.push(...(await (await this.token.mint()).wait()).events);
-      events.push(...(await (await this.token.burn(TOKEN_ID_0)).wait()).events);
+			await this.token.mint();
+			await this.token.mint();
+			await this.token.mint();
+      await this.token.burn(TOKEN_ID_0);
+
       await this.token.transferFrom(
         this.from.address,
         this.to.address,
         TOKEN_ID_1
       );
-      ({ existing: circulatingTokens } = extractTokensFromEvents(events));
     });
 
     describe("supports ERC721Enumerable interface", function () {
@@ -603,7 +628,9 @@ export function shouldBehaveLikeERC721Enumerable(): void {
 }
 
 export function shouldBehaveLikeERC721Metadata(): void {
+
   describe("ERC721Metadata functionality", function () {
+
     describe("supports ERC721Metadata interface", function () {
       supportsInterfaces(["ERC721Metadata"]);
     });
@@ -616,10 +643,39 @@ export function shouldBehaveLikeERC721Metadata(): void {
       expect(await this.token.symbol()).to.equal("RARITY");
     });
 
-    it("returns the correct URI for a token", async function () {
+    it("returns an empty token URI when the base URI is not set", async function () {
       await this.token.mint();
       expect(await this.token.tokenURI(TOKEN_ID_0)).to.equal(
-        "https://raritysociety.com/0"
+        ""
+      );
+    });
+
+    it("returns the correct token URI for a token", async function () {
+      await this.token.mint();
+			await this.token.setBaseURI('www.raritysociety.com/');
+      expect(await this.token.tokenURI(TOKEN_ID_0)).to.equal(
+        "www.raritysociety.com/0"
+      );
+    });
+
+		it("returns an empty base URI when not yet set", async function () {
+      expect(await this.token.baseURI()).to.equal(
+        ""
+      );
+		});
+
+		it("returns the correct base URI for a token", async function () {
+			await this.token.setBaseURI('www.raritysociety.com/');
+      expect(await this.token.baseURI()).to.equal(
+        "www.raritysociety.com/"
+      );
+			
+		});
+    it("returns the correct URI for a token", async function () {
+      await this.token.mint();
+			await this.token.setBaseURI('www.raritysociety.com/');
+      expect(await this.token.tokenURI(TOKEN_ID_0)).to.equal(
+        "www.raritysociety.com/0"
       );
     });
 

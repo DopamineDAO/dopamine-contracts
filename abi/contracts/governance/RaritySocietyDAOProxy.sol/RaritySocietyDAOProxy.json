@@ -1,6 +1,8 @@
 [
   "event NewImpl(address oldImplementation, address newImplementation)",
   "function admin() view returns (address)",
+  "function c_0x5a201ee0(bytes32 c__0x5a201ee0) pure",
+  "function c_0x8e5371d1(bytes32 c__0x8e5371d1) pure",
   "function impl() view returns (address)",
   "function pendingAdmin() view returns (address)",
   "function setImpl(address impl_)"

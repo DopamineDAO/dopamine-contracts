@@ -7,8 +7,6 @@ import './RaritySocietyDAOStorage.sol';
 
 contract RaritySocietyDAOImpl is RaritySocietyDAOStorageV1, IRaritySocietyDAO, ERC165 {
 
-    string public constant name = 'Rarity Society DAO';
-
 	uint256 public constant MIN_PROPOSAL_THRESHOLD = 1;
 
 	uint256 public constant MAX_PROPOSAL_THRESHOLD_BPS = 1_000; // 10%
@@ -29,11 +27,16 @@ contract RaritySocietyDAOImpl is RaritySocietyDAOStorageV1, IRaritySocietyDAO, E
 
 	bytes32 public constant BALLOT_TYPEHASH = keccak256("Ballot(uint256 proposalId,uint8 support)");
 
-    bytes32 private _HASHED_NAME;
-    bytes32 private _HASHED_VERSION;
-    bytes32 private _TYPE_HASH;
-    uint256 private _CACHED_CHAIN_ID;
-    bytes32 private _CACHED_DOMAIN_SEPARATOR;
+    // keccak256(bytes("Rarity Society DAO"));
+    bytes32 private constant _HASHED_NAME = 0x9DA14928BDE692BAFF0A25899816D2C3150D9FBAE1906909A24F755D610DDD03;
+
+    // keccak256(bytes("1"));
+    bytes32 private constant _HASHED_VERSION = 0xC89EFDAA54C0F20C7ADF612882DF0950F5A951637E0307CDCB4C672F298B8BC6;
+
+    // keccak256("EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)");
+    bytes32 private constant _TYPE_HASH = 0x8B73C3C69BB8FE3D512ECC4CF759CC79239F7B179B0FFACAA9A75D522B39400F;
+
+    bytes32 private _DOMAIN_SEPARATOR;
 
 
 	modifier onlyAdmin() {
@@ -84,14 +87,7 @@ contract RaritySocietyDAOImpl is RaritySocietyDAOStorageV1, IRaritySocietyDAO, E
 		proposalThreshold = proposalThreshold_;
 		quorumVotesBPS = quorumVotesBPS_;
 
-        bytes32 hashedName = keccak256(bytes("Rarity Society DAO"));
-        bytes32 hashedVersion = keccak256(bytes("1"));
-        bytes32 typeHash = keccak256("EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)");
-        _HASHED_NAME = hashedName;
-        _HASHED_VERSION = hashedVersion;
-        _CACHED_CHAIN_ID = block.chainid;
-        _CACHED_DOMAIN_SEPARATOR = _buildDomainSeparator(typeHash, hashedName, hashedVersion);
-        _TYPE_HASH = typeHash;
+        _DOMAIN_SEPARATOR = _buildDomainSeparator(_TYPE_HASH, _HASHED_NAME, _HASHED_VERSION);
 
         require(
             proposalThreshold_ >= MIN_PROPOSAL_THRESHOLD && proposalThreshold_ <= maxProposalThreshold(),
@@ -334,7 +330,7 @@ contract RaritySocietyDAOImpl is RaritySocietyDAOStorageV1, IRaritySocietyDAO, E
 			proposal.againstVotes = proposal.againstVotes + votes;
 		} else if (support == 1) {
 			proposal.forVotes = proposal.forVotes + votes;
-		} else if (support == 2) {
+		} else {
 			proposal.abstainVotes = proposal.abstainVotes + votes;
 		}
 
@@ -407,7 +403,6 @@ contract RaritySocietyDAOImpl is RaritySocietyDAOStorageV1, IRaritySocietyDAO, E
     }
 
 	function acceptAdmin() external override onlyPendingAdmin {
-		require(pendingAdmin != address(0), 'pending admin not yet set!');
 
 		address oldAdmin = admin;
 		address oldPendingAdmin = pendingAdmin;
@@ -452,11 +447,7 @@ contract RaritySocietyDAOImpl is RaritySocietyDAOStorageV1, IRaritySocietyDAO, E
     }
 
     function _domainSeparatorV4() internal view returns (bytes32) {
-        if (block.chainid == _CACHED_CHAIN_ID) {
-            return _CACHED_DOMAIN_SEPARATOR;
-        } else {
-            return _buildDomainSeparator(_TYPE_HASH, _HASHED_NAME, _HASHED_VERSION);
-        }
+        return _DOMAIN_SEPARATOR;
     }
 
 }
