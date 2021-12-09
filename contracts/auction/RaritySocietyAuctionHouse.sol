@@ -17,6 +17,17 @@ import { IWETH } from '../interfaces/IWETH.sol';
 
 contract RaritySocietyAuctionHouse is IRaritySocietyAuctionHouse, PausableUpgradeable, ReentrancyGuardUpgradeable, OwnableUpgradeable {
 
+    uint256 public constant MIN_TIME_BUFFER = 60 seconds;
+    uint256 public constant MAX_TIME_BUFFER = 24 hours;
+
+    uint256 public constant MIN_RESERVE_PRICE = 1 wei;
+    uint256 public constant MAX_RESERVE_PRICE = 99 ether;
+
+    uint256 public constant MIN_DURATION = 1 hours;
+    uint256 public constant MAX_DURATION = 1 weeks;
+
+    uint256 public constant MAX_TREASURY_SPLIT = 100;
+
     // The minimum percentage difference between the last bid amount and the current bid
     uint8 public constant MIN_BID_INCREMENT_PERCENTAGE = 5;
 
@@ -32,17 +43,17 @@ contract RaritySocietyAuctionHouse is IRaritySocietyAuctionHouse, PausableUpgrad
     // The minimum price accepted in an auction
     uint256 public reservePrice;
 
-    // The percentage of auction proceeds to direct to the core team
-    uint256 public teamFeePercentage;
+    // The percentage of auction proceeds to direct to the treasury
+    uint256 public treasurySplit;
 
-    // The duration of a single auction
+    // The duration of a single auction (seconds)
     uint256 public duration;
 
     // The active auction
     Auction public auction;
 
     // Team multisig address
-    address public teamReserve;
+    address public reserve;
 
     /**
      * @notice Initialize the auction house and base contracts,
@@ -51,7 +62,9 @@ contract RaritySocietyAuctionHouse is IRaritySocietyAuctionHouse, PausableUpgrad
      */
     function initialize(
         IRaritySocietyToken _token,
+        address _reserve,
         address _weth,
+        uint256 _treasurySplit,
         uint256 _timeBuffer,
         uint256 _reservePrice,
         uint256 _duration
@@ -62,8 +75,33 @@ contract RaritySocietyAuctionHouse is IRaritySocietyAuctionHouse, PausableUpgrad
 
         _pause();
 
+        require(
+            _timeBuffer >= MIN_TIME_BUFFER && _timeBuffer <= MAX_TIME_BUFFER,
+            'time buffer is invalid'
+        );
+        require(
+            _reservePrice >= MIN_RESERVE_PRICE && _reservePrice <= MAX_RESERVE_PRICE,
+            'reserve price is invalid'
+        );
+        require(
+            _treasurySplit <= MAX_TREASURY_SPLIT,
+            'treasury split is invalid'
+        );
+        require(
+            _duration >= MIN_DURATION && _duration <= MAX_DURATION,
+            'duration is invalid'
+        );
+
+        emit AuctionTreasurySplitSet(_treasurySplit);
+        emit AuctionTimeBufferSet(_timeBuffer);
+        emit AuctionReservePriceSet(_reservePrice);
+        emit AuctionDurationSet(_duration);
+
         token = _token;
         weth = _weth;
+        reserve = _reserve;
+
+        treasurySplit = _treasurySplit;
         timeBuffer = _timeBuffer;
         reservePrice = _reservePrice;
         duration = _duration;
@@ -92,12 +130,12 @@ contract RaritySocietyAuctionHouse is IRaritySocietyAuctionHouse, PausableUpgrad
     function createBid(uint256 tokenId) external payable override nonReentrant {
         Auction memory _auction = auction;
 
-        require(_auction.tokenId == tokenId, 'Noun not up for auction');
+        require(_auction.tokenId == tokenId, 'Rarity Pass not up for auction');
         require(block.timestamp < _auction.endTime, 'Auction expired');
-        require(msg.value >= reservePrice, 'Must send at least reservePrice');
+        require(msg.value >= reservePrice, 'Bid lower than reserve price');
         require(
             msg.value >= _auction.amount + ((_auction.amount * MIN_BID_INCREMENT_PERCENTAGE) / 100),
-            'Must send more than last bid by minBidIncrementPercentage amount'
+            'Bid must be at least 5% greater than last bid'
         );
 
         address payable lastBidder = _auction.bidder;
@@ -111,16 +149,13 @@ contract RaritySocietyAuctionHouse is IRaritySocietyAuctionHouse, PausableUpgrad
         auction.bidder = payable(msg.sender);
 
         // Extend the auction if the bid was received within `timeBuffer` of the auction end time
-        bool extended = _auction.endTime - block.timestamp < timeBuffer;
+        bool extended = _auction.endTime - block.timestamp <= timeBuffer;
         if (extended) {
             auction.endTime = _auction.endTime = block.timestamp + timeBuffer;
+            emit AuctionExtended(_auction.tokenId, _auction.endTime);
         }
 
         emit AuctionBid(_auction.tokenId, msg.sender, msg.value, extended);
-
-        if (extended) {
-            emit AuctionExtended(_auction.tokenId, _auction.endTime);
-        }
     }
 
     /**
@@ -151,6 +186,11 @@ contract RaritySocietyAuctionHouse is IRaritySocietyAuctionHouse, PausableUpgrad
      * @dev Only callable by the owner.
      */
     function setDuration(uint256 _duration) external override onlyOwner {
+        require(
+            _duration >= MIN_DURATION && _duration <= MAX_DURATION,
+            'duration is invalid'
+        );
+
         duration = _duration;
 
         emit AuctionDurationSet(_duration);
@@ -160,10 +200,15 @@ contract RaritySocietyAuctionHouse is IRaritySocietyAuctionHouse, PausableUpgrad
      * @notice Set the auction team fee percentage.
      * @dev Only callable by the owner.
      */
-    function setTeamFeePercentage(uint256 _teamFeePercentage) external override onlyOwner {
-        teamFeePercentage = _teamFeePercentage;
+    function setTreasurySplit(uint256 _treasurySplit) external override onlyOwner {
+        require(
+            _treasurySplit <= MAX_TREASURY_SPLIT,
+            'treasury split is invalid'
+        );
 
-        emit AuctionTeamFeePercentageSet(_teamFeePercentage);
+        treasurySplit = _treasurySplit;
+
+        emit AuctionTreasurySplitSet(_treasurySplit);
     }
 
     /**
@@ -171,6 +216,10 @@ contract RaritySocietyAuctionHouse is IRaritySocietyAuctionHouse, PausableUpgrad
      * @dev Only callable by the owner.
      */
     function setTimeBuffer(uint256 _timeBuffer) external override onlyOwner {
+        require(
+            _timeBuffer >= MIN_TIME_BUFFER && _timeBuffer <= MAX_TIME_BUFFER,
+            'time buffer is invalid'
+        );
         timeBuffer = _timeBuffer;
 
         emit AuctionTimeBufferSet(_timeBuffer);
@@ -181,6 +230,10 @@ contract RaritySocietyAuctionHouse is IRaritySocietyAuctionHouse, PausableUpgrad
      * @dev Only callable by the owner.
      */
     function setReservePrice(uint256 _reservePrice) external override onlyOwner {
+        require(
+            _reservePrice >= MIN_RESERVE_PRICE && _reservePrice <= MAX_RESERVE_PRICE,
+            'reserve price is invalid'
+        );
         reservePrice = _reservePrice;
 
         emit AuctionReservePriceSet(_reservePrice);
@@ -232,10 +285,10 @@ contract RaritySocietyAuctionHouse is IRaritySocietyAuctionHouse, PausableUpgrad
         }
 
         if (_auction.amount > 0) {
-            uint256 teamProceeds = _auction.amount * teamFeePercentage / 100;
-            uint256 treasuryProceeds = _auction.amount - teamProceeds;
+            uint256 treasuryProceeds = _auction.amount * treasurySplit / 100;
+            uint256 teamProceeds = _auction.amount - treasuryProceeds;
             _safeTransferETHWithFallback(owner(), treasuryProceeds);
-            _safeTransferETHWithFallback(teamReserve, teamProceeds);
+            _safeTransferETHWithFallback(reserve, teamProceeds);
         }
 
         emit AuctionSettled(_auction.tokenId, _auction.bidder, _auction.amount);

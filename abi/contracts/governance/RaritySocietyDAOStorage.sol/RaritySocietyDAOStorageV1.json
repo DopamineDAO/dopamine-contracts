@@ -1,7 +1,5 @@
 [
   "function admin() view returns (address)",
-  "function c_0x25db8289(bytes32 c__0x25db8289) pure",
-  "function c_0x5a201ee0(bytes32 c__0x5a201ee0) pure",
   "function impl() view returns (address)",
   "function latestProposalIds(address) view returns (uint256)",
   "function pendingAdmin() view returns (address)",

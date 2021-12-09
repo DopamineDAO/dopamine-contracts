@@ -5,14 +5,23 @@ import { Constants } from "./constants";
 import {
   RaritySocietyToken,
   RaritySocietyToken__factory,
+	IWETH,
+	IRaritySocietyDAOToken,
+	MockWETH__factory,
+	GasBurner,
+	GasBurner__factory,
+	MockWETH,
   MockERC721Token__factory,
   MockERC721Token,
   MockRaritySocietyDAOImpl__factory,
   MockRaritySocietyDAOImpl,
   RaritySocietyDAOImpl__factory,
   RaritySocietyDAOImpl,
+	IRaritySocietyDAOToken__factory,
   RaritySocietyDAOProxy__factory,
   RaritySocietyDAOProxy,
+	RaritySocietyAuctionHouse,
+	RaritySocietyAuctionHouse__factory,
   Timelock,
   Timelock__factory,
   IProxyRegistry,
@@ -20,7 +29,7 @@ import {
 } from "../../typechain";
 
 export type RaritySocietyDAOProxyFixture = {
-  token: RaritySocietyToken;
+  token: MockERC721Token;
   timelock: Timelock;
   dao: RaritySocietyDAOProxy;
   daoProxyImpl: RaritySocietyDAOImpl;
@@ -28,7 +37,7 @@ export type RaritySocietyDAOProxyFixture = {
 };
 
 export type RaritySocietyDAOImplFixture = {
-  token: RaritySocietyToken;
+  token: MockERC721Token;
   timelock: Timelock;
   daoImpl: MockRaritySocietyDAOImpl;
   daoImplFactory: MockRaritySocietyDAOImpl__factory;
@@ -39,15 +48,31 @@ export type RaritySocietyTokenFixture = {
   registry: IProxyRegistry;
 };
 
-export async function raritySocietyTokenFixture(
-  signers: Signer[]
-): Promise<RaritySocietyTokenFixture> {
+export type RaritySocietyAuctionHouseFixture  = {
+  token: MockERC721Token;
+  weth: IWETH;
+	auctionHouse: RaritySocietyAuctionHouse;
+};
+
+export async function wethFixture(
+	signers: Signer[]
+): Promise<MockWETH> {
   const deployer: SignerWithAddress = signers[0] as SignerWithAddress;
-  const tokenFactory = new RaritySocietyToken__factory(deployer);
-  const registryFactory = new MockProxyRegistry__factory(deployer);
-  const registry = await registryFactory.deploy();
-  const token = await tokenFactory.deploy(deployer.address, registry.address);
-  return { token, registry };
+  const tokenFactory = new MockWETH__factory(deployer);
+  const token = await tokenFactory.deploy();
+	return token;
+}
+
+export async function raritySocietyAuctionHouseFixture(
+  signers: Signer[]
+): Promise<RaritySocietyAuctionHouseFixture> {
+  const deployer: SignerWithAddress = signers[0] as SignerWithAddress;
+	const weth = await wethFixture(signers);
+  const auctionHouseFactory = new RaritySocietyAuctionHouse__factory(deployer);
+  const auctionHouse = await auctionHouseFactory.deploy();
+  const tokenFactory = new MockERC721Token__factory(deployer);
+  const token = await tokenFactory.deploy(auctionHouse.address, 10);
+  return { weth, token, auctionHouse };
 }
 
 export async function erc721TokenFixture(
@@ -55,7 +80,7 @@ export async function erc721TokenFixture(
 ): Promise<MockERC721Token> {
   const deployer: SignerWithAddress = signers[0] as SignerWithAddress;
   const tokenFactory = new MockERC721Token__factory(deployer);
-  const token = await tokenFactory.deploy(deployer.address);
+  const token = await tokenFactory.deploy(deployer.address, 10);
   return token;
 }
 
@@ -68,16 +93,22 @@ export async function timelockFixture(signers: Signer[]): Promise<Timelock> {
   );
 }
 
+export async function gasBurnerFixture(
+	signers: Signer[]
+): Promise<GasBurner> {
+	const deployer: SignerWithAddress = signers[0] as SignerWithAddress;
+	const gasBurnerFactory = new GasBurner__factory(deployer);
+	return await gasBurnerFactory.deploy();
+}
+
 export async function raritySocietyDAOImplFixture(
   signers: Signer[]
 ): Promise<RaritySocietyDAOImplFixture> {
   const deployer: SignerWithAddress = signers[0] as SignerWithAddress;
   const admin: SignerWithAddress = signers[1] as SignerWithAddress;
   const vetoer: SignerWithAddress = signers[2] as SignerWithAddress;
-  const tokenFactory = new RaritySocietyToken__factory(deployer);
-  const registryFactory = new MockProxyRegistry__factory(deployer);
-  const registry = await registryFactory.deploy();
-  const token = await tokenFactory.deploy(deployer.address, registry.address);
+  const tokenFactory = new MockERC721Token__factory(deployer);
+  const token = await tokenFactory.deploy(deployer.address, 99);
   // 2nd TX MUST be daoImpl deployment
   const daoImplAddress = getContractAddress({
     from: deployer.address,
@@ -108,10 +139,8 @@ export async function raritySocietyDAOProxyFixture(
   const deployer: SignerWithAddress = signers[0] as SignerWithAddress;
   const admin: SignerWithAddress = signers[1] as SignerWithAddress;
   const vetoer: SignerWithAddress = signers[2] as SignerWithAddress;
-  const tokenFactory = new RaritySocietyToken__factory(deployer);
-  const registryFactory = new MockProxyRegistry__factory(deployer);
-  const registry = await registryFactory.deploy();
-  const token = await tokenFactory.deploy(deployer.address, registry.address);
+  const tokenFactory = new MockERC721Token__factory(deployer);
+  const token = await tokenFactory.deploy(deployer.address, 99);
   const daoImplFactory = new RaritySocietyDAOImpl__factory(deployer);
   const daoImpl = await daoImplFactory.deploy();
   const daoAddress = getContractAddress({

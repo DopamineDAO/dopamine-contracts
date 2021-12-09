@@ -1,6 +1,5 @@
 [
   "event OwnershipTransferred(address indexed previousOwner, address indexed newOwner)",
-  "function c_0xa719b637(bytes32 c__0xa719b637) pure",
   "function changeProxyAdmin(address proxy, address newAdmin)",
   "function getProxyAdmin(address proxy) view returns (address)",
   "function getProxyImplementation(address proxy) view returns (address)",

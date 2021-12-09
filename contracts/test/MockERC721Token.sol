@@ -12,18 +12,22 @@ import { IERC721 } from '@openzeppelin/contracts/token/ERC721/IERC721.sol';
 
 contract MockERC721Token is Ownable, ERC721Checkpointable {
 
+    uint256 public immutable maxSupply;
+
     address public minter;
-    // The internal token id tracker
+
     uint256 private _currentId;
 
-    constructor(address _minter) ERC721('Rarity Society', 'RARITY') ERC721Checkpointable('Rarity Society') {
+    constructor(address _minter, uint256 _maxSupply) ERC721('Rarity Society', 'RARITY') ERC721Checkpointable('Rarity Society') {
         minter = _minter;
+        maxSupply = _maxSupply;
     }
 
     /**
      * @notice Mint a rarity society.
      */
     function mint() public returns (uint256) {
+        require(totalSupply() < maxSupply, "max supply reached");
         return mintToken(_currentId++);
     }
 

@@ -45,7 +45,7 @@ interface IRaritySocietyAuctionHouse {
 
     event AuctionReservePriceSet(uint256 reservePrice);
 
-    event AuctionTeamFeePercentageSet(uint256 teamFeePercentage);
+    event AuctionTreasurySplitSet(uint256 teamFeePercentage);
 
     event AuctionDurationSet(uint256 duration);
 
@@ -63,7 +63,7 @@ interface IRaritySocietyAuctionHouse {
 
     function setReservePrice(uint256 reservePrice) external;
 
-    function setTeamFeePercentage(uint256 teamFeePercentage) external;
+    function setTreasurySplit(uint256 teamFeePercentage) external;
 
     function setDuration(uint256 duration) external;
 

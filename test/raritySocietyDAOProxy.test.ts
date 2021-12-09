@@ -45,7 +45,6 @@ describe("RaritySocietyDAOProxy", function () {
       daoImpl: daoImpl,
     } = await loadFixture(raritySocietyDAOProxyFixture));
 		this.contract = this.daoImpl;
-		await this.token.createDrop("", 99);
   });
 
   describe("initialization", function () {
