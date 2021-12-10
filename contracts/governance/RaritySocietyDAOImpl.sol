@@ -5,7 +5,7 @@ import '@openzeppelin/contracts/utils/introspection/ERC165.sol';
 import '../interfaces/IRaritySocietyDAO.sol';
 import './RaritySocietyDAOStorage.sol';
 
-contract RaritySocietyDAOImpl is RaritySocietyDAOStorageV1, IRaritySocietyDAO, ERC165 {
+contract RaritySocietyDAOImpl is RaritySocietyDAOStorageV1, ERC165, IRaritySocietyDAO {
 
 	uint256 public constant MIN_PROPOSAL_THRESHOLD = 1;
 
@@ -40,7 +40,7 @@ contract RaritySocietyDAOImpl is RaritySocietyDAOStorageV1, IRaritySocietyDAO, E
 
 
 	modifier onlyAdmin() {
-		require(msg.sender == admin, "admin only");
+		require(msg.sender == daoAdmin, "admin only");
 		_;
 	}
 
@@ -50,6 +50,7 @@ contract RaritySocietyDAOImpl is RaritySocietyDAOStorageV1, IRaritySocietyDAO, E
 	}
 
 	function initialize(
+        address daoAdmin_,
 		address timelock_,
 		address token_,
 		address vetoer_,
@@ -57,10 +58,10 @@ contract RaritySocietyDAOImpl is RaritySocietyDAOStorageV1, IRaritySocietyDAO, E
 		uint256 votingDelay_,
 		uint256 proposalThreshold_,
 		uint256 quorumVotesBPS_
-	) public onlyAdmin {
-		require(address(timelock) == address(0), 'initializable only once');
-        require(token_ != address(0), 'invalid governance token address');
+	) public initializer {
+        require(daoAdmin_ != address(0), 'invalid admin address');
         require(timelock_ != address(0), 'invalid timelock address');
+        require(token_ != address(0), 'invalid governance token address');
         require(
             votingPeriod_ >= MIN_VOTING_PERIOD && votingPeriod_ <= MAX_VOTING_PERIOD,
             'invalid voting period'
@@ -74,11 +75,13 @@ contract RaritySocietyDAOImpl is RaritySocietyDAOStorageV1, IRaritySocietyDAO, E
             'invalid quorum votes threshold'
         );
 
+		emit NewAdmin(daoAdmin, daoAdmin_);
         emit VotingPeriodSet(votingPeriod, votingPeriod_);
         emit VotingDelaySet(votingDelay, votingDelay_);
         emit ProposalThresholdSet(proposalThreshold, proposalThreshold_);
         emit QuorumVotesBPSSet(quorumVotesBPS, quorumVotesBPS_);
 
+        daoAdmin = daoAdmin_;
         token = IRaritySocietyDAOToken(token_);
 		timelock = ITimelock(timelock_);
 		vetoer = vetoer_;
@@ -404,13 +407,13 @@ contract RaritySocietyDAOImpl is RaritySocietyDAOStorageV1, IRaritySocietyDAO, E
 
 	function acceptAdmin() external override onlyPendingAdmin {
 
-		address oldAdmin = admin;
+		address oldAdmin = daoAdmin;
 		address oldPendingAdmin = pendingAdmin;
 
-		admin = pendingAdmin;
+		daoAdmin = pendingAdmin;
 		pendingAdmin = address(0);
 
-		emit NewAdmin(oldAdmin, admin);
+		emit NewAdmin(oldAdmin, daoAdmin);
 		emit NewPendingAdmin(oldPendingAdmin, pendingAdmin);
 	}
 

@@ -106,7 +106,7 @@ export function testRaritySocietyDAOImplInitialize(): void {
         Constants.PROPOSAL_THRESHOLD,
         Constants.QUORUM_VOTES_BPS
       );
-      expect(await daoImpl.admin()).to.equal(this.admin.address);
+      expect(await daoImpl.daoAdmin()).to.equal(this.admin.address);
       expect(await daoImpl.pendingAdmin()).to.equal(constants.AddressZero);
       expect(await daoImpl.vetoer()).to.equal(this.vetoer.address);
       expect(await daoImpl.votingPeriod()).to.equal(Constants.VOTING_PERIOD);

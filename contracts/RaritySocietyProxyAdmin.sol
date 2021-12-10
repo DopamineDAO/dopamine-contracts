@@ -6,4 +6,4 @@ pragma solidity ^0.8.9;
 
 import { ProxyAdmin } from '@openzeppelin/contracts/proxy/transparent/ProxyAdmin.sol';
 
-contract RaritySocietyAuctionHouseProxyAdmin is ProxyAdmin {}
+contract RaritySocietyProxyAdmin is ProxyAdmin {}

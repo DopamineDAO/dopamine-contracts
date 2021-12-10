@@ -20,9 +20,7 @@ contract MockRaritySocietyDAOImpl is RaritySocietyDAOImpl {
 		uint256 proposalThreshold_,
 		uint256 quorumVotesBPS_
 	) {
-        admin = msg.sender;
-        initialize(timelock_, token_, vetoer_, votingPeriod_, votingDelay_, proposalThreshold_, quorumVotesBPS_);
-        admin = admin_;
+        initialize(admin_, timelock_, token_, vetoer_, votingPeriod_, votingDelay_, proposalThreshold_, quorumVotesBPS_);
 
     }
 }

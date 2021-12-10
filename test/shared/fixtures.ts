@@ -1,4 +1,5 @@
 import { Signer } from "@ethersproject/abstract-signer";
+import { ethers } from "hardhat";
 import { getContractAddress } from "@ethersproject/address";
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import { Constants } from "./constants";
@@ -21,6 +22,8 @@ import {
   RaritySocietyDAOProxy__factory,
   RaritySocietyDAOProxy,
 	RaritySocietyAuctionHouse,
+	RaritySocietyProxyAdmin,
+	RaritySocietyProxyAdmin__factory,
 	RaritySocietyAuctionHouse__factory,
   Timelock,
   Timelock__factory,
@@ -34,6 +37,7 @@ export type RaritySocietyDAOProxyFixture = {
   dao: RaritySocietyDAOProxy;
   daoProxyImpl: RaritySocietyDAOImpl;
   daoImpl: RaritySocietyDAOImpl;
+	proxyAdmin: RaritySocietyProxyAdmin;
 };
 
 export type RaritySocietyDAOImplFixture = {
@@ -143,6 +147,8 @@ export async function raritySocietyDAOProxyFixture(
   const token = await tokenFactory.deploy(deployer.address, 99);
   const daoImplFactory = new RaritySocietyDAOImpl__factory(deployer);
   const daoImpl = await daoImplFactory.deploy();
+	const proxyAdminFactory = new RaritySocietyProxyAdmin__factory(deployer);
+	const proxyAdmin = await proxyAdminFactory.deploy();
   const daoAddress = getContractAddress({
     from: deployer.address,
     nonce: (await deployer.getTransactionCount()) + 1,
@@ -153,17 +159,24 @@ export async function raritySocietyDAOProxyFixture(
     Constants.TIMELOCK_DELAY
   );
   const daoFactory = new RaritySocietyDAOProxy__factory(deployer);
-  const dao = await daoFactory.deploy(
-    timelock.address,
-    token.address,
-    vetoer.address,
-    admin.address,
-    daoImpl.address,
-    Constants.VOTING_PERIOD,
-    Constants.VOTING_DELAY,
+	const iface = new ethers.utils.Interface([
+		"function initialize(address daoAdmin, address timelock_, address token_, address vetoer_, uint256 votingPeriod_, uint256 votingDelay_, uint256 proposalThreshold_, uint256 quorumVotesBPS_)",
+	]);
+	const initCallData = iface.encodeFunctionData("initialize", [
+		admin.address,
+		timelock.address,
+		token.address,
+		vetoer.address,
+		Constants.VOTING_PERIOD,
+		Constants.VOTING_DELAY,
     Constants.PROPOSAL_THRESHOLD,
-    Constants.QUORUM_VOTES_BPS
+    Constants.QUORUM_VOTES_BPS,
+	]);
+  const dao = await daoFactory.deploy(
+    daoImpl.address,
+    proxyAdmin.address,
+		initCallData
   );
   const daoProxyImpl = daoImplFactory.attach(dao.address);
-  return { token, timelock, dao, daoProxyImpl, daoImpl };
+  return { token, timelock, dao, daoProxyImpl, daoImpl, proxyAdmin };
 }

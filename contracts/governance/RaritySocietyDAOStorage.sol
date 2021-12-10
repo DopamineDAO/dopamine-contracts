@@ -1,17 +1,15 @@
 pragma solidity ^0.8.9;
 
+import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import '../interfaces/ITimelock.sol';
 import '../interfaces/IRaritySocietyDAOToken.sol';
 import '../interfaces/IRaritySocietyDAO.sol';
 
-contract RaritySocietyDAOProxyStorage {
+contract RaritySocietyDAOStorageV1 is Initializable {
 
-    address public admin;
+    address public daoAdmin;
+
     address public pendingAdmin;
-    address public impl;
-}
-
-contract RaritySocietyDAOStorageV1 is RaritySocietyDAOProxyStorage {
 
     address public vetoer;
 
