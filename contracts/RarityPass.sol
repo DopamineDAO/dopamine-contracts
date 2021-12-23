@@ -4,17 +4,18 @@
 
 pragma solidity ^0.8.9;
 
-import { Ownable } from '@openzeppelin/contracts/access/Ownable.sol';
-import '@openzeppelin/contracts/utils/Strings.sol';
-import { IRaritySocietyToken } from './interfaces/IRaritySocietyToken.sol';
-import { ERC721Checkpointable } from './erc721/ERC721Checkpointable.sol';
-import { ERC721 } from './erc721/ERC721.sol';
-import { IERC721 } from '@openzeppelin/contracts/token/ERC721/IERC721.sol';
+import '@openzeppelin/contracts-upgradeable/utils/StringsUpgradeable.sol';
+import { OwnableUpgradeable } from '@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol';
+import { IRarityPass } from './interfaces/IRarityPass.sol';
+import { ERC721CheckpointableUpgradeable } from './erc721/ERC721CheckpointableUpgradeable.sol';
+import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
+import { ERC721Upgradeable } from './erc721/ERC721Upgradeable.sol';
+import { IERC721Upgradeable } from '@openzeppelin/contracts-upgradeable/token/ERC721/IERC721Upgradeable.sol';
 import { IProxyRegistry } from './interfaces/IProxyRegistry.sol';
 
-contract RaritySocietyToken is IRaritySocietyToken, Ownable, ERC721Checkpointable {
+contract RarityPass is Initializable, ERC721CheckpointableUpgradeable, OwnableUpgradeable, IRarityPass {
 
-    using Strings for uint256;
+    using StringsUpgradeable for uint256;
 
     uint256 public constant MAX_SUPPLY = 9999;
 
@@ -38,7 +39,7 @@ contract RaritySocietyToken is IRaritySocietyToken, Ownable, ERC721Checkpointabl
     uint256 private _currentId;
 
     // OpenSea's Proxy Registry
-    IProxyRegistry public immutable proxyRegistry;
+    IProxyRegistry public proxyRegistry;
 
     // Number of completed drops
     uint256 public drops;
@@ -75,12 +76,25 @@ contract RaritySocietyToken is IRaritySocietyToken, Ownable, ERC721Checkpointabl
         _;
     }
 
-    constructor(
-        address _minter,
-        IProxyRegistry _proxyRegistry
-    ) ERC721('Rarity Society', 'RARITY') ERC721Checkpointable('Rarity Society') {
-        minter = _minter;
-        proxyRegistry = _proxyRegistry;
+    function initialize(
+        string memory name_,
+        string memory symbol_,
+        address minter_,
+        IProxyRegistry proxyRegistry_
+    ) external initializer {
+        __Context_init_unchained();
+        __ERC165_init_unchained();
+        __ERC721_init_unchained(name_, symbol_);
+        __ERC721Enumerable_init_unchained(name_, symbol_);
+        __EIP712_init_unchained(name_, "1");
+        __ERC721Checkpointable_init_unchained(name_);
+        __Ownable_init_unchained();
+        __RaritySocietyToken_init_unchained(minter_, proxyRegistry_);
+    }
+
+    function __RaritySocietyToken_init_unchained(address minter_, IProxyRegistry proxyRegistry_) internal initializer {
+        minter = minter_;
+        proxyRegistry = proxyRegistry_;
     }
 
     function setDropDelay(uint256 dropDelay_) external override onlyOwner {
@@ -134,7 +148,7 @@ contract RaritySocietyToken is IRaritySocietyToken, Ownable, ERC721Checkpointabl
     /**
      * @notice Override isApprovedForAll to whitelist user's OpenSea proxy accounts to enable gas-less listings.
      */
-    function isApprovedForAll(address owner, address operator) public view override(IERC721, ERC721) returns (bool) {
+    function isApprovedForAll(address owner, address operator) public view override(IERC721Upgradeable, ERC721Upgradeable) returns (bool) {
         // Whitelist OpenSea proxy contract for easy trading.
         if (proxyRegistry.proxies(owner) == operator) {
             return true;
@@ -224,14 +238,14 @@ contract RaritySocietyToken is IRaritySocietyToken, Ownable, ERC721Checkpointabl
     }
 
     function dropDelegate(address delegatee, uint256 tokenId) public {
-        require(ERC721.ownerOf(tokenId) == msg.sender, 'gifting of unowned token');
+        require(ERC721Upgradeable.ownerOf(tokenId) == msg.sender, 'gifting of unowned token');
         if (delegatee == address(0)) delegatee = msg.sender;
         _dropDelegate(delegatee, tokenId);
     }
 
     function _dropDelegate(address delegatee, uint256 tokenId) internal {
         dropDelegates[tokenId] = delegatee;
-        emit DropDelegate(ERC721.ownerOf(tokenId), delegatee, tokenId);
+        emit DropDelegate(ERC721Upgradeable.ownerOf(tokenId), delegatee, tokenId);
     }
 
     // @notice Returns integer that represents the drop corresponding to tokenId

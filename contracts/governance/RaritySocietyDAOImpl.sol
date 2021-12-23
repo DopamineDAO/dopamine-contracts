@@ -58,7 +58,7 @@ contract RaritySocietyDAOImpl is RaritySocietyDAOStorageV1, ERC165, IRaritySocie
 		uint256 votingDelay_,
 		uint256 proposalThreshold_,
 		uint256 quorumVotesBPS_
-	) public initializer {
+	) external initializer {
         require(daoAdmin_ != address(0), 'invalid admin address');
         require(timelock_ != address(0), 'invalid timelock address');
         require(token_ != address(0), 'invalid governance token address');

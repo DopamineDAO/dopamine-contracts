@@ -4,6 +4,7 @@ import { waffle, ethers } from "hardhat";
 import { Wallet } from "@ethersproject/wallet";
 import { raritySocietyDAOImplFixture } from "./shared/fixtures";
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
+import { Constants } from "./shared/constants";
 
 import { testRaritySocietyDAOImplInitialize } from "./raritySocietyDAOImpl/initialize.behavior";
 import { testRaritySocietyDAOImplPropose } from "./raritySocietyDAOImpl/propose.behavior";
@@ -35,16 +36,32 @@ describe("RaritySocietyDAO", function () {
       ({
         token: this.token,
         timelock: this.timelock,
-        daoImplFactory: this.daoImplFactory,
         daoImpl: this.daoImpl,
       } = await loadFixture(raritySocietyDAOImplFixture));
 			this.contract = this.daoImpl;
     }
   );
 
-  testRaritySocietyDAOImplInitialize();
-  testRaritySocietyDAOImplSettings();
-  testRaritySocietyDAOImplPropose();
-  testRaritySocietyDAOImplCastVote();
-  testRaritySocietyDAOImplLifecycle();
+	context("pre-initialization", function () {
+		testRaritySocietyDAOImplInitialize();
+	});
+
+	context("post-initialization", function () {
+		beforeEach(async function () {
+      await this.daoImpl.initialize(
+        this.admin.address,
+        this.timelock.address,
+        this.token.address,
+        this.vetoer.address,
+        Constants.VOTING_PERIOD,
+        Constants.VOTING_DELAY,
+        Constants.PROPOSAL_THRESHOLD,
+        Constants.QUORUM_VOTES_BPS
+      );
+		});
+		testRaritySocietyDAOImplSettings();
+		testRaritySocietyDAOImplPropose();
+		testRaritySocietyDAOImplCastVote();
+		testRaritySocietyDAOImplLifecycle();
+	});
 });

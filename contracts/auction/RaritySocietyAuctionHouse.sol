@@ -12,7 +12,7 @@ import { ReentrancyGuardUpgradeable } from '@openzeppelin/contracts-upgradeable/
 import { OwnableUpgradeable } from '@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol';
 import { IERC20 } from '@openzeppelin/contracts/token/ERC20/IERC20.sol';
 import { IRaritySocietyAuctionHouse } from '../interfaces/IRaritySocietyAuctionHouse.sol';
-import { IRaritySocietyToken } from '../interfaces/IRaritySocietyToken.sol';
+import { IRarityPass } from '../interfaces/IRarityPass.sol';
 import { IWETH } from '../interfaces/IWETH.sol';
 
 contract RaritySocietyAuctionHouse is IRaritySocietyAuctionHouse, PausableUpgradeable, ReentrancyGuardUpgradeable, OwnableUpgradeable {
@@ -32,7 +32,7 @@ contract RaritySocietyAuctionHouse is IRaritySocietyAuctionHouse, PausableUpgrad
     uint8 public constant MIN_BID_INCREMENT_PERCENTAGE = 5;
 
     // The Nouns ERC721 token contract
-    IRaritySocietyToken public token;
+    IRarityPass public token;
 
     // The address of the WETH contract
     address public weth;
@@ -61,7 +61,7 @@ contract RaritySocietyAuctionHouse is IRaritySocietyAuctionHouse, PausableUpgrad
      * @dev This function can only be called once.
      */
     function initialize(
-        IRaritySocietyToken _token,
+        IRarityPass _token,
         address _reserve,
         address _weth,
         uint256 _treasurySplit,

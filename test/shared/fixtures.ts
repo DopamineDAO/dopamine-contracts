@@ -14,8 +14,6 @@ import {
 	MockWETH,
   MockERC721Token__factory,
   MockERC721Token,
-  MockRaritySocietyDAOImpl__factory,
-  MockRaritySocietyDAOImpl,
   RaritySocietyDAOImpl__factory,
   RaritySocietyDAOImpl,
 	IRaritySocietyDAOToken__factory,
@@ -43,8 +41,7 @@ export type RaritySocietyDAOProxyFixture = {
 export type RaritySocietyDAOImplFixture = {
   token: MockERC721Token;
   timelock: Timelock;
-  daoImpl: MockRaritySocietyDAOImpl;
-  daoImplFactory: MockRaritySocietyDAOImpl__factory;
+  daoImpl: RaritySocietyDAOImpl;
 };
 
 export type RaritySocietyTokenFixture = {
@@ -123,18 +120,9 @@ export async function raritySocietyDAOImplFixture(
     daoImplAddress,
     Constants.TIMELOCK_DELAY
   );
-  const daoImplFactory = new MockRaritySocietyDAOImpl__factory(deployer);
-  const daoImpl = await daoImplFactory.deploy(
-    timelock.address,
-    token.address,
-    vetoer.address,
-    admin.address,
-    Constants.VOTING_PERIOD,
-    Constants.VOTING_DELAY,
-    Constants.PROPOSAL_THRESHOLD,
-    Constants.QUORUM_VOTES_BPS
-  );
-  return { token, timelock, daoImplFactory, daoImpl };
+  const daoImplFactory = new RaritySocietyDAOImpl__factory(deployer);
+  const daoImpl = await daoImplFactory.deploy();
+  return { token, timelock, daoImpl };
 }
 
 export async function raritySocietyDAOProxyFixture(

@@ -21,11 +21,13 @@
 
 pragma solidity ^0.8.9;
 
-import './ERC721Enumerable.sol';
-import "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
-import "@openzeppelin/contracts/utils/cryptography/draft-EIP712.sol";
+import './ERC721EnumerableUpgradeable.sol';
+import "@openzeppelin/contracts-upgradeable/utils/cryptography/ECDSAUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
+import "@openzeppelin/contracts-upgradeable/utils/cryptography/draft-EIP712Upgradeable.sol";
 
-abstract contract ERC721Checkpointable is ERC721Enumerable, EIP712 {
+// TODO: Add interface for checkpointable contract
+abstract contract ERC721CheckpointableUpgradeable is Initializable, ERC721EnumerableUpgradeable, EIP712Upgradeable {
     /// @notice Defines decimals as per ERC-20 convention to make integrations with 3rd party governance platforms easier
     uint8 public constant decimals = 0;
 
@@ -54,9 +56,15 @@ abstract contract ERC721Checkpointable is ERC721Enumerable, EIP712 {
     /// @notice An event thats emitted when a delegate account's vote balance changes
     event DelegateVotesChanged(address indexed delegate, uint256 previousBalance, uint256 newBalance);
 
-    event Nonce(uint256 indexed nonce);
+    function __ERC721Checkpointable_init(string memory name_) internal initializer {
+        __Context_init_unchained();
+        __ERC165_init_unchained();
+        __EIP712_init_unchained(name_, "1");
+        __ERC721Checkpointable_init_unchained(name_);
+    }
 
-    constructor(string memory name) EIP712(name, "1") {}
+    function __ERC721Checkpointable_init_unchained(string memory name_) internal initializer {
+    }
 
 	/**
      * @dev Get number of checkpoints for `account`.
@@ -117,7 +125,7 @@ abstract contract ERC721Checkpointable is ERC721Enumerable, EIP712 {
         bytes32 s
     ) public {
         require(block.timestamp <= expiry, 'ERC721Checkpointable::delegateBySig: signature expired');
-        address signatory = ECDSA.recover(
+        address signatory = ECDSAUpgradeable.recover(
             _hashTypedDataV4(keccak256(abi.encode(DELEGATION_TYPEHASH, delegatee, nonce, expiry))),
             v,
             r,
@@ -241,5 +249,7 @@ abstract contract ERC721Checkpointable is ERC721Enumerable, EIP712 {
     function _sub(uint256 a, uint256 b) private pure returns (uint256) {
         return a - b;
     }
+
+    uint256[10] private __gap;
 
 }
