@@ -1,3 +1,4 @@
+pragma solidity ^0.8.9;
 interface ITimelock {
     event NewAdmin(address oldAdmin, address newAdmin);
 

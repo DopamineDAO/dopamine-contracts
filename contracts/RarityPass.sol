@@ -4,18 +4,17 @@
 
 pragma solidity ^0.8.9;
 
-import '@openzeppelin/contracts-upgradeable/utils/StringsUpgradeable.sol';
-import { OwnableUpgradeable } from '@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol';
+import '@openzeppelin/contracts/utils/Strings.sol';
+import { Ownable } from '@openzeppelin/contracts/access/Ownable.sol';
 import { IRarityPass } from './interfaces/IRarityPass.sol';
-import { ERC721CheckpointableUpgradeable } from './erc721/ERC721CheckpointableUpgradeable.sol';
-import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
-import { ERC721Upgradeable } from './erc721/ERC721Upgradeable.sol';
-import { IERC721Upgradeable } from '@openzeppelin/contracts-upgradeable/token/ERC721/IERC721Upgradeable.sol';
+import { ERC721Checkpointable } from './erc721/ERC721Checkpointable.sol';
+import { ERC721 } from './erc721/ERC721.sol';
+import { IERC721 } from '@openzeppelin/contracts/token/ERC721/IERC721.sol';
 import { IProxyRegistry } from './interfaces/IProxyRegistry.sol';
 
-contract RarityPass is Initializable, ERC721CheckpointableUpgradeable, OwnableUpgradeable, IRarityPass {
+contract RarityPass is ERC721Checkpointable, Ownable, IRarityPass {
 
-    using StringsUpgradeable for uint256;
+    using Strings for uint256;
 
     uint256 public constant MAX_SUPPLY = 9999;
 
@@ -76,23 +75,12 @@ contract RarityPass is Initializable, ERC721CheckpointableUpgradeable, OwnableUp
         _;
     }
 
-    function initialize(
+    constructor(
         string memory name_,
         string memory symbol_,
         address minter_,
         IProxyRegistry proxyRegistry_
-    ) external initializer {
-        __Context_init_unchained();
-        __ERC165_init_unchained();
-        __ERC721_init_unchained(name_, symbol_);
-        __ERC721Enumerable_init_unchained(name_, symbol_);
-        __EIP712_init_unchained(name_, "1");
-        __ERC721Checkpointable_init_unchained(name_);
-        __Ownable_init_unchained();
-        __RaritySocietyToken_init_unchained(minter_, proxyRegistry_);
-    }
-
-    function __RaritySocietyToken_init_unchained(address minter_, IProxyRegistry proxyRegistry_) internal initializer {
+    ) ERC721Checkpointable(name_, symbol_) {
         minter = minter_;
         proxyRegistry = proxyRegistry_;
     }
@@ -148,7 +136,7 @@ contract RarityPass is Initializable, ERC721CheckpointableUpgradeable, OwnableUp
     /**
      * @notice Override isApprovedForAll to whitelist user's OpenSea proxy accounts to enable gas-less listings.
      */
-    function isApprovedForAll(address owner, address operator) public view override(IERC721Upgradeable, ERC721Upgradeable) returns (bool) {
+    function isApprovedForAll(address owner, address operator) public view override(IERC721, ERC721) returns (bool) {
         // Whitelist OpenSea proxy contract for easy trading.
         if (proxyRegistry.proxies(owner) == operator) {
             return true;
@@ -238,14 +226,14 @@ contract RarityPass is Initializable, ERC721CheckpointableUpgradeable, OwnableUp
     }
 
     function dropDelegate(address delegatee, uint256 tokenId) public {
-        require(ERC721Upgradeable.ownerOf(tokenId) == msg.sender, 'gifting of unowned token');
+        require(ERC721.ownerOf(tokenId) == msg.sender, 'gifting of unowned token');
         if (delegatee == address(0)) delegatee = msg.sender;
         _dropDelegate(delegatee, tokenId);
     }
 
     function _dropDelegate(address delegatee, uint256 tokenId) internal {
         dropDelegates[tokenId] = delegatee;
-        emit DropDelegate(ERC721Upgradeable.ownerOf(tokenId), delegatee, tokenId);
+        emit DropDelegate(ERC721.ownerOf(tokenId), delegatee, tokenId);
     }
 
     // @notice Returns integer that represents the drop corresponding to tokenId

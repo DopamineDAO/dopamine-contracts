@@ -50,6 +50,7 @@ export const Constants = {
 	EVENT_AUCTION_CREATED: "AuctionCreated",
 	EVENT_AUCTION_BID: "AuctionBid",
 	EVENT_AUCTION_EXTENDED: "AuctionExtended",
+	EVENT_AUCTION_SETTLED: "AuctionSettled",
 
 	EVENT_PAUSED: "Paused",
 	EVENT_UNPAUSED: "Unpaused",

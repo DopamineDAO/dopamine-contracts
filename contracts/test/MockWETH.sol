@@ -1,4 +1,4 @@
-
+pragma solidity ^0.8.9;
 contract MockWETH {
     string public name = "Wrapped Ether";
     string public symbol = "WETH";

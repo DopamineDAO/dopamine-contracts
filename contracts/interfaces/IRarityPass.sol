@@ -4,9 +4,9 @@
 
 pragma solidity ^0.8.9;
 
-import { IERC721Upgradeable } from '@openzeppelin/contracts-upgradeable/token/ERC721/IERC721Upgradeable.sol';
+import { IERC721 } from '@openzeppelin/contracts/token/ERC721/IERC721.sol';
 
-interface IRarityPass is IERC721Upgradeable {
+interface IRarityPass is IERC721 {
 
     struct Drop {
 

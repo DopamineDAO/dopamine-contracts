@@ -1,4 +1,5 @@
 import { Fixture } from "ethereum-waffle";
+import { BigNumber, BigNumberish, Event } from "ethers";
 import { constants } from "ethers";
 import { expect } from "chai";
 import { Signer } from "@ethersproject/abstract-signer";
@@ -442,59 +443,155 @@ describe("RaritySocietyAuctionHouse", function () {
 							expect(await this.token.balanceOf(this.bidderB.address)).to.equal(1);
 					});
 
+					it("sends the auction proceeds to the treasury and team", async function () {
+						await this.auctionHouse.connect(this.bidderA).createBid(0, {value: Constants.RESERVE_PRICE});
+						const endTime = timestamp + Constants.DURATION;
+						await setNextBlockTimestamp(endTime);
+						await this.auctionHouse.pause();
+
+						const ownerPrevBalance = await ethers.provider.getBalance(await this.auctionHouse.owner());
+						const reservePrevBalance = await ethers.provider.getBalance(await this.auctionHouse.reserve());
+
+						await this.auctionHouse.connect(this.bidderA).settleAuction();
+
+						const treasuryProceeds = Math.floor(Constants.RESERVE_PRICE * Constants.TREASURY_SPLIT / 100);
+						console.log(treasuryProceeds)
+						const reserveProceeds = Constants.RESERVE_PRICE - treasuryProceeds;
+
+						const actualOwnerBalance = await ethers.provider.getBalance(await this.auctionHouse.owner());
+						const actualReserveBalance = await ethers.provider.getBalance(await this.auctionHouse.reserve());
+
+						expect(ownerPrevBalance.add(treasuryProceeds)).to.equal(actualOwnerBalance);
+						expect(reservePrevBalance.add(reserveProceeds)).to.equal(actualReserveBalance);
+					});
+
+					it("emits an AuctionSettled event", async function () {
+						const endTime = timestamp + Constants.DURATION;
+						await this.auctionHouse.connect(this.bidderA).createBid(0, {value: Constants.RESERVE_PRICE});
+						await setNextBlockTimestamp(endTime);
+						await this.auctionHouse.pause();
+
+						const tx = await this.auctionHouse.settleAuction();
+						expect(tx)
+							.to.emit(this.auctionHouse, Constants.EVENT_AUCTION_SETTLED)
+							.withArgs(0, this.bidderA.address, Constants.RESERVE_PRICE)
+					});
+
+					it("correctly updates auction state", async function () {
+						const endTime = timestamp + Constants.DURATION;
+						await this.auctionHouse.connect(this.bidderA).createBid(0, {value: Constants.RESERVE_PRICE});
+						await setNextBlockTimestamp(endTime);
+						await this.auctionHouse.pause();
+						await this.auctionHouse.settleAuction();
+						
+						expect((await this.auctionHouse.auction()).tokenId).to.equal(0);
+						expect((await this.auctionHouse.auction()).amount).to.equal(Constants.RESERVE_PRICE);
+						expect((await this.auctionHouse.auction()).startTime).to.equal(timestamp);
+						expect((await this.auctionHouse.auction()).endTime).to.equal(endTime);
+						expect((await this.auctionHouse.auction()).bidder).to.equal(this.bidderA.address);
+						expect((await this.auctionHouse.auction()).settled).to.equal(true);
+					});
 					
 				});
 			});
 
 			describe("settleCurrentAndCreateNewAuction()", function () {
-
-				beforeEach(async function () {
-					timestamp = (await ethers.provider.getBlock("latest")).timestamp + 1;
-					await setNextBlockTimestamp(timestamp);
-					await this.auctionHouse.unpause(); // creates auction
+				
+				it("throws when trying to settle an auction that has not yet begun", async function () {
+          await expect(this.auctionHouse.settleCurrentAndCreateNewAuction()).to.be.revertedWith("Pausable: paused");
 				});
 
-				it("throws when settling an already settled auction", async function () {
-						// Auction last token so pausing doesn't auto-create a new auction
-						const tokenSupply = await this.token.maxSupply();
-						await mintN(this.token, tokenSupply - 1);
+				context("when settling an initiated auction", function () {
+					beforeEach(async function () {
+						timestamp = (await ethers.provider.getBlock("latest")).timestamp + 1;
+						await setNextBlockTimestamp(timestamp);
+						await this.auctionHouse.unpause(); // creates auction
+					});
 
-						const endTime = timestamp + Constants.DURATION;
-						await setNextBlockTimestamp(endTime);
-						await this.auctionHouse.pause()
-						await expect(this.auctionHouse.settleAuction()).not.to.be.reverted;
-						await this.auctionHouse.unpause()
-						await expect(this.auctionHouse.settleCurrentAndCreateNewAuction()).to.be.revertedWith("Auction has already been settled")
-				});
+					it("throws when settling an already settled auction", async function () {
+							const endTime = timestamp + Constants.DURATION;
+							await setNextBlockTimestamp(endTime);
 
-				it("throws when settling an auction yet to complete", async function () {
-						const endTime = timestamp + Constants.DURATION - 1;
-						await setNextBlockTimestamp(endTime);
-						await expect(this.auctionHouse.settleCurrentAndCreateNewAuction()).not.be.revertedWith("Auction hasn't completed");
-				});
+							await this.auctionHouse.pause()
+							await expect(this.auctionHouse.settleAuction()).not.to.be.reverted;
+							await expect(this.auctionHouse.settleCurrentAndCreateNewAuction()).to.be.revertedWith("Pausable: paused")
+					});
 
-				it("transfers the auctioned NFT to the owner if no bids were made", async function () {
-						expect(await this.token.balanceOf(this.deployer.address)).to.equal(0);
-						const endTime = timestamp + Constants.DURATION;
-						await setNextBlockTimestamp(endTime);
-						await this.auctionHouse.settleCurrentAndCreateNewAuction();
-						expect(await this.token.balanceOf(this.deployer.address)).to.equal(1);
-				});
+					it("throws when settling an auction yet to complete", async function () {
+							const endTime = timestamp + Constants.DURATION - 1;
+							await setNextBlockTimestamp(endTime);
+							await expect(this.auctionHouse.settleCurrentAndCreateNewAuction()).to.be.revertedWith("Auction hasn't completed");
+					});
 
-				it("awards the auctioned NFT to the last bidder", async function () {
+					it("transfers the auctioned NFT to the owner if no bids were made", async function () {
+							expect(await this.token.balanceOf(this.deployer.address)).to.equal(0);
+							const endTime = timestamp + Constants.DURATION;
+							await setNextBlockTimestamp(endTime);
+							await this.auctionHouse.settleCurrentAndCreateNewAuction();
+							expect(await this.token.balanceOf(this.deployer.address)).to.equal(1);
+					});
 
-						expect(await this.token.balanceOf(this.bidderA.address)).to.equal(0);
-						expect(await this.token.balanceOf(this.bidderB.address)).to.equal(0);
+					it("awards the auctioned NFT to the last bidder", async function () {
+
+							expect(await this.token.balanceOf(this.bidderA.address)).to.equal(0);
+							expect(await this.token.balanceOf(this.bidderB.address)).to.equal(0);
+							await this.auctionHouse.connect(this.bidderA).createBid(0, {value: Constants.RESERVE_PRICE});
+							await this.auctionHouse.connect(this.bidderB).createBid(0, {value: 2 * Constants.RESERVE_PRICE});
+							const endTime = timestamp + Constants.DURATION;
+							await setNextBlockTimestamp(endTime);
+							await this.auctionHouse.settleCurrentAndCreateNewAuction();
+							expect(await this.token.balanceOf(this.bidderA.address)).to.equal(0);
+							expect(await this.token.balanceOf(this.bidderB.address)).to.equal(1);
+					});
+
+					it("sends the auction proceeds to the treasury and team", async function () {
 						await this.auctionHouse.connect(this.bidderA).createBid(0, {value: Constants.RESERVE_PRICE});
-						await this.auctionHouse.connect(this.bidderB).createBid(0, {value: 2 * Constants.RESERVE_PRICE});
 						const endTime = timestamp + Constants.DURATION;
 						await setNextBlockTimestamp(endTime);
-						await this.auctionHouse.settleCurrentAndCreateNewAuction();
-						expect(await this.token.balanceOf(this.bidderA.address)).to.equal(0);
-						expect(await this.token.balanceOf(this.bidderB.address)).to.equal(1);
-				});
 
-			});
+						const ownerPrevBalance = await ethers.provider.getBalance(await this.auctionHouse.owner());
+						const reservePrevBalance = await ethers.provider.getBalance(await this.auctionHouse.reserve());
+
+						await this.auctionHouse.connect(this.bidderA).settleCurrentAndCreateNewAuction();
+
+						const treasuryProceeds = Math.floor(Constants.RESERVE_PRICE * Constants.TREASURY_SPLIT / 100);
+						console.log(treasuryProceeds)
+						const reserveProceeds = Constants.RESERVE_PRICE - treasuryProceeds;
+
+						const actualOwnerBalance = await ethers.provider.getBalance(await this.auctionHouse.owner());
+						const actualReserveBalance = await ethers.provider.getBalance(await this.auctionHouse.reserve());
+
+						expect(ownerPrevBalance.add(treasuryProceeds)).to.equal(actualOwnerBalance);
+						expect(reservePrevBalance.add(reserveProceeds)).to.equal(actualReserveBalance);
+					});
+
+					it("emits an AuctionSettled event", async function () {
+						const endTime = timestamp + Constants.DURATION;
+						await this.auctionHouse.connect(this.bidderA).createBid(0, {value: Constants.RESERVE_PRICE});
+						await setNextBlockTimestamp(endTime);
+						const tx = await this.auctionHouse.settleCurrentAndCreateNewAuction();
+						expect(tx)
+							.to.emit(this.auctionHouse, Constants.EVENT_AUCTION_SETTLED)
+							.withArgs(0, this.bidderA.address, Constants.RESERVE_PRICE)
+					});
+
+					it("correctly updates auction state to that of a fresh new auction", async function () {
+						const endTime = timestamp + Constants.DURATION;
+						await this.auctionHouse.connect(this.bidderA).createBid(0, {value: Constants.RESERVE_PRICE});
+						await setNextBlockTimestamp(endTime);
+						await this.auctionHouse.settleCurrentAndCreateNewAuction();
+						
+						expect((await this.auctionHouse.auction()).tokenId).to.equal(1);
+						expect((await this.auctionHouse.auction()).amount).to.equal(0);
+						expect((await this.auctionHouse.auction()).startTime).to.equal(endTime);
+						expect((await this.auctionHouse.auction()).endTime).to.equal(endTime + Constants.DURATION);
+						expect((await this.auctionHouse.auction()).bidder).to.equal(constants.AddressZero);
+						expect((await this.auctionHouse.auction()).settled).to.equal(false);
+					});
+
+				});
+					
+				});
 		});
 
 	});

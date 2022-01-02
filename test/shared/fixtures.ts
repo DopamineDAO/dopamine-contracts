@@ -4,8 +4,8 @@ import { getContractAddress } from "@ethersproject/address";
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import { Constants } from "./constants";
 import {
-  RaritySocietyToken,
-  RaritySocietyToken__factory,
+  RarityPass,
+  RarityPass__factory,
 	IWETH,
 	IRaritySocietyDAOToken,
 	MockWETH__factory,
@@ -14,6 +14,8 @@ import {
 	MockWETH,
   MockERC721Token__factory,
   MockERC721Token,
+  MockERC1155Token__factory,
+  MockERC1155Token,
   RaritySocietyDAOImpl__factory,
   RaritySocietyDAOImpl,
 	IRaritySocietyDAOToken__factory,
@@ -45,7 +47,7 @@ export type RaritySocietyDAOImplFixture = {
 };
 
 export type RaritySocietyTokenFixture = {
-  token: RaritySocietyToken;
+  token: RarityPass;
   registry: IProxyRegistry;
 };
 
@@ -76,6 +78,14 @@ export async function raritySocietyAuctionHouseFixture(
   return { weth, token, auctionHouse };
 }
 
+export async function erc1155TokenFixture(
+  signers: Signer[]
+): Promise<MockERC1155Token> {
+  const deployer: SignerWithAddress = signers[0] as SignerWithAddress;
+  const tokenFactory = new MockERC1155Token__factory(deployer);
+  const token = await tokenFactory.deploy(deployer.address, 10);
+  return token;
+}
 export async function erc721TokenFixture(
   signers: Signer[]
 ): Promise<MockERC721Token> {

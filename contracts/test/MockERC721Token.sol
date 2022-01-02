@@ -4,12 +4,13 @@
 
 pragma solidity ^0.8.9;
 
-import { OwnableUpgradeable } from '@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol';
-import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
-import { ERC721CheckpointableUpgradeable } from '../erc721/ERC721CheckpointableUpgradeable.sol';
-import { ERC721Upgradeable } from '../erc721/ERC721Upgradeable.sol';
+import { Ownable } from '@openzeppelin/contracts/access/Ownable.sol';
+import '@openzeppelin/contracts/utils/Strings.sol';
+import { ERC721Checkpointable } from '../erc721/ERC721Checkpointable.sol';
+import { ERC721 } from '../erc721/ERC721.sol';
+import { IERC721 } from '@openzeppelin/contracts/token/ERC721/IERC721.sol';
 
-contract MockERC721Token is ERC721CheckpointableUpgradeable, OwnableUpgradeable {
+contract MockERC721Token is ERC721Checkpointable, Ownable {
 
     uint256 public maxSupply;
 
@@ -20,18 +21,7 @@ contract MockERC721Token is ERC721CheckpointableUpgradeable, OwnableUpgradeable 
     string private constant name_ = 'Rarity Society';
     string private constant symbol_ = 'RARITY';
 
-    constructor(address _minter, uint256 _maxSupply) {
-        initialize(_minter, _maxSupply);
-    }
-
-    function initialize(
-        address _minter,
-        uint256 _maxSupply
-    ) public initializer {
-        __ERC721_init(name_, symbol_);
-        __ERC721Checkpointable_init(name_);
-        __Ownable_init();
-
+    constructor(address _minter, uint256 _maxSupply) ERC721Checkpointable(name_, symbol_) {
         minter = _minter;
         maxSupply = _maxSupply;
     }
