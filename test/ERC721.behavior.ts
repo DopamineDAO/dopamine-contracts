@@ -16,7 +16,6 @@ type TransferFn = (
   from: string,
   to: string,
   tokenId: BigNumberish,
-  amount: BigNumberish,
   sender: SignerWithAddress
 ) => Promise<TransactionResponse>;
 
