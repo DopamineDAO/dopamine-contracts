@@ -2,7 +2,7 @@ import { ethers, network } from "hardhat";
 import { Event } from "ethers";
 import { expect } from "chai";
 import { TransactionReceipt } from "@ethersproject/abstract-provider";
-import { IRaritySocietyToken } from "../../typechain";
+import { IRarityPass } from "../../typechain";
 import { BigNumber } from "ethers";
 
 interface Map {
@@ -11,6 +11,8 @@ interface Map {
 
 const INTERFACE_ID_MAP: Map = {
   ERC165: "0x01ffc9a7",
+	ERC1155: "0xd9b67a26",
+	ERC1155MetadataURI: "0x0e89341c",
   ERC721: "0x80ac58cd",
   ERC721TokenReceiver: "0x150b7a02",
   ERC721Metadata: "0x5b5e139f",
@@ -112,7 +114,7 @@ export async function stopImpersonating(address: string) {
   await network.provider.send("hardhat_stopImpersonatingAccount", [address]);
 }
 
-export async function mintN(token: IRaritySocietyToken, n: number) {
+export async function mintN(token: IRarityPass, n: number) {
   for (let i = 0; i < n; i++) {
     await token.mint();
   }

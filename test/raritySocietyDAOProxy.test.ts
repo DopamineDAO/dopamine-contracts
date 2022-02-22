@@ -15,7 +15,8 @@ import { testRaritySocietyDAOImplSettings } from "./raritySocietyDAOImpl/setting
 import { testRaritySocietyDAOImplCastVote } from "./raritySocietyDAOImpl/castVote.behavior";
 import { testRaritySocietyDAOImplLifecycle } from "./raritySocietyDAOImpl/lifecycle.behavior";
 
-const EVENT_NEW_IMPL = "NewImpl";
+const EVENT_UPGRADE = "Upgraded";
+const EVENT_ADMIN_CHANGED = "AdminChanged";
 
 const { createFixtureLoader } = waffle;
 
@@ -43,40 +44,52 @@ describe("RaritySocietyDAOProxy", function () {
       dao: this.dao,
       daoProxyImpl: this.daoImpl,
       daoImpl: daoImpl,
+			proxyAdmin: this.proxyAdmin,
     } = await loadFixture(raritySocietyDAOProxyFixture));
 		this.contract = this.daoImpl;
-		await this.token.createDrop("", 99);
   });
 
   describe("initialization", function () {
-    it("initializes all RaritySocietyDAOProxyStorage variables", async function () {
-      expect(await this.dao.impl()).to.equal(daoImpl.address);
-      expect(await this.dao.admin()).to.equal(this.admin.address);
-      expect(await this.dao.pendingAdmin()).to.equal(constants.AddressZero);
+    it("initializes all proxy administrative variables", async function () {
+      expect(await this.proxyAdmin.getProxyImplementation(this.dao.address)).to.equal(daoImpl.address);
+      expect(await this.proxyAdmin.getProxyAdmin(this.dao.address)).to.equal(this.proxyAdmin.address);
     });
 
-    it("throws when implementation setter is not admin", async function () {
-      await expect(this.dao.setImpl(constants.AddressZero)).to.be.revertedWith(
-        "setImpl may only be called by admin"
-      );
+    it("throws when admin setter is not proxy admin", async function () {
+      await expect(this.dao.changeAdmin(constants.AddressZero)).to.be.reverted;
+    });
+
+    it("throws when admin being set is the zero address", async function () {
+      await expect(this.proxyAdmin.changeProxyAdmin(this.dao.address, constants.AddressZero))
+			.to.be.revertedWith("ERC1967: new admin is the zero address")
+    });
+
+    it("throws when implementation setter is not proxy admin", async function () {
+      await expect(this.dao.upgradeTo(constants.AddressZero)).to.be.reverted;
     });
 
     it("throws when implementation being set is not a contract", async function () {
       await expect(
-        this.dao.connect(this.admin).setImpl(constants.AddressZero)
-      ).to.be.revertedWith("implementation is not a contract");
+        this.proxyAdmin.upgrade(this.dao.address, constants.AddressZero)
+      ).to.be.revertedWith("ERC1967: new implementation is not a contract");
     });
 
     it("can set new implementations", async function () {
       const daoImplFactory = new RaritySocietyDAOImpl__factory(this.deployer);
       const newImpl = await daoImplFactory.deploy();
-      expect(newImpl.address).not.to.equal(await this.dao.impl());
-      const tx = await this.dao.connect(this.admin).setImpl(newImpl.address);
-      expect(await this.dao.impl()).to.equal(newImpl.address);
+
+      const tx = await this.proxyAdmin.upgrade(this.dao.address, newImpl.address);
+      expect(await this.proxyAdmin.getProxyImplementation(this.dao.address)).to.equal(newImpl.address);
       expect(tx)
-        .to.emit(this.dao, EVENT_NEW_IMPL)
-        .withArgs(daoImpl.address, newImpl.address);
+        .to.emit(this.dao, EVENT_UPGRADE)
+        .withArgs(newImpl.address);
     });
+
+		it("can set new proxy admins", async function () {
+      const tx = await this.proxyAdmin.changeProxyAdmin(this.dao.address, this.deployer.address);
+
+			expect(tx).to.emit(this.dao, EVENT_ADMIN_CHANGED).withArgs(this.proxyAdmin.address, this.deployer.address);
+		});
 
     it("throws when receiving ether", async function () {
       expect(await ethers.provider.getBalance(this.dao.address)).to.equal(0);
@@ -93,4 +106,5 @@ describe("RaritySocietyDAOProxy", function () {
   testRaritySocietyDAOImplPropose();
   testRaritySocietyDAOImplCastVote();
   testRaritySocietyDAOImplLifecycle();
+
 });

@@ -36,8 +36,8 @@ describe("ERC721 features", function () {
     this.contract = this.token;
   });
 
-   shouldBehaveLikeERC721();
-   shouldBehaveLikeERC721Enumerable();
-   shouldBehaveLikeERC721Metadata();
+   // shouldBehaveLikeERC721();
+   // shouldBehaveLikeERC721Enumerable();
+   // shouldBehaveLikeERC721Metadata();
    shouldBehaveLikeERC721Checkpointable();
 });

@@ -11,25 +11,12 @@ export function testRaritySocietyDAOImplSettings(): void {
     });
 
     describe("initialize", function () {
-      it("throws when not invoked by the admin", async function () {
-        await expect(
-          this.daoImpl.initialize(
-            this.timelock.address,
-            this.token.address,
-            this.vetoer.address,
-            Constants.VOTING_PERIOD,
-            Constants.VOTING_DELAY,
-            Constants.PROPOSAL_THRESHOLD,
-            Constants.QUORUM_VOTES_BPS
-          )
-        ).to.be.revertedWith("admin only");
-      });
-
       it("can only be initialized once", async function () {
         await expect(
           this.daoImpl
             .connect(this.admin)
             .initialize(
+							this.admin.address,
               this.timelock.address,
               this.token.address,
               this.vetoer.address,
@@ -38,7 +25,7 @@ export function testRaritySocietyDAOImplSettings(): void {
               Constants.PROPOSAL_THRESHOLD,
               Constants.QUORUM_VOTES_BPS
             )
-        ).to.be.revertedWith("initializable only once");
+        ).to.be.revertedWith("Initializable: contract is already initialized");
       });
     });
 
@@ -289,7 +276,7 @@ export function testRaritySocietyDAOImplSettings(): void {
 				expect(await this.daoImpl.pendingAdmin()).to.equal(
 					constants.AddressZero
 				);
-				expect(await this.daoImpl.admin()).to.equal(
+				expect(await this.daoImpl.daoAdmin()).to.equal(
 					this.deployer.address
 				);
 			});

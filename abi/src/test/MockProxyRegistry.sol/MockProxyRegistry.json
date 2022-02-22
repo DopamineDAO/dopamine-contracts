@@ -1,0 +1,5 @@
+[
+  "function proxies(address) view returns (address)",
+  "function proxyImplementation() view returns (address)",
+  "function registerProxy() returns (address proxy)"
+]
