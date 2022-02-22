@@ -1,0 +1,4 @@
+[
+  "function getPriorVotes(address account, uint256 blockNumber) view returns (uint32)",
+  "function totalSupply() view returns (uint256)"
+]

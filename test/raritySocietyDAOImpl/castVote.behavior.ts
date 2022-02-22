@@ -23,7 +23,7 @@ type VoteFn = (
 const SIGNING_DOMAIN_VERSION = "1";
 
 const TYPES = {
-  Ballot: [
+  Vote: [
     { name: "proposalId", type: "uint256" },
     { name: "support", type: "uint8" },
   ],

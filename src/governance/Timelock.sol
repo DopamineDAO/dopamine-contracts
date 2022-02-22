@@ -2,6 +2,12 @@ pragma solidity ^0.8.9;
 
 import '../interfaces/ITimelock.sol';
 
+/// @notice Transaction executed prematurely.
+error PrematureTx();
+
+/// @notice Transaction is stale.
+error StaleTx();
+
 contract Timelock is ITimelock {
 
 	uint256 public constant GRACE_PERIOD = 14 days;
@@ -83,14 +89,12 @@ contract Timelock is ITimelock {
     ) public onlyAdmin returns (bytes memory) {
         bytes32 txHash = keccak256(abi.encode(target, value, signature, data, eta));
         require(queuedTransactions[txHash], "not yet queued");
-        require(
-            block.timestamp >= eta,
-            "not yet passed timelock."
-        );
-        require(
-            block.timestamp <= eta + GRACE_PERIOD,
-            'tx is stale'
-        );
+        if (block.timestamp < eta) {
+            revert PrematureTx();
+        }
+        if (block.timestamp > eta + GRACE_PERIOD) {
+            revert StaleTx();
+        }
         queuedTransactions[txHash] = false;
 
         bytes memory callData;
