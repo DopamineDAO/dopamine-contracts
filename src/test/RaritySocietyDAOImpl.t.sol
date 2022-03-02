@@ -11,7 +11,7 @@ import "./utils/test.sol";
 import "./utils/console.sol";
 
 /// @title ERC721 Test Suites
-contract RaritySocietyDAOImplTest is Test {
+abstract contract RaritySocietyDAOTest is Test {
 
     /// @notice Proposal function calldata.
     string constant SIGNATURE = "setDelay(uint256)";
@@ -99,41 +99,28 @@ contract RaritySocietyDAOImplTest is Test {
     }
 
     /// @dev Start testing with initialized gov contract and signers.
-    function setUp() public {
-        vm.roll(BLOCK_START);
-
-        FROM = vm.addr(PK_FROM);
-        ADMIN = vm.addr(PK_ADMIN);
-        vm.startPrank(ADMIN);
-
-        token = new MockRaritySocietyDAOToken(ADMIN, 99);
-        timelock = new Timelock(
-            getContractAddress(address(ADMIN), 0x02), // DAO address (nonce = 2)
-            TIMELOCK_DELAY
-        );
-        dao = new MockRaritySocietyDAOImpl(PKS);
-
-        dao.initialize(
-            address(timelock),
-            address(token),
-            VETOER,
-            VOTING_PERIOD,
-            VOTING_DELAY,
-            PROPOSAL_THRESHOLD,
-            QUORUM_THRESHOLD_BPS
-        );
-
+    function setUp() public virtual {
         /// @notice Initialize proposal function calldata.
-        TARGETS[0] = address(timelock);
         VALUES[0] = 0;
         SIGNATURES[0] = SIGNATURE;
         CALLDATAS[0] = CALLDATA;
+
+
+        FROM = vm.addr(PK_FROM);
+        ADMIN = vm.addr(PK_ADMIN);
+
+        vm.roll(BLOCK_START);
+        vm.roll(BLOCK_START);
+
+        vm.startPrank(ADMIN);
+
+        token = new MockRaritySocietyDAOToken(ADMIN, 99);
     }
 
     /// @notice Test initialization functionality.
     function testInitialize() public {
         /// Reverts when setting invalid voting period.
-        dao = new MockRaritySocietyDAOImpl(PKS);
+        dao = new MockRaritySocietyDAOImpl(address(0));
         uint32 invalidParam = dao.MIN_VOTING_PERIOD() - 1;
         expectRevert("InvalidVotingPeriod()");
         dao.initialize(
@@ -484,6 +471,7 @@ contract RaritySocietyDAOImplTest is Test {
     }
 
     function testCastVoteBySig() public {
+        dao.initSigners(PKS);
         _testVoteBehavior(dao.mockCastVoteBySig);
     }
 
@@ -508,26 +496,15 @@ contract RaritySocietyDAOImplTest is Test {
                     0
                 )
             );
+
         bytes32 hash = keccak256(
             abi.encodePacked("\x19\x01", domainSeparator, structHash)
         );
         (uint8 a, bytes32 b, bytes32 c) = vm.sign(PK_ADMIN, hash);
 
-        // Reverts if not signed by the voter themself.
-        expectRevert("InvalidSignature()");
-        dao.castVoteBySig(FROM, 0, a, b, c);
-
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(PK_FROM, hash);
 
-        // Reverts if mismatching voting type is used.
-        expectRevert("InvalidSignature()");
-        dao.castVoteBySig(FROM, 1, v, r, s);
-
         // Works otherwise.
-        dao.castVoteBySig(FROM, 0, v, r, s);
-
-        // Replay attacks are prevented.
-        expectRevert("AlreadyVoted()");
         dao.castVoteBySig(FROM, 0, v, r, s);
     }
 
@@ -848,5 +825,31 @@ contract RaritySocietyDAOImplTest is Test {
 
         // New proposals can now be made.
         dao.propose(TARGETS, VALUES, SIGNATURES, CALLDATAS, "");
+    }
+}
+
+contract RaritySocietyDAOImplTest is RaritySocietyDAOTest {
+    function setUp() public override {
+        super.setUp();
+
+        address daoAddr = getContractAddress(address(ADMIN), 0x02); // DAO address (nonce = 2)
+
+        timelock = new Timelock(
+            daoAddr,
+            TIMELOCK_DELAY
+        );
+        TARGETS[0] = address(timelock);
+
+        dao = new MockRaritySocietyDAOImpl(daoAddr);
+
+        dao.initialize(
+            address(timelock),
+            address(token),
+            VETOER,
+            VOTING_PERIOD,
+            VOTING_DELAY,
+            PROPOSAL_THRESHOLD,
+            QUORUM_THRESHOLD_BPS
+        );
     }
 }

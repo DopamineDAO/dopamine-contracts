@@ -108,7 +108,7 @@ contract RaritySocietyDAOImpl is UUPSUpgradeable, RaritySocietyDAOStorageV1, IRa
 	uint256 public constant PROPOSAL_MAX_OPERATIONS = 10;
 	
 	////////////////////////////////////////////////////////////////////////////
-    ///                    EIP-2612 & EIP-165 Constants                      ///
+    ///                       Miscellaneous Constants                        ///
 	////////////////////////////////////////////////////////////////////////////
 
 	bytes32 public constant VOTE_TYPEHASH = keccak256("Vote(address voter,uint256 proposalId,uint8 support)");
@@ -117,6 +117,10 @@ contract RaritySocietyDAOImpl is UUPSUpgradeable, RaritySocietyDAOStorageV1, IRa
     bytes4 private constant _ERC165_INTERFACE_ID = 0x01ffc9a7;
     bytes4 private constant _RARITY_SOCIETY_DAO_INTERFACE_ID = 0x8a5da15c;
 
+    /// @notice EIP-712 immutables for signing messages.
+    uint256 internal immutable _CHAIN_ID;
+    bytes32 internal immutable _DOMAIN_SEPARATOR;
+
     /// @notice Modifier to restrict calls to admin only.
 	modifier onlyAdmin() {
         if (msg.sender != admin) {
@@ -124,6 +128,24 @@ contract RaritySocietyDAOImpl is UUPSUpgradeable, RaritySocietyDAOStorageV1, IRa
         }
 		_;
 	}
+
+    /// @notice Creates the DAO contract without any storage slots filled.
+    /// @param proxy Address of the proxy, for EIP-712 signing verification.
+    /// @dev Chain ID and domain separator are assigned here as immutables.
+    constructor(
+        address proxy
+    ) {
+        _CHAIN_ID = block.chainid;
+        _DOMAIN_SEPARATOR = keccak256(
+            abi.encode(
+				keccak256("EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)"),
+				keccak256(bytes("Rarity Society DAO")),
+                keccak256(bytes("1")),
+                block.chainid,
+                proxy
+            )
+        );
+    }
 
     /// @notice Initializes the Rarity Society DAO governance contract.
     /// @param timelock_ Timelock address, which controls proposal execution.
@@ -538,6 +560,7 @@ contract RaritySocietyDAOImpl is UUPSUpgradeable, RaritySocietyDAOStorageV1, IRa
 		return votes;
 	}
 
+    /// @notice Performs authorization check for UUPS upgrades.
     function _authorizeUpgrade(address) internal override {
         if (msg.sender != admin && msg.sender != vetoer) {
             revert UnauthorizedUpgrade();
@@ -562,7 +585,7 @@ contract RaritySocietyDAOImpl is UUPSUpgradeable, RaritySocietyDAOStorageV1, IRa
 	/// @notice Returns an EIP-712 encoding of structured data `structHash`.
     /// @param structHash The structured data to be encoded and signed.
     /// @return A bytestring suitable for signing in accordance to EIP-712.
-    function _hashTypedData(bytes32 structHash) internal view virtual returns (bytes32) {
+    function _hashTypedData(bytes32 structHash) internal view returns (bytes32) {
         return keccak256(abi.encodePacked("\x19\x01", _domainSeparator(), structHash));
     }
 
