@@ -3,9 +3,8 @@ pragma solidity ^0.8.9;
 import '../interfaces/ITimelock.sol';
 import '../interfaces/IRaritySocietyDAOToken.sol';
 import '../interfaces/IRaritySocietyDAO.sol';
-import './EIP712Storage.sol';
 
-contract RaritySocietyDAOStorageV1 is EIP712Storage {
+contract RaritySocietyDAOStorageV1 {
 
     uint32 public votingPeriod;
 
@@ -30,6 +29,5 @@ contract RaritySocietyDAOStorageV1 is EIP712Storage {
     IRaritySocietyDAO.Proposal public proposal;
 
     mapping(address => IRaritySocietyDAO.Receipt) public receipts;
-
 
 }
