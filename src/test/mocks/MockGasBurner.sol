@@ -2,7 +2,7 @@
 
 pragma solidity ^0.8.6;
 
-import { IRaritySocietyAuctionHouse } from '../interfaces/IRaritySocietyAuctionHouse.sol';
+import { IRaritySocietyAuctionHouse } from '../../interfaces/IRaritySocietyAuctionHouse.sol';
 
 contract MaliciousBidder {
     function bid(IRaritySocietyAuctionHouse auctionHouse, uint256 tokenId) public payable {

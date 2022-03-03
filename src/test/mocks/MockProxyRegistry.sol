@@ -4,7 +4,7 @@
 
 pragma solidity ^0.8.9;
 
-import { IProxyRegistry } from '../interfaces/IProxyRegistry.sol';
+import { IProxyRegistry } from '../../interfaces/IProxyRegistry.sol';
 import { MockProxy } from './MockProxy.sol';
 
 contract MockProxyRegistry is IProxyRegistry {

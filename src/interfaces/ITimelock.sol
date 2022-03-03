@@ -1,9 +1,11 @@
 pragma solidity ^0.8.9;
 interface ITimelock {
+
     event NewAdmin(address oldAdmin, address newAdmin);
 
-    event NewPendingAdmin(address oldPendingAdmin, address newPendingAdmin);
-	event NewDelay(uint256 oldDelay, uint256 newDelay);
+    event NewPendingAdmin(address pendingAdmin);
+
+	event DelaySet(uint256 delay);
 
 	event CancelTransaction(
 		bytes32 indexed txHash,

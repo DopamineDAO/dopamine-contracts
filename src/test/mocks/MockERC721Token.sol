@@ -6,11 +6,11 @@ pragma solidity ^0.8.9;
 
 import { Ownable } from '@openzeppelin/contracts/access/Ownable.sol';
 import '@openzeppelin/contracts/utils/Strings.sol';
-import { ERC721Checkpointable } from '../erc721/ERC721Checkpointable.sol';
-import { ERC721 } from '../erc721/ERC721.sol';
+import { ERC721Checkpointable } from '../../erc721/ERC721Checkpointable.sol';
+import { ERC721 } from '../../erc721/ERC721.sol';
 import { IERC721 } from '@openzeppelin/contracts/token/ERC721/IERC721.sol';
 
-contract MockERC721Token is ERC721Checkpointable, Ownable {
+contract MockRaritySocietyDAOToken is ERC721Checkpointable, Ownable {
 
     uint256 public maxSupply;
 

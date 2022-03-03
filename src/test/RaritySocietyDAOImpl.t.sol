@@ -15,7 +15,7 @@ abstract contract RaritySocietyDAOTest is Test {
 
     /// @notice Proposal function calldata.
     string constant SIGNATURE = "setDelay(uint256)";
-    bytes constant CALLDATA = abi.encodePacked(uint256(TIMELOCK_DELAY + 1));
+    bytes constant CALLDATA = abi.encodeWithSignature("setDelay(uint256)", uint256(TIMELOCK_DELAY + 1));
     address[] TARGETS = new address[](1);
     uint256[] VALUES = new uint256[](1);
     bytes[] CALLDATAS = new bytes[](1);
@@ -110,8 +110,6 @@ abstract contract RaritySocietyDAOTest is Test {
         ADMIN = vm.addr(PK_ADMIN);
 
         vm.roll(BLOCK_START);
-        vm.roll(BLOCK_START);
-
         vm.startPrank(ADMIN);
 
         token = new MockRaritySocietyDAOToken(ADMIN, 99);

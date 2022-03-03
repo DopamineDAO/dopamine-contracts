@@ -80,8 +80,7 @@ error VetoerOnly();
 error VetoPowerRevoked();
 
 /// @title Rarity Society DAO Implementation Contract
-/// @author Leeren
-/// @notice Compound Governor Bravo fork tailored for Rarity Society NFTs.
+/// @notice Compound Governor Bravo fork built for DθPΛM1NΞ NFTs.
 contract RaritySocietyDAOImpl is UUPSUpgradeable, RaritySocietyDAOStorageV1, IRaritySocietyDAO {
 
 	////////////////////////////////////////////////////////////////////////////
