@@ -1,23 +1,23 @@
 
 // SPDX-License-Identifier: GPL-3.0
 
-/// @title The Rarity Society DAO Mock
+/// @title The Dopamine DAO Mock
 
 pragma solidity ^0.8.9;
 
-import { RaritySocietyDAOImpl } from '../../governance/RaritySocietyDAOImpl.sol';
+import { DopamineDAO } from '../../governance/DopamineDAO.sol';
 
 import "../utils/Hevm.sol";
 
 error DummyError();
 
-contract MockRaritySocietyDAOUpgraded is RaritySocietyDAOImpl {
+contract MockDopamineDAOUpgraded is DopamineDAO {
 
     uint256 public newParameter;
 
     constructor(
         address proxy
-    ) RaritySocietyDAOImpl(proxy) {}
+    ) DopamineDAO(proxy) {}
     
     function initializeV2(uint256 newParameter_) public {
         newParameter = newParameter_;

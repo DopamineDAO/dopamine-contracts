@@ -1,9 +1,12 @@
 // SPDX-License-Identifier: GPL-3.0
 pragma solidity >=0.8.0;
 
-import "./mocks/MockRaritySocietyDAOToken.sol";
-import "./mocks/MockRaritySocietyDAOImpl.sol";
-import "../interfaces/IRaritySocietyDAO.sol";
+import "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
+
+import "./mocks/MockDopamineDAOToken.sol";
+import "./mocks/MockDopamineDAO.sol";
+import "./mocks/MockDopamineDAOUpgraded.sol";
+import "../interfaces/IDopamineDAO.sol";
 
 import "../governance/Timelock.sol";
 
@@ -11,11 +14,11 @@ import "./utils/test.sol";
 import "./utils/console.sol";
 
 /// @title ERC721 Test Suites
-abstract contract RaritySocietyDAOTest is Test {
+contract DopamineDAOTest is Test {
 
     /// @notice Proposal function calldata.
     string constant SIGNATURE = "setDelay(uint256)";
-    bytes constant CALLDATA = abi.encodePacked(uint256(TIMELOCK_DELAY + 1));
+    bytes constant CALLDATA = abi.encodeWithSignature("setDelay(uint256)", uint256(TIMELOCK_DELAY + 1));
     address[] TARGETS = new address[](1);
     uint256[] VALUES = new uint256[](1);
     bytes[] CALLDATAS = new bytes[](1);
@@ -48,11 +51,12 @@ abstract contract RaritySocietyDAOTest is Test {
     uint256[2] PKS = [PK_FROM, PK_ADMIN];
 
     /// @notice Core governance contracts used for testing.
-    MockRaritySocietyDAOToken token;
+    MockDopamineDAOToken token;
     Timelock timelock;
-    MockRaritySocietyDAOImpl dao;
+    MockDopamineDAO dao;
+    MockDopamineDAO daoImpl;
 
-    /// @notice Rarity Society DAO events.
+    /// @notice Dopamine DAO events.
     event ProposalCreated(
         uint32 id,
         address proposer,
@@ -110,78 +114,33 @@ abstract contract RaritySocietyDAOTest is Test {
         ADMIN = vm.addr(PK_ADMIN);
 
         vm.roll(BLOCK_START);
-        vm.roll(BLOCK_START);
-
         vm.startPrank(ADMIN);
 
-        token = new MockRaritySocietyDAOToken(ADMIN, 99);
+        token = new MockDopamineDAOToken(ADMIN, 99);
+        address proxyAddr = getContractAddress(address(ADMIN), 0x03); 
+
+        daoImpl = new MockDopamineDAO(proxyAddr);
+        timelock = new Timelock(
+            proxyAddr,
+            TIMELOCK_DELAY
+        );
+        TARGETS[0] = address(timelock);
+        bytes memory data = abi.encodeWithSelector(
+            daoImpl.initialize.selector,
+            address(timelock),
+            address(token),
+            VETOER,
+            VOTING_PERIOD,
+            VOTING_DELAY,
+            PROPOSAL_THRESHOLD,
+            QUORUM_THRESHOLD_BPS
+        );
+		ERC1967Proxy proxy = new ERC1967Proxy(address(daoImpl), data);
+        dao = MockDopamineDAO(address(proxy));
     }
 
     /// @notice Test initialization functionality.
     function testInitialize() public {
-        /// Reverts when setting invalid voting period.
-        dao = new MockRaritySocietyDAOImpl(address(0));
-        uint32 invalidParam = dao.MIN_VOTING_PERIOD() - 1;
-        expectRevert("InvalidVotingPeriod()");
-        dao.initialize(
-            address(timelock),
-            address(token),
-            VETOER,
-            invalidParam,
-            VOTING_DELAY,
-            PROPOSAL_THRESHOLD,
-            QUORUM_THRESHOLD_BPS
-        );
-
-        /// Reverts when setting invalid voting delay.
-        invalidParam = dao.MAX_VOTING_DELAY() + 1;
-        expectRevert("InvalidVotingDelay()");
-        dao.initialize(
-            address(timelock),
-            address(token),
-            VETOER,
-            VOTING_PERIOD,
-            invalidParam,
-            PROPOSAL_THRESHOLD,
-            QUORUM_THRESHOLD_BPS
-        );
-
-        /// Reverts when setting invalid proposal threshold.
-        invalidParam = dao.MIN_PROPOSAL_THRESHOLD() - 1;
-        expectRevert("InvalidProposalThreshold()");
-        dao.initialize(
-            address(timelock),
-            address(token),
-            VETOER,
-            VOTING_PERIOD,
-            VOTING_DELAY,
-            invalidParam,
-            QUORUM_THRESHOLD_BPS
-        );
-
-        /// Reverts when setting invalid quorum threshold bips.
-        invalidParam = dao.MIN_QUORUM_THRESHOLD_BPS() - 1;
-        expectRevert("InvalidQuorumThreshold()");
-        dao.initialize(
-            address(timelock),
-            address(token),
-            VETOER,
-            VOTING_PERIOD,
-            VOTING_DELAY,
-            PROPOSAL_THRESHOLD,
-            invalidParam
-        );
-
-        /// Correctly sets all governance parameters.
-        dao.initialize(
-            address(timelock),
-            address(token),
-            VETOER,
-            VOTING_PERIOD,
-            VOTING_DELAY,
-            PROPOSAL_THRESHOLD,
-            QUORUM_THRESHOLD_BPS
-        );
         assertEq(dao.votingPeriod(), VOTING_PERIOD);
         assertEq(dao.votingDelay(), VOTING_DELAY);
         assertEq(dao.quorumThresholdBPS(), QUORUM_THRESHOLD_BPS);
@@ -193,7 +152,7 @@ abstract contract RaritySocietyDAOTest is Test {
         assertEq(address(dao.admin()), ADMIN);
         assertEq(address(dao.pendingAdmin()), address(0));
 
-        /// Reverts when trying to initialize more than once.
+        // Reverts when trying to initialize more than once.
         expectRevert("AlreadyInitialized()");
         dao.initialize(
             address(timelock),
@@ -204,6 +163,66 @@ abstract contract RaritySocietyDAOTest is Test {
             PROPOSAL_THRESHOLD,
             QUORUM_THRESHOLD_BPS
         );
+
+        // Reverts when setting invalid voting period.
+        uint32 invalidParam = dao.MIN_VOTING_PERIOD() - 1;
+        bytes memory data = abi.encodeWithSelector(
+            daoImpl.initialize.selector,
+            address(timelock),
+            address(token),
+            VETOER,
+            invalidParam,
+            VOTING_DELAY,
+            PROPOSAL_THRESHOLD,
+            QUORUM_THRESHOLD_BPS
+        );
+        expectRevert("InvalidVotingPeriod()");
+		ERC1967Proxy proxy = new ERC1967Proxy(address(daoImpl), data);
+
+        // Reverts when setting invalid voting delay.
+        invalidParam = dao.MAX_VOTING_DELAY() + 1;
+        data = abi.encodeWithSelector(
+            daoImpl.initialize.selector,
+            address(timelock),
+            address(token),
+            VETOER,
+            VOTING_PERIOD,
+            invalidParam,
+            PROPOSAL_THRESHOLD,
+            QUORUM_THRESHOLD_BPS
+        );
+        expectRevert("InvalidVotingDelay()");
+		proxy = new ERC1967Proxy(address(daoImpl), data);
+
+        // Reverts when setting invalid proposal threshold.
+        invalidParam = dao.MIN_PROPOSAL_THRESHOLD() - 1;
+        data = abi.encodeWithSelector(
+            daoImpl.initialize.selector,
+            address(timelock),
+            address(token),
+            VETOER,
+            VOTING_PERIOD,
+            VOTING_DELAY,
+            invalidParam,
+            QUORUM_THRESHOLD_BPS
+        );
+        expectRevert("InvalidProposalThreshold()");
+		proxy = new ERC1967Proxy(address(daoImpl), data);
+
+        /// Reverts when setting invalid quorum threshold bips.
+        invalidParam = dao.MIN_QUORUM_THRESHOLD_BPS() - 1;
+        data = abi.encodeWithSelector(
+            daoImpl.initialize.selector,
+            address(timelock),
+            address(token),
+            VETOER,
+            VOTING_PERIOD,
+            VOTING_DELAY,
+            PROPOSAL_THRESHOLD,
+            invalidParam
+        );
+        expectRevert("InvalidQuorumThreshold()");
+		proxy = new ERC1967Proxy(address(daoImpl), data);
     }
 
     /// @notice Test `setVotingPeriod` functionality.
@@ -441,7 +460,7 @@ abstract contract RaritySocietyDAOTest is Test {
         dao.propose(TARGETS, VALUES, SIGNATURES, CALLDATAS, "");
 
         // Properly assigns all proposal attributes.
-        IRaritySocietyDAO.Proposal memory proposal = dao.getProposal();
+        IDopamineDAO.Proposal memory proposal = dao.getProposal();
         assertEq(proposal.id, 1);
         assertEq(proposal.proposer, FROM);
         assertEq(proposal.quorumThreshold, 3);
@@ -481,7 +500,7 @@ abstract contract RaritySocietyDAOTest is Test {
             keccak256(
                 abi.encode(
                     keccak256("EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)"),
-                    keccak256("Rarity Society DAO"),
+                    keccak256("Dopamine DAO"),
                     keccak256("1"),
                     block.chainid,
                     address(dao)
@@ -572,11 +591,11 @@ abstract contract RaritySocietyDAOTest is Test {
     /// @notice Tests expected behavior during pending proposal phase.
     function testLifecycleStatePending() proposalCreated public {
         // Upon proposal creation, state is pending.
-        assertEq(uint256(dao.state()), uint256(IRaritySocietyDAO.ProposalState.Pending));
+        assertEq(uint256(dao.state()), uint256(IDopamineDAO.ProposalState.Pending));
 
         // Before the proposal starting block, state remains pending.
         vm.roll(BLOCK_PROPOSAL + VOTING_DELAY - 1);
-        assertEq(uint256(dao.state()), uint256(IRaritySocietyDAO.ProposalState.Pending));
+        assertEq(uint256(dao.state()), uint256(IDopamineDAO.ProposalState.Pending));
 
         // Ensure new proposals cannot be made while pending.
         expectRevert("UnsettledProposal()");
@@ -589,11 +608,11 @@ abstract contract RaritySocietyDAOTest is Test {
         vm.roll(BLOCK_PROPOSAL + VOTING_DELAY); // Move to active phase.
 
         // State should be marked active.
-        assertEq(uint256(dao.state()), uint256(IRaritySocietyDAO.ProposalState.Active));
+        assertEq(uint256(dao.state()), uint256(IDopamineDAO.ProposalState.Active));
 
         // On proposal end block, state remains active.
         vm.roll(BLOCK_PROPOSAL + VOTING_DELAY + VOTING_PERIOD);
-        assertEq(uint256(dao.state()), uint256(IRaritySocietyDAO.ProposalState.Active));
+        assertEq(uint256(dao.state()), uint256(IDopamineDAO.ProposalState.Active));
 
         // Ensure new proposals cannot be made while active.
         expectRevert("UnsettledProposal()");
@@ -603,7 +622,7 @@ abstract contract RaritySocietyDAOTest is Test {
     /// @notice Tests expected behavior during successful proposal phase.
     function testLifecycleStateSucceeded() proposalCreated public {
         // Expected quorum threshold = MIN_QUORUM_THRESHOLD (15%) * 20 = 3.
-        IRaritySocietyDAO.Proposal memory proposal = dao.getProposal();
+        IDopamineDAO.Proposal memory proposal = dao.getProposal();
         assertEq(proposal.quorumThreshold, 3);
 
         // Transfer 3 tokens from `ADMIN` to `FROM` to hit quorum threshold.
@@ -622,7 +641,7 @@ abstract contract RaritySocietyDAOTest is Test {
         vm.roll(BLOCK_PROPOSAL + VOTING_DELAY + VOTING_PERIOD + 1);
         
         // Check that state is now succeeded.
-        assertEq(uint256(dao.state()), uint256(IRaritySocietyDAO.ProposalState.Succeeded));
+        assertEq(uint256(dao.state()), uint256(IDopamineDAO.ProposalState.Succeeded));
 
         // Ensure new proposals cannot be made while in state of successful.
         expectRevert("UnsettledProposal()");
@@ -635,7 +654,7 @@ abstract contract RaritySocietyDAOTest is Test {
         vm.roll(BLOCK_PROPOSAL + VOTING_DELAY + VOTING_PERIOD + 1);
         
         // Check that state is now defeated.
-        assertEq(uint256(dao.state()), uint256(IRaritySocietyDAO.ProposalState.Defeated));
+        assertEq(uint256(dao.state()), uint256(IDopamineDAO.ProposalState.Defeated));
 
         // Ensure a new proposal can be made once marked defeated.
         dao.propose(TARGETS, VALUES, SIGNATURES, CALLDATAS, "");
@@ -660,10 +679,10 @@ abstract contract RaritySocietyDAOTest is Test {
         dao.queue();
 
         // Assert state is now queued.
-        assertEq(uint256(dao.state()), uint256(IRaritySocietyDAO.ProposalState.Queued));
+        assertEq(uint256(dao.state()), uint256(IDopamineDAO.ProposalState.Queued));
 
         // `eta` changes as expected.
-        IRaritySocietyDAO.Proposal memory proposal = dao.getProposal();
+        IDopamineDAO.Proposal memory proposal = dao.getProposal();
         assertEq(proposal.eta, TIMELOCK_TIMESTAMP + TIMELOCK_DELAY);
 
 
@@ -715,7 +734,7 @@ abstract contract RaritySocietyDAOTest is Test {
         dao.execute();
 
         // Assert state is now executed.
-        assertEq(uint256(dao.state()), uint256(IRaritySocietyDAO.ProposalState.Executed));
+        assertEq(uint256(dao.state()), uint256(IDopamineDAO.ProposalState.Executed));
 
         // Verify transaction did in fact execute (`setDelay`).
         assertEq(timelock.delay(), TIMELOCK_DELAY + 1);
@@ -754,7 +773,7 @@ abstract contract RaritySocietyDAOTest is Test {
         dao.cancel();
 
         // Assert state is now canceled.
-        assertEq(uint256(dao.state()), uint256(IRaritySocietyDAO.ProposalState.Canceled));
+        assertEq(uint256(dao.state()), uint256(IDopamineDAO.ProposalState.Canceled));
 
         // Execution of the proposal will now fail.
         expectRevert("UnqueuedProposal()");
@@ -784,7 +803,7 @@ abstract contract RaritySocietyDAOTest is Test {
         dao.veto();
 
         // Assert state is now vetoed.
-        assertEq(uint256(dao.state()), uint256(IRaritySocietyDAO.ProposalState.Vetoed));
+        assertEq(uint256(dao.state()), uint256(IDopamineDAO.ProposalState.Vetoed));
 
         // Execution of the proposal will now fail.
         expectRevert("UnqueuedProposal()");
@@ -817,7 +836,7 @@ abstract contract RaritySocietyDAOTest is Test {
         vm.warp(TIMELOCK_TIMESTAMP + TIMELOCK_DELAY + timelock.GRACE_PERIOD() + 1); // Fast-forward to eta.
 
         // Assert state is now expired.
-        assertEq(uint256(dao.state()), uint256(IRaritySocietyDAO.ProposalState.Expired));
+        assertEq(uint256(dao.state()), uint256(IDopamineDAO.ProposalState.Expired));
 
         // Execution should no longer work.
         expectRevert("UnqueuedProposal()");
@@ -826,23 +845,44 @@ abstract contract RaritySocietyDAOTest is Test {
         // New proposals can now be made.
         dao.propose(TARGETS, VALUES, SIGNATURES, CALLDATAS, "");
     }
-}
 
-contract RaritySocietyDAOImplTest is RaritySocietyDAOTest {
-    function setUp() public override {
-        super.setUp();
+    function testUpgrade() proposalCreated public {
+        MockDopamineDAOUpgraded upgradedImpl = new MockDopamineDAOUpgraded(address(dao));
+        
+        // New upgrade mechanics should not work before upgrade.
+        MockDopamineDAOUpgraded daoUpgraded = MockDopamineDAOUpgraded(address(dao));
+        vm.expectRevert(new bytes(0));
+        daoUpgraded.newParameter();
+        vm.expectRevert(new bytes(0));
+        daoUpgraded.test();
 
-        address daoAddr = getContractAddress(address(ADMIN), 0x02); // DAO address (nonce = 2)
+        // Upgrades should not work if called by unauthorized upgrader.
+        vm.startPrank(FROM);
+        expectRevert("UnauthorizedUpgrade()");
+        dao.upgradeTo(address(upgradedImpl));
 
-        timelock = new Timelock(
-            daoAddr,
-            TIMELOCK_DELAY
+        // On upgrade, mechanics should work.
+        vm.startPrank(ADMIN);
+        dao.upgradeTo(address(upgradedImpl));
+        assertEq(daoUpgraded.newParameter(), 0);
+        assertEq(daoUpgraded.proposalId(), 1);
+        expectRevert("DummyError()");
+        daoUpgraded.test();
+
+        // Upgrades should also work with function calls.
+        MockDopamineDAOUpgraded upgradedImplv2 = new MockDopamineDAOUpgraded(address(dao));
+        bytes memory data = abi.encodeWithSelector(
+            upgradedImplv2.initializeV2.selector,
+            9000
         );
-        TARGETS[0] = address(timelock);
+        daoUpgraded.upgradeToAndCall(address(upgradedImplv2), data);
+        assertEq(daoUpgraded.newParameter(), 9000);
+    }
 
-        dao = new MockRaritySocietyDAOImpl(daoAddr);
-
-        dao.initialize(
+    function testImplementationUnusable() public {
+        // Implementation cannot be re-initialized.
+        vm.expectRevert("Function must be called through delegatecall");
+        daoImpl.initialize(
             address(timelock),
             address(token),
             VETOER,
@@ -851,5 +891,11 @@ contract RaritySocietyDAOImplTest is RaritySocietyDAOTest {
             PROPOSAL_THRESHOLD,
             QUORUM_THRESHOLD_BPS
         );
+
+        // Any other actions fail due to faulty token address.
+        vm.expectRevert(new bytes(0));
+        daoImpl.propose(TARGETS, VALUES, SIGNATURES, CALLDATAS, "");
     }
+
 }
+

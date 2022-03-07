@@ -3,8 +3,8 @@ pragma solidity ^0.8.9;
 
 import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 
-import '../interfaces/IRaritySocietyDAO.sol';
-import './RaritySocietyDAOStorage.sol';
+import '../interfaces/IDopamineDAO.sol';
+import './DopamineDAOStorage.sol';
 
 ////////////////////////////////////////////////////////////////////////////////
 ///                              Custom Errors                               ///
@@ -79,10 +79,9 @@ error VetoerOnly();
 /// @notice Veto power has been revoked.
 error VetoPowerRevoked();
 
-/// @title Rarity Society DAO Implementation Contract
-/// @author Leeren
-/// @notice Compound Governor Bravo fork tailored for Rarity Society NFTs.
-contract RaritySocietyDAOImpl is UUPSUpgradeable, RaritySocietyDAOStorageV1, IRaritySocietyDAO {
+/// @title Dopamine DAO Implementation Contract
+/// @notice Compound Governor Bravo fork built for DθPΛM1NΞ NFTs.
+contract DopamineDAO is UUPSUpgradeable, DopamineDAOStorageV1, IDopamineDAO {
 
 	////////////////////////////////////////////////////////////////////////////
 	///						  Governance Constants                           ///
@@ -135,11 +134,12 @@ contract RaritySocietyDAOImpl is UUPSUpgradeable, RaritySocietyDAOStorageV1, IRa
     constructor(
         address proxy
     ) {
+        // Prevent implementation re-initialization.
         _CHAIN_ID = block.chainid;
         _DOMAIN_SEPARATOR = keccak256(
             abi.encode(
 				keccak256("EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)"),
-				keccak256(bytes("Rarity Society DAO")),
+				keccak256(bytes("Dopamine DAO")),
                 keccak256(bytes("1")),
                 block.chainid,
                 proxy
@@ -147,7 +147,7 @@ contract RaritySocietyDAOImpl is UUPSUpgradeable, RaritySocietyDAOStorageV1, IRa
         );
     }
 
-    /// @notice Initializes the Rarity Society DAO governance contract.
+    /// @notice Initializes the Dopamine DAO governance contract.
     /// @param timelock_ Timelock address, which controls proposal execution.
     /// @param token_ Governance token, from which voting weights are derived.
     /// @param vetoer_ Address with temporary veto power (revoked later on).
@@ -163,14 +163,14 @@ contract RaritySocietyDAOImpl is UUPSUpgradeable, RaritySocietyDAOStorageV1, IRa
 		uint32 votingDelay_,
 		uint32 proposalThreshold_,
         uint32 quorumThresholdBPS_
-    ) public {
-        if (address(timelock) != address(0)) {
+    ) onlyProxy public {
+        if (address(token) != address(0)) {
             revert AlreadyInitialized();
         }
 
         admin = msg.sender;
 		vetoer = vetoer_;
-        token = IRaritySocietyDAOToken(token_);
+        token = IDopamineDAOToken(token_);
 		timelock = ITimelock(timelock_);
 
         setVotingPeriod(votingPeriod_);
@@ -254,10 +254,6 @@ contract RaritySocietyDAOImpl is UUPSUpgradeable, RaritySocietyDAOStorageV1, IRa
         );
 
         return proposal.id;
-    }
-
-    function getProposal() public returns (IRaritySocietyDAO.Proposal memory) {
-        return proposal;
     }
 
     /// @notice Queues the current proposal if successfully passed.
@@ -407,7 +403,7 @@ contract RaritySocietyDAOImpl is UUPSUpgradeable, RaritySocietyDAOStorageV1, IRa
     /// @notice Cast vote of type `support` for the current proposal.
     /// @param support The vote type: 0 = against, 1 = support, 2 = abstain
 	function castVote(uint8 support) public override {
-         castVoteInternal(msg.sender, support);
+         _castVote(msg.sender, support);
 	}
 
     /// @notice Cast EIP-712 vote by sig of `voter` for the current proposal.
@@ -433,7 +429,7 @@ contract RaritySocietyDAOImpl is UUPSUpgradeable, RaritySocietyDAOStorageV1, IRa
         if (signatory == address(0) || signatory != voter) {
             revert InvalidSignature();
         }
-        castVoteInternal(signatory, support);
+        _castVote(signatory, support);
 	}
 
     /// @notice Sets a new proposal voting timeframe, `newVotingPeriod`.
@@ -527,7 +523,7 @@ contract RaritySocietyDAOImpl is UUPSUpgradeable, RaritySocietyDAOStorageV1, IRa
     /// @param voter The address of the voter whose vote is being cast.
     /// @param support The vote type: 0 = against, 1 = support, 2 = abstain
     /// @return The number of votes (gov tokens delegated to / held by voter).
-	function castVoteInternal(
+	function _castVote(
 		address voter,
 		uint8 support
 	) internal returns (uint32) {
@@ -567,14 +563,14 @@ contract RaritySocietyDAOImpl is UUPSUpgradeable, RaritySocietyDAOStorageV1, IRa
         }
     }
 
-	/// @notice Generates an EIP-712 Rarity Society domain separator.
+	/// @notice Generates an EIP-712 Dopamine DAO domain separator.
     /// @dev See https://eips.ethereum.org/EIPS/eip-712 for details.
     /// @return A 256-bit domain separator.
     function _buildDomainSeparator() internal view returns (bytes32) {
         return keccak256(
             abi.encode(
 				keccak256("EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)"),
-				keccak256(bytes("Rarity Society DAO")),
+				keccak256(bytes("Dopamine DAO")),
                 keccak256("1"),
                 block.chainid,
                 address(this)

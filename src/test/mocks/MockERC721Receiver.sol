@@ -1,10 +1,9 @@
 // SPDX-License-Identifier: GPL-3.0
-
-// @title Contract mock ERC721 receiver.
-
 pragma solidity ^0.8.9;
 
 import '@openzeppelin/contracts/token/ERC721/IERC721Receiver.sol';
+
+error Throwing();
 
 contract MockERC721Receiver is IERC721Receiver {
 
@@ -25,7 +24,7 @@ contract MockERC721Receiver is IERC721Receiver {
         bytes memory data
     ) public override returns (bytes4) {
         if (_throws) {
-            revert("MockERC721Receiver: throwing");
+            revert Throwing();
         }
         emit ERC721Received(operator, from, tokenId, data);
         return _retval;

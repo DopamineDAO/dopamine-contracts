@@ -6,15 +6,20 @@ pragma solidity ^0.8.9;
 
 import '@openzeppelin/contracts/utils/Strings.sol';
 import { Ownable } from '@openzeppelin/contracts/access/Ownable.sol';
-import { IRarityPass } from './interfaces/IRarityPass.sol';
+import { IDopamintPass } from './interfaces/IDopamintPass.sol';
 import { ERC721Checkpointable } from './erc721/ERC721Checkpointable.sol';
 import { ERC721 } from './erc721/ERC721.sol';
 import { IERC721 } from '@openzeppelin/contracts/token/ERC721/IERC721.sol';
 import { IProxyRegistry } from './interfaces/IProxyRegistry.sol';
 
-contract RarityPass is ERC721Checkpointable, Ownable, IRarityPass {
+/// @notice Function callable only by the owner.
+error OwnerOnly();
+
+contract DopamintPass is ERC721Checkpointable, IDopamintPass {
 
     using Strings for uint256;
+
+    address owner;
 
     uint256 public constant MAX_SUPPLY = 9999;
 
@@ -67,6 +72,13 @@ contract RarityPass is ERC721Checkpointable, Ownable, IRarityPass {
         _;
     }
 
+    modifier onlyOwner() {
+        if (msg.sender != owner) {
+            revert OwnerOnly();
+        }
+        _;
+    }
+
     /**
      * @notice Require that the sender is the minter.
      */
@@ -80,7 +92,7 @@ contract RarityPass is ERC721Checkpointable, Ownable, IRarityPass {
         string memory symbol_,
         address minter_,
         IProxyRegistry proxyRegistry_
-    ) ERC721Checkpointable(name_, symbol_) {
+    ) ERC721Checkpointable(name_, symbol_, 10) {
         minter = minter_;
         proxyRegistry = proxyRegistry_;
     }
@@ -107,7 +119,7 @@ contract RarityPass is ERC721Checkpointable, Ownable, IRarityPass {
         require(dropSize >= MIN_DROP_SIZE, "drop size too small");
         require(dropSize <= MAX_DROP_SIZE, "drop size too large");
 
-        uint256 startIndex = totalSupply();
+        uint256 startIndex = totalSupply;
         require(startIndex + dropSize <= MAX_SUPPLY, "drop above maximum capacity");
 
         drop = Drop({
@@ -126,7 +138,7 @@ contract RarityPass is ERC721Checkpointable, Ownable, IRarityPass {
         Drop memory _drop = drop;
 
         require(_drop.initiated, "Drop already completed");
-        require(_drop.endIndex == totalSupply() - 1, "Mints still remaining");
+        require(_drop.endIndex == totalSupply - 1, "Mints still remaining");
         drop.initiated = false;
         drop.endTime = block.timestamp;
 
@@ -146,7 +158,7 @@ contract RarityPass is ERC721Checkpointable, Ownable, IRarityPass {
 
     // Mints initial tokens for the team
     function teamMint(address recipient) external onlyOwner {
-        require(totalSupply() < TEAM_MINTS, "team minting completed");
+        require(totalSupply < TEAM_MINTS, "team minting completed");
         require(!drop.initiated, "drop has already started");
         for (uint256 i = 0; i < TEAM_MINTS; i++) {
             _mintTo(msg.sender, _currentId++);
@@ -158,7 +170,7 @@ contract RarityPass is ERC721Checkpointable, Ownable, IRarityPass {
      * @notice Mint a rarity society.
      */
     function mint() public override onlyMinter returns (uint256) {
-        require(totalSupply() < MAX_SUPPLY, "maximum supply reached");
+        require(totalSupply < MAX_SUPPLY, "maximum supply reached");
         require(drop.initiated, "drop has not yet started");
         require(_currentId <= drop.endIndex, "drop capacity reached");
         return _mintTo(minter, _currentId++);
@@ -173,11 +185,11 @@ contract RarityPass is ERC721Checkpointable, Ownable, IRarityPass {
     }
 
     function setBaseURI(string memory baseURI) public onlyOwner {
-        _setBaseURI(baseURI);
+        setBaseURI(baseURI);
     }
 
     function tokenURI(uint256 tokenId) public view virtual override returns (string memory) {
-        require(_exists(tokenId), 'ERC721Metadata: URI query for nonexistent token');
+        // require(_exists(tokenId), 'ERC721Metadata: URI query for nonexistent token');
 
         string memory dropURI = dropURIs[tokenId];
         if (bytes(dropURI).length == 0) {
@@ -213,32 +225,32 @@ contract RarityPass is ERC721Checkpointable, Ownable, IRarityPass {
      * @notice Mint a Noun with `nounId` to the provided `to` address.
      */
     function _mintTo(address _to, uint256 _tokenId) internal returns (uint256) {
-        _mint(owner(), _to, _tokenId);
+        _mint(_to, _tokenId);
         emit Mint(_tokenId);
 
         return _tokenId;
     }
 
     function getDropDelegate(uint256 tokenId) public view returns (address) {
-        require(_exists(tokenId), 'query for nonexistent token');
+        // require(_exists(tokenId), 'query for nonexistent token');
         address delegate = dropDelegates[tokenId];
-        return delegate == address(0) ? ownerOf(tokenId) : delegate;
+        return delegate == address(0) ? ownerOf[tokenId] : delegate;
     }
 
     function dropDelegate(address delegatee, uint256 tokenId) public {
-        require(ERC721.ownerOf(tokenId) == msg.sender, 'gifting of unowned token');
+        // require(ERC721.ownerOf(tokenId) == msg.sender, 'gifting of unowned token');
         if (delegatee == address(0)) delegatee = msg.sender;
         _dropDelegate(delegatee, tokenId);
     }
 
     function _dropDelegate(address delegatee, uint256 tokenId) internal {
         dropDelegates[tokenId] = delegatee;
-        emit DropDelegate(ERC721.ownerOf(tokenId), delegatee, tokenId);
+        // emit DropDelegate(ERC721.ownerOf(tokenId), delegatee, tokenId);
     }
 
     // @notice Returns integer that represents the drop corresponding to tokenId
     function getTokenDrop(uint256 tokenId) public view returns (uint256) {
-        require(_exists(tokenId), "Token ID does not exist");
+        // require(_exists(tokenId), "Token ID does not exist");
         for (uint256 i = 0; i < dropEndIndices.length; i++) {
             if (tokenId <= dropEndIndices[i]) {
                 return i;
@@ -269,15 +281,5 @@ contract RarityPass is ERC721Checkpointable, Ownable, IRarityPass {
 		dropFixed[dropId] = true;
 	}
 
-    function _afterTokenTransfer(
-        address from,
-        address to,
-        uint256 tokenId
-    ) internal override {
-        super._afterTokenTransfer(from, to, tokenId);
-
-        // Clear drop delegates
-        _dropDelegate(address(0), tokenId);
-    }
 }
 

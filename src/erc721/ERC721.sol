@@ -1,404 +1,307 @@
 // SPDX-License-Identifier: MIT
 
-/// @title ERC721 Token Implementation
-
-// LICENSE
-// ERC721.sol modifies OpenZeppelin's ERC721.sol:
-// https://github.com/OpenZeppelin/openzeppelin-contracts/blob/6618f9f18424ade44116d0221719f4c93be6a078/contracts/token/ERC721/ERC721.sol
-//
-// ERC721.sol source code copyright OpenZeppelin licensed under the MIT License.
-// With modifications by Nounders DAO.
-//
-//
-// MODIFICATIONS:
-// `_safeMint` and `_mint` contain an additional `creator` argument and
-// emit two `Transfer` logs, rather than one. The first log displays the
-// transfer (mint) from `address(0)` to the `creator`. The second displays the
-// transfer from the `creator` to the `to` address. This enables correct
-// attribution on various NFT marketplaces.
+/// @title Minimal ERC721 Token Implementation
 
 pragma solidity ^0.8.9;
 
 import '@openzeppelin/contracts/token/ERC721/IERC721.sol';
 import '@openzeppelin/contracts/token/ERC721/extensions/IERC721Metadata.sol';
 import '@openzeppelin/contracts/token/ERC721/IERC721Receiver.sol';
-import '@openzeppelin/contracts/utils/Address.sol';
-import '@openzeppelin/contracts/utils/Context.sol';
-import '@openzeppelin/contracts/utils/Strings.sol';
-import '@openzeppelin/contracts/utils/introspection/ERC165.sol';
 
-/**
- * @dev Implementation of https://eips.ethereum.org/EIPS/eip-721[ERC721] Non-Fungible Token Standard, including
- * the Metadata extension, but not including the Enumerable extension, which is available separately as
- * {ERC721Enumerable}.
- */
-contract ERC721 is Context, ERC165, IERC721, IERC721Metadata {
-    using Address for address;
-    using Strings for uint256;
+/// @notice Token has already minted.
+error DuplicateMint();
 
-    // Token name
+/// @notice Originating address does not own the NFT.
+error InvalidOwner();
+
+/// @notice Receiving contract does not implement the ERC721 wallet interface.
+error InvalidReceiver();
+
+/// @notice Receiving address cannot be the zero address.
+error ZeroAddressReceiver();
+
+/// @notice NFT does not exist.
+error NonExistentNFT();
+
+/// @notice NFT collection has hit maximum supply capacity.
+error SupplyMaxCapacity();
+
+/// @notice Sender is not NFT owner, approved address, or owner operator.
+error UnauthorizedSender();
+
+/// @title DθPΛM1NΞ ERC-721 base contract
+/// @notice ERC-721 contract with metadata extension and maximum supply.
+contract ERC721 is IERC721, IERC721Metadata {
+
+    /// @notice Name of the NFT collection.
     string public name;
 
-    // Token symbol
+    /// @notice Abbreviated name of the NFT collection.
     string public symbol;
 
-    // Mapping from token ID to owner address
-    mapping(uint256 => address) private _owners;
+    /// @notice Total number of NFTs in circulation.
+    uint256 public totalSupply;
 
-    // Mapping owner address to token count
-    mapping(address => uint256) private _balances;
+    /// @notice Maximum allowed number of circulating NFTs.
+	uint256 public immutable maxSupply;
 
-    // Mapping from token ID to approved address
-    mapping(uint256 => address) private _tokenApprovals;
+    /// @notice Gets the number of NFTs owned by an address.
+    /// @dev This implementation does not throw for 0-address queries.
+    mapping(address => uint256) public balanceOf;
 
-    // Mapping from owner to operator approvals
-    mapping(address => mapping(address => bool)) private _operatorApprovals;
+    /// @notice Gets the assigned owner of an address.
+    mapping(uint256 => address) public ownerOf;
 
-    string private _baseURI;
+    /// @notice Gets the approved address for an NFT.
+    mapping(uint256 => address) public getApproved;
 
-    constructor(string memory name_, string memory symbol_) {
+    /// @notice Nonces for preventing replay attacks when signing.
+    mapping(address => uint256) public nonces;
+
+    /// @notice Checks for an owner if an address is an authorized operator.
+    mapping(address => mapping(address => bool)) internal _operatorOf;
+
+    /// @notice EIP-712 immutables for signing messages.
+    uint256 internal immutable _CHAIN_ID;
+    bytes32 internal immutable _DOMAIN_SEPARATOR;
+
+    /// @notice EIP-165 identifiers for all supported interfaces.
+    bytes4 private constant _ERC165_INTERFACE_ID = 0x01ffc9a7;
+    bytes4 private constant _ERC721_INTERFACE_ID = 0x80ac58cd;
+    bytes4 private constant _ERC721_METADATA_INTERFACE_ID = 0x5b5e139f;
+    
+    /// @notice Initialize the NFT collection contract.
+    /// @param name_ Name of the NFT collection
+    /// @param symbol_ Abbreviated name of the NFT collection.
+    /// @param maxSupply_ Supply cap for the NFT collection
+    constructor(
+        string memory name_,
+        string memory symbol_,
+        uint256 maxSupply_
+    ) {
         name = name_;
         symbol = symbol_;
+        maxSupply = maxSupply_;
+
+        _CHAIN_ID = block.chainid;
+        _DOMAIN_SEPARATOR = _buildDomainSeparator();
     }
 
-    /**
-     * @dev See {IERC165-supportsInterface}.
-     */
-    function supportsInterface(bytes4 interfaceId) public view virtual override(ERC165, IERC165) returns (bool) {
-        return
-            interfaceId == type(IERC721).interfaceId ||
-            interfaceId == type(IERC721Metadata).interfaceId ||
-            super.supportsInterface(interfaceId);
-    }
-
-    /**
-     * @dev See {IERC721-balanceOf}.
-     */
-    function balanceOf(address owner) public view virtual override returns (uint256) {
-        require(owner != address(0), 'ERC721: balance query for the zero address');
-        return _balances[owner];
-    }
-
-    /**
-     * @dev See {IERC721-ownerOf}.
-     */
-    function ownerOf(uint256 tokenId) public view virtual override returns (address) {
-        address owner = _owners[tokenId];
-        require(owner != address(0), 'ERC721: owner query for nonexistent token');
-        return owner;
-    }
-
-    /**
-     * @dev See {IERC721Metadata-tokenURI}.
-     */
-    function tokenURI(uint256 tokenId) public view virtual override returns (string memory) {
-        require(_exists(tokenId), 'ERC721Metadata: URI query for nonexistent token');
-
-        string memory baseURI = baseURI();
-        return bytes(baseURI).length > 0 ? string(abi.encodePacked(baseURI, tokenId.toString())) : '';
-    }
-
-	function _setBaseURI(string memory baseURI_) internal virtual {
-        _baseURI = baseURI_;
-	}
-    /**
-     * @dev Base URI for computing {tokenURI}. If set, the resulting URI for each
-     * token will be the concatenation of the `baseURI` and the `tokenId`. Empty
-     * by default, can be overriden in child contracts.
-     */
-    function baseURI() public view virtual returns (string memory) {
-        return _baseURI;
-    }
-
-    /**
-     * @dev See {IERC721-approve}.
-     */
-    function approve(address to, uint256 tokenId) public virtual override {
-        address owner = ERC721.ownerOf(tokenId);
-        require(to != owner, 'ERC721: approval to current owner');
-
-        require(
-            _msgSender() == owner || isApprovedForAll(owner, _msgSender()),
-            'ERC721: approve caller is not owner nor approved for all'
-        );
-
-        _approve(to, tokenId);
-    }
-
-    /**
-     * @dev See {IERC721-getApproved}.
-     */
-    function getApproved(uint256 tokenId) public view virtual override returns (address) {
-        require(_exists(tokenId), 'ERC721: approved query for nonexistent token');
-
-        return _tokenApprovals[tokenId];
-    }
-
-    /**
-     * @dev See {IERC721-setApprovalForAll}.
-     */
-    function setApprovalForAll(address operator, bool approved) public virtual override {
-        require(operator != _msgSender(), 'ERC721: approve to caller');
-
-        _operatorApprovals[_msgSender()][operator] = approved;
-        emit ApprovalForAll(_msgSender(), operator, approved);
-    }
-
-    /**
-     * @dev See {IERC721-isApprovedForAll}.
-     */
-    function isApprovedForAll(address owner, address operator) public view virtual override returns (bool) {
-        return _operatorApprovals[owner][operator];
-    }
-
-    /**
-     * @dev See {IERC721-transferFrom}.
-     */
+    /// @notice Transfers NFT of id `id` from address `from` to address `to`,
+    ///  without performing any safety checks.
+    /// @param from The address of the current owner of the transferred NFT.
+    /// @param to The address of the new owner of the transferred NFT.
+    /// @param id The NFT being transferred.
     function transferFrom(
         address from,
         address to,
-        uint256 tokenId
-    ) public virtual override {
-        //solhint-disable-next-line max-line-length
-        require(_isApprovedOrOwner(_msgSender(), tokenId), 'ERC721: transfer caller is not owner nor approved');
-
-        _transfer(from, to, tokenId);
+        uint256 id
+    ) public virtual {
+        _transferFrom(from, to, id);
     }
 
-    /**
-     * @dev See {IERC721-safeTransferFrom}.
-     */
+    /// @notice Transfers NFT of id `id` from address `from` to address `to`,
+    ///  with safety checks ensuring `to` is capable of receiving the NFT.
+    /// @param from The address of the current owner of the transferred NFT.
+    /// @param to The address of the new owner of the transferred NFT.
+    /// @param id The NFT being transferred.
     function safeTransferFrom(
         address from,
         address to,
-        uint256 tokenId
-    ) public virtual override {
-        safeTransferFrom(from, to, tokenId, '');
-    }
+        uint256 id,
+        bytes memory data
+    ) public virtual {
+        _transferFrom(from, to, id);
 
-    /**
-     * @dev See {IERC721-safeTransferFrom}.
-     */
-    function safeTransferFrom(
-        address from,
-        address to,
-        uint256 tokenId,
-        bytes memory _data
-    ) public virtual override {
-        require(_isApprovedOrOwner(_msgSender(), tokenId), 'ERC721: transfer caller is not owner nor approved');
-        _safeTransfer(from, to, tokenId, _data);
-    }
-
-    /**
-     * @dev Safely transfers `tokenId` token from `from` to `to`, checking first that contract recipients
-     * are aware of the ERC721 protocol to prevent tokens from being forever locked.
-     *
-     * `_data` is additional data, it has no specified format and it is sent in call to `to`.
-     *
-     * This internal function is equivalent to {safeTransferFrom}, and can be used to e.g.
-     * implement alternative mechanisms to perform token transfer, such as signature-based.
-     *
-     * Requirements:
-     *
-     * - `from` cannot be the zero address.
-     * - `to` cannot be the zero address.
-     * - `tokenId` token must exist and be owned by `from`.
-     * - If `to` refers to a smart contract, it must implement {IERC721Receiver-onERC721Received}, which is called upon a safe transfer.
-     *
-     * Emits a {Transfer} event.
-     */
-    function _safeTransfer(
-        address from,
-        address to,
-        uint256 tokenId,
-        bytes memory _data
-    ) internal virtual {
-        _transfer(from, to, tokenId);
-        require(_checkOnERC721Received(from, to, tokenId, _data), 'ERC721: transfer to non ERC721Receiver implementer');
-    }
-
-    /**
-     * @dev Returns whether `tokenId` exists.
-     *
-     * Tokens can be managed by their owner or approved accounts via {approve} or {setApprovalForAll}.
-     *
-     * Tokens start existing when they are minted (`_mint`),
-     * and stop existing when they are burned (`_burn`).
-     */
-    function _exists(uint256 tokenId) internal view virtual returns (bool) {
-        return _owners[tokenId] != address(0);
-    }
-
-    /**
-     * @dev Returns whether `spender` is allowed to manage `tokenId`.
-     *
-     * Requirements:
-     *
-     * - `tokenId` must exist.
-     */
-    function _isApprovedOrOwner(address spender, uint256 tokenId) internal view virtual returns (bool) {
-        require(_exists(tokenId), 'ERC721: operator query for nonexistent token');
-        address owner = ERC721.ownerOf(tokenId);
-        return (spender == owner || getApproved(tokenId) == spender || isApprovedForAll(owner, spender));
-    }
-
-    /**
-     * @dev Mints `tokenId`, transfers it to `to`, and emits two log events -
-     * 1. Credits the `creator` with the mint.
-     * 2. Shows transfer from the `creator` to `to`.
-     *
-     *
-     * Requirements:
-     *
-     * - `tokenId` must not exist.
-     * - `to` cannot be the zero address.
-     *
-     * Emits a {Transfer} event.
-     */
-    function _mint(
-        address creator,
-        address to,
-        uint256 tokenId
-    ) internal virtual {
-        require(to != address(0), 'ERC721: mint to the zero address');
-        require(!_exists(tokenId), 'ERC721: token already minted');
-
-        _beforeTokenTransfer(address(0), to, tokenId);
-
-        _balances[to] += 1;
-        _owners[tokenId] = to;
-
-        emit Transfer(address(0), creator, tokenId);
-        emit Transfer(creator, to, tokenId);
-
-        _afterTokenTransfer(address(0), to, tokenId);
-    }
-
-    /**
-     * @dev Destroys `tokenId`.
-     * The approval is cleared when the token is burned.
-     *
-     * Requirements:
-     *
-     * - `tokenId` must exist.
-     *
-     * Emits a {Transfer} event.
-     */
-    function _burn(uint256 tokenId) internal virtual {
-        address owner = ERC721.ownerOf(tokenId);
-
-        _beforeTokenTransfer(owner, address(0), tokenId);
-
-        // Clear approvals
-        _approve(address(0), tokenId);
-
-        _balances[owner] -= 1;
-        delete _owners[tokenId];
-
-        emit Transfer(owner, address(0), tokenId);
-    }
-
-    /**
-     * @dev Transfers `tokenId` from `from` to `to`.
-     *  As opposed to {transferFrom}, this imposes no restrictions on msg.sender.
-     *
-     * Requirements:
-     *
-     * - `to` cannot be the zero address.
-     * - `tokenId` token must be owned by `from`.
-     *
-     * Emits a {Transfer} event.
-     */
-    function _transfer(
-        address from,
-        address to,
-        uint256 tokenId
-    ) internal virtual {
-        require(ERC721.ownerOf(tokenId) == from, 'ERC721: transfer of token that is not own');
-        require(to != address(0), 'ERC721: transfer to the zero address');
-
-        _beforeTokenTransfer(from, to, tokenId);
-
-        // Clear approvals from the previous owner
-        _approve(address(0), tokenId);
-
-        _balances[from] -= 1;
-        _balances[to] += 1;
-        _owners[tokenId] = to;
-
-        emit Transfer(from, to, tokenId);
-
-        _afterTokenTransfer(from, to, tokenId);
-    }
-
-    /**
-     * @dev Approve `to` to operate on `tokenId`
-     *
-     * Emits a {Approval} event.
-     */
-    function _approve(address to, uint256 tokenId) internal virtual {
-        _tokenApprovals[tokenId] = to;
-        emit Approval(ERC721.ownerOf(tokenId), to, tokenId);
-    }
-
-    /**
-     * @dev Internal function to invoke {IERC721Receiver-onERC721Received} on a target address.
-     * The call is not executed if the target address is not a contract.
-     *
-     * @param from address representing the previous owner of the given token ID
-     * @param to target address that will receive the tokens
-     * @param tokenId uint256 ID of the token to be transferred
-     * @param _data bytes optional data to send along with the call
-     * @return bool whether the call correctly returned the expected magic value
-     */
-    function _checkOnERC721Received(
-        address from,
-        address to,
-        uint256 tokenId,
-        bytes memory _data
-    ) private returns (bool) {
-        if (to.isContract()) {
-            try IERC721Receiver(to).onERC721Received(_msgSender(), from, tokenId, _data) returns (bytes4 retval) {
-                return retval == IERC721Receiver(to).onERC721Received.selector;
-            } catch (bytes memory reason) {
-                if (reason.length == 0) {
-                    revert('ERC721: transfer to non ERC721Receiver implementer');
-                } else {
-                    assembly {
-                        revert(add(32, reason), mload(reason))
-                    }
-                }
-            }
-        } else {
-            return true;
+        if (
+            to.code.length != 0 &&
+                IERC721Receiver(to).onERC721Received(msg.sender, from, id, data) !=
+                IERC721Receiver.onERC721Received.selector
+        ) {
+            revert InvalidReceiver();
         }
     }
 
-    /**
-     * @dev Hook that is called before any token transfer. This includes minting
-     * and burning.
-     *
-     * Calling conditions:
-     *
-     * - When `from` and `to` are both non-zero, ``from``'s `tokenId` will be
-     * transferred to `to`.
-     * - When `from` is zero, `tokenId` will be minted for `to`.
-     * - When `to` is zero, ``from``'s `tokenId` will be burned.
-     * - `from` and `to` are never both zero.
-     *
-     * To learn more about hooks, head to xref:ROOT:extending-contracts.adoc#using-hooks[Using Hooks].
-     */
-    function _beforeTokenTransfer(
+    /// @notice Equivalent to preceding function with empty `data`.
+    function safeTransferFrom(
         address from,
         address to,
-        uint256 tokenId
-    ) internal virtual {}
+        uint256 id
+    ) public virtual {
+        _transferFrom(from, to, id);
 
-    function _afterTokenTransfer(
-        address from,
-        address to,
-        uint256 tokenId
-    ) internal virtual {}
+        if (
+            to.code.length != 0 &&
+                IERC721Receiver(to).onERC721Received(msg.sender, from, id, "") !=
+                IERC721Receiver.onERC721Received.selector
+        ) {
+            revert InvalidReceiver();
+        }
+    }
 
-    uint256[10] private __gap;
+    /// @notice Sets the approved address of NFT of id `id` to `approved`.
+    /// @param approved The new approved address for the NFT
+    /// @param id The id of the NFT to approve
+    function approve(address approved, uint256 id) public virtual {
+        address owner = ownerOf[id];
+
+        if (msg.sender != owner && !_operatorOf[owner][msg.sender]) {
+            revert UnauthorizedSender();
+        }
+
+        getApproved[id] = approved;
+        emit Approval(owner, approved, id);
+    }
+
+    /// @notice Checks if `operator` is an authorized operator for `owner`.
+    /// @param owner Address of the owner.
+    /// @param operator Address for the owner's operator.
+    /// @return true if `operator` is approved operator of `owner`, else false.
+    function isApprovedForAll(address owner, address operator) public view virtual returns (bool) {
+        return _operatorOf[owner][operator];
+    }
+
+    /// @notice Sets the operator for `msg.sender` to `operator`.
+    /// @param operator The operator address that will manage the sender's NFTs
+    /// @param approved Whether the operator is allowed to operate sender's NFTs
+    function setApprovalForAll(address operator, bool approved) public virtual {
+        _operatorOf[msg.sender][operator] = approved;
+        emit ApprovalForAll(msg.sender, operator, approved);
+    }
+
+    /// @notice Returns the token URI associated with the token of id `id`.
+    function tokenURI(uint256 id) public view virtual returns (string memory) {
+        return "";
+    }
+
+    /// @notice Checks if interface of identifier `interfaceId` is supported.
+    /// @param interfaceId ERC-165 identifier
+    /// @return `true` if `interfaceId` is supported, `false` otherwise.
+    function supportsInterface(bytes4 interfaceId) public pure virtual returns (bool) {
+        return
+            interfaceId == _ERC165_INTERFACE_ID ||
+            interfaceId == _ERC721_INTERFACE_ID ||
+            interfaceId == _ERC721_METADATA_INTERFACE_ID;
+    }
+
+    /// @notice Transfers NFT of id `id` from address `from` to address `to`.
+    /// @dev Existence of an NFT is inferred by having a non-zero owner address.
+    ///  To save gas, use Transfer events to track Approval clearances.
+    /// @param from The address of the owner of the NFT.
+    /// @param to The address of the new owner of the NFT.
+    /// @param id The id of the NFT being transferred.
+    function _transferFrom(address from, address to, uint256 id) internal virtual {
+        if (from != ownerOf[id]) {
+            revert InvalidOwner();
+        }
+
+        if (
+            msg.sender != from &&
+            msg.sender != getApproved[id] &&
+            !_operatorOf[from][msg.sender]
+        ) {
+            revert UnauthorizedSender();
+        }
+
+        if (to == address(0)) {
+            revert ZeroAddressReceiver();
+        }
+
+        _beforeTokenTransfer(from, to, id);
+
+        delete getApproved[id];
+
+        unchecked {
+            balanceOf[from]--;
+            balanceOf[to]++;
+        }
+
+        ownerOf[id] = to;
+        emit Transfer(from, to, id);
+    }
+
+    /// @notice Mints NFT of id `id` to address `to`.
+    /// @dev Assumes `maxSupply` < `type(uint256).max` to save on gas. 
+    /// @param to Address receiving the minted NFT.
+    /// @param id identifier of the NFT being minted.
+    function _mint(address to, uint256 id) internal virtual {
+        if (to == address(0)) {
+            revert ZeroAddressReceiver();
+        }
+        if (ownerOf[id] != address(0)) {
+            revert DuplicateMint();
+        }
+
+        _beforeTokenTransfer(address(0), to, id);
+
+        unchecked {
+            totalSupply++;
+            balanceOf[to]++;
+        }
+        if (totalSupply > maxSupply) {
+            revert SupplyMaxCapacity();
+        }
+        ownerOf[id] = to;
+        emit Transfer(address(0), to, id);
+    }
+
+	/// @notice Burns NFT of id `id`.
+    /// @param id Identifier of the NFT being burned
+    function _burn(uint256 id) internal virtual {
+        address owner = ownerOf[id];
+
+        if (owner == address(0)) {
+            revert NonExistentNFT();
+        }
+
+        _beforeTokenTransfer(owner, address(0), id);
+
+        unchecked {
+            totalSupply--;
+            balanceOf[owner]--;
+        }
+
+        delete ownerOf[id];
+        emit Transfer(owner, address(0), id);
+    }
+
+    /// @notice Pre-transfer hook for adding additional functionality.
+    /// @param from The address of the owner of the NFT.
+    /// @param to The address of the new owner of the NFT.
+    /// @param id The id of the NFT being transferred.
+    function _beforeTokenTransfer(address from, address to, uint256 id) internal virtual {
+    }
+
+	/// @notice Generates an EIP-712 domain separator for an ERC-721.
+    /// @return A 256-bit domain separator.
+    function _buildDomainSeparator() internal view returns (bytes32) {
+        return keccak256(
+            abi.encode(
+				keccak256("EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)"),
+				keccak256(bytes(name)),
+                keccak256("1"),
+                block.chainid,
+                address(this)
+            )
+        );
+    }
+
+	/// @notice Returns an EIP-712 encoding of structured data `structHash`.
+    /// @param structHash The structured data to be encoded and signed.
+    /// @return A bytestring suitable for signing in accordance to EIP-712.
+    function _hashTypedData(bytes32 structHash) internal view returns (bytes32) {
+        return keccak256(abi.encodePacked("\x19\x01", _domainSeparator(), structHash));
+    }
+
+    /// @notice Returns the domain separator tied to the contract.
+    /// @dev Recreated if chain id changes, otherwise cached value is used.
+    /// @return 256-bit domain separator tied to this contract.
+    function _domainSeparator() internal view returns (bytes32) {
+        if (block.chainid == _CHAIN_ID) {
+            return _DOMAIN_SEPARATOR;
+        } else {
+            return _buildDomainSeparator();
+        }
+    }
+
 }
