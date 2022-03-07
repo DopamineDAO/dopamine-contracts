@@ -1,17 +1,17 @@
 // SPDX-License-Identifier: GPL-3.0
 
-/// @title The Rarity Society DAO Mock
+/// @title The Dopamine DAO Mock
 
 pragma solidity ^0.8.9;
 
-import { RaritySocietyDAOImpl } from '../../governance/RaritySocietyDAOImpl.sol';
-
+import '../../interfaces/IDopamineDAOToken.sol';
+import { DopamineDAO } from '../../governance/DopamineDAO.sol';
 import "../utils/Hevm.sol";
 
 /// @notice Signer unsupported for EIP-712 voting.
 error UnsupportedSigner();
 
-contract MockRaritySocietyDAOImpl is RaritySocietyDAOImpl {
+contract MockDopamineDAO is DopamineDAO {
 
     mapping(address => uint256) private signers;
 
@@ -19,11 +19,15 @@ contract MockRaritySocietyDAOImpl is RaritySocietyDAOImpl {
         address(bytes20(uint160(uint256(keccak256('hevm cheat code')))));
     Hevm constant vm = Hevm(HEVM_ADDRESS);
 
-    string constant VOTE_REASON = "Rarity";
+    string constant VOTE_REASON = "Dopamine";
 
-    constructor(
-        address proxy
-    ) RaritySocietyDAOImpl(proxy) {}
+    constructor(address proxy) DopamineDAO(proxy) {}
+
+    // Retrieve proposal as struct for easier testing.
+    function getProposal() public returns (Proposal memory) {
+        return proposal;
+    }
+
     
     // Mock method to save a bunch of signer keys for EIP-712 testing.
     function initSigners(uint256[2] memory pks) public {

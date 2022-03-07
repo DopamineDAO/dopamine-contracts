@@ -2,10 +2,10 @@
 
 pragma solidity ^0.8.6;
 
-import { IRaritySocietyAuctionHouse } from '../interfaces/IRaritySocietyAuctionHouse.sol';
+import { IDopamineAuctionHouse } from '../interfaces/IDopamineAuctionHouse.sol';
 
 contract GasBurner {
-    function createBid(IRaritySocietyAuctionHouse auctionHouse, uint256 tokenId) public payable {
+    function createBid(IDopamineAuctionHouse auctionHouse, uint256 tokenId) public payable {
         auctionHouse.createBid{ value: msg.value }(tokenId);
     }
 

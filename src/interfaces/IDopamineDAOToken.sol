@@ -1,6 +1,6 @@
 pragma solidity ^0.8.9;
 
-interface IRaritySocietyDAOToken {
+interface IDopamineDAOToken {
 
     function getPriorVotes(address account, uint blockNumber) external view returns (uint32);
 

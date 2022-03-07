@@ -1,10 +1,10 @@
 pragma solidity ^0.8.9;
 
 import '../interfaces/ITimelock.sol';
-import '../interfaces/IRaritySocietyDAOToken.sol';
-import '../interfaces/IRaritySocietyDAO.sol';
+import '../interfaces/IDopamineDAOToken.sol';
+import '../interfaces/IDopamineDAO.sol';
 
-contract RaritySocietyDAOStorageV1 {
+contract DopamineDAOStorageV1 {
 
     uint32 public votingPeriod;
 
@@ -20,14 +20,14 @@ contract RaritySocietyDAOStorageV1 {
 
     address public vetoer;
 
-    IRaritySocietyDAOToken public token;
+    IDopamineDAOToken public token;
 
     address public admin;
 
     address public pendingAdmin;
 
-    IRaritySocietyDAO.Proposal public proposal;
+    IDopamineDAO.Proposal public proposal;
 
-    mapping(address => IRaritySocietyDAO.Receipt) public receipts;
+    mapping(address => IDopamineDAO.Receipt) public receipts;
 
 }
