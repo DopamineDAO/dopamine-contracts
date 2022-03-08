@@ -7,8 +7,6 @@ pragma solidity ^0.8.9;
 
 import { DopamineDAO } from '../../governance/DopamineDAO.sol';
 
-import "../utils/Hevm.sol";
-
 error DummyError();
 
 contract MockDopamineDAOUpgraded is DopamineDAO {

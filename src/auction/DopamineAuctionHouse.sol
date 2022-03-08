@@ -175,7 +175,7 @@ contract DopamineAuctionHouse is UUPSUpgradeable, DopamineAuctionHouseStorageV1,
 
         address payable lastBidder = _auction.bidder;
 
-        // Refund the last bidder, if applicable
+        // Notify if refund fails.
         if (lastBidder != address(0) && !_transferETH(lastBidder, _auction.amount)) {
             emit RefundFailed(lastBidder);
         }
@@ -184,7 +184,7 @@ contract DopamineAuctionHouse is UUPSUpgradeable, DopamineAuctionHouseStorageV1,
         auction.bidder = payable(msg.sender);
 
         // Extend the auction if the bid was received within `timeBuffer` of the auction end time
-        bool extended = _auction.endTime - block.timestamp <= timeBuffer;
+        bool extended = _auction.endTime - block.timestamp < timeBuffer;
         if (extended) {
             auction.endTime = _auction.endTime = block.timestamp + timeBuffer;
             emit AuctionExtended(_auction.tokenId, _auction.endTime);
