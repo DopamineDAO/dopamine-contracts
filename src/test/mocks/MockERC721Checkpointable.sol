@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0
 pragma solidity >=0.8.0;
 
-import "../../ERC721/ERC721Checkpointable.sol";
-import "../utils/Hevm.sol";
+import "../../erc721/ERC721Checkpointable.sol";
+import "../utils/HEVM.sol";
 import "../utils/console.sol";
 
 /// @notice Signer unsupported for EIP-712 voting.

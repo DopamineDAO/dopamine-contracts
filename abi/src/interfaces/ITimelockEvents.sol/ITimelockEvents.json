@@ -1,0 +1,8 @@
+[
+  "event CancelTransaction(bytes32 indexed txHash, address indexed target, uint256 value, string signature, bytes data, uint256 eta)",
+  "event DelaySet(uint256 delay)",
+  "event ExecuteTransaction(bytes32 indexed txHash, address indexed target, uint256 value, string signature, bytes data, uint256 eta)",
+  "event NewAdmin(address oldAdmin, address newAdmin)",
+  "event NewPendingAdmin(address pendingAdmin)",
+  "event QueueTransaction(bytes32 indexed txHash, address indexed target, uint256 value, string signature, bytes data, uint256 eta)"
+]

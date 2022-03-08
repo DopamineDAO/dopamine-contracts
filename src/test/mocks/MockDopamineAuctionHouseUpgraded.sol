@@ -20,7 +20,10 @@ contract MockDopamineAuctionHouseUpgraded is MockDopamineAuctionHouse {
     }
 
     function withdraw() public onlyAdmin {
-        dao.call{ value: address(this).balance, gas: 30_000 }(new bytes(0));
+        (bool success, ) = dao.call{ value: address(this).balance, gas: 30_000 }(new bytes(0));
+        if (!success) {
+            revert();
+        }
     }
 
 }

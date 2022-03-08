@@ -106,7 +106,7 @@ contract DopamineAuctionHouseTest is Test, IDopamineAuctionHouseEvents {
         assertTrue(!auction.settled);
 
         /// Reverts when trying to initialize more than once.
-        expectRevert("AlreadyInitialized()");
+        vm.expectRevert(AlreadyInitialized.selector);
         ah.initialize(
             address(token),
             reserve,
@@ -128,7 +128,7 @@ contract DopamineAuctionHouseTest is Test, IDopamineAuctionHouseEvents {
             RESERVE_PRICE,
             DURATION
         );
-        expectRevert("InvalidTreasurySplit()");
+        vm.expectRevert(InvalidTreasurySplit.selector);
 		ERC1967Proxy proxy = new ERC1967Proxy(address(ahImpl), data);
 
         /// Reverts when setting an invalid time buffer.
@@ -143,7 +143,7 @@ contract DopamineAuctionHouseTest is Test, IDopamineAuctionHouseEvents {
             RESERVE_PRICE,
             DURATION
         );
-        expectRevert("InvalidTimeBuffer()");
+        vm.expectRevert(InvalidTimeBuffer.selector);
 		proxy = new ERC1967Proxy(address(ahImpl), data);
 
         /// Reverts when setting an invalid reserve price.
@@ -158,7 +158,7 @@ contract DopamineAuctionHouseTest is Test, IDopamineAuctionHouseEvents {
             invalidParam,
             DURATION
         );
-        expectRevert("InvalidReservePrice()");
+        vm.expectRevert(InvalidReservePrice.selector);
 		proxy = new ERC1967Proxy(address(ahImpl), data);
 
         /// Reverts when setting an invalid duration.
@@ -173,13 +173,13 @@ contract DopamineAuctionHouseTest is Test, IDopamineAuctionHouseEvents {
             RESERVE_PRICE,
             invalidParam
         );
-        expectRevert("InvalidDuration()");
+        vm.expectRevert(InvalidDuration.selector);
 		proxy = new ERC1967Proxy(address(ahImpl), data);
     }
 
     function testSetTreasurySplit() public {
         // Reverts when the treasury split is too high.
-        expectRevert("InvalidTreasurySplit()");
+        vm.expectRevert(InvalidTreasurySplit.selector);
         ah.setTreasurySplit(101);
 
         // Emits expected `AuctionTreasurySplitSet` event.
@@ -191,12 +191,12 @@ contract DopamineAuctionHouseTest is Test, IDopamineAuctionHouseEvents {
     function testSetTimeBuffer() public {
         // Reverts when time buffer too small.
         uint256 minTimeBuffer = ah.MIN_TIME_BUFFER();
-        expectRevert("InvalidTimeBuffer()");
+        vm.expectRevert(InvalidTimeBuffer.selector);
         ah.setTimeBuffer(minTimeBuffer - 1);
 
         // Reverts when time buffer too large.
         uint256 maxTimeBuffer = ah.MAX_TIME_BUFFER();
-        expectRevert("InvalidTimeBuffer()");
+        vm.expectRevert(InvalidTimeBuffer.selector);
         ah.setTimeBuffer(maxTimeBuffer + 1);
 
         // Emits expected `AuctionTimeBufferSet` event.
@@ -208,12 +208,12 @@ contract DopamineAuctionHouseTest is Test, IDopamineAuctionHouseEvents {
     function testSetReservePrice() public {
         // Reverts when reserve price is too low.
         uint256 minReservePrice = ah.MIN_RESERVE_PRICE();
-        expectRevert("InvalidReservePrice()");
+        vm.expectRevert(InvalidReservePrice.selector);
         ah.setReservePrice(minReservePrice - 1);
 
         // Reverts when reserve price is too high.
         uint256 maxReservePrice = ah.MAX_RESERVE_PRICE();
-        expectRevert("InvalidReservePrice()");
+        vm.expectRevert(InvalidReservePrice.selector);
         ah.setReservePrice(maxReservePrice + 1);
 
         // Emits expected `AuctionReservePriceSet` event.
@@ -225,12 +225,12 @@ contract DopamineAuctionHouseTest is Test, IDopamineAuctionHouseEvents {
     function testSetDuration() public {
         // Reverts when duration is too low.
         uint256 minDuration = ah.MIN_DURATION();
-        expectRevert("InvalidDuration()");
+        vm.expectRevert(InvalidDuration.selector);
         ah.setDuration(minDuration - 1);
 
         // Reverts when duration is too high.
         uint256 maxDuration = ah.MAX_DURATION();
-        expectRevert("InvalidDuration()");
+        vm.expectRevert(InvalidDuration.selector);
         ah.setDuration(maxDuration + 1);
 
         // Emits expected `AuctionDurationSet` event.
@@ -242,7 +242,7 @@ contract DopamineAuctionHouseTest is Test, IDopamineAuctionHouseEvents {
     function testUnpause() public {
         // Throws when unpaused by a non-admin.
         vm.startPrank(BIDDER);
-        expectRevert("AdminOnly()");
+        vm.expectRevert(AdminOnly.selector);
         ah.unpause();
         
         vm.startPrank(ADMIN);
@@ -265,20 +265,20 @@ contract DopamineAuctionHouseTest is Test, IDopamineAuctionHouseEvents {
         ah.unpause();
 
         // Should throw when unpausing an ongoing auction.
-        expectRevert("UnpausedAuction()");
+        vm.expectRevert(UnpausedAuction.selector);
         ah.unpause();
     }
 
     function testPause() public {
         // Reverts when trying to pause an already paused auction.
-        expectRevert("PausedAuction()");
+        vm.expectRevert(PausedAuction.selector);
         ah.pause();
 
         ah.unpause();
 
         // Reverts when paused by a non-admin.
         vm.startPrank(BIDDER);
-        expectRevert("AdminOnly()");
+        vm.expectRevert(AdminOnly.selector);
         ah.pause();
 
         // Should succesfully pause when called by admin.
@@ -290,21 +290,21 @@ contract DopamineAuctionHouseTest is Test, IDopamineAuctionHouseEvents {
 
     function testCreateBid() public {
         // Creating bid before auction creation throws.
-        expectRevert("ExpiredAuction()");
+        vm.expectRevert(ExpiredAuction.selector);
         ah.createBid(NFT);
 
         ah.unpause();
         
         // Throws when bidding for an NFT not up for auction.
-        expectRevert("NotUpForAuction()");
+        vm.expectRevert(NotUpForAuction.selector);
         ah.createBid(NFT + 1);
 
         // Throws when bidding without a value specified.
-        expectRevert("BidTooLow()");
+        vm.expectRevert(BidTooLow.selector);
         ah.createBid(NFT);
 
         // Throws when bidding below reserve price.
-        expectRevert("BidTooLow()");
+        vm.expectRevert(BidTooLow.selector);
         ah.createBid{ value: 0 }(NFT);
 
         // Successfully creates a bid.
@@ -323,7 +323,7 @@ contract DopamineAuctionHouseTest is Test, IDopamineAuctionHouseEvents {
         assertTrue(!auction.settled);
 
         // Throws when bidding less than 5% of previous bid.
-        expectRevert("BidTooLow()");
+        vm.expectRevert(BidTooLow.selector);
         ah.createBid{ value: 1 ether * 104 / 100 }(NFT);
 
         // Min time to forward for time extension to apply.
@@ -372,26 +372,26 @@ contract DopamineAuctionHouseTest is Test, IDopamineAuctionHouseEvents {
         
         // Throws when bidding after auction expiration.
         vm.warp(et + TIME_BUFFER + 1);
-        expectRevert("ExpiredAuction()");
+        vm.expectRevert(ExpiredAuction.selector);
         ah.createBid(NFT);
     }
 
     function testSettleAuction() public {
         // Reverts when settling before auction commencement.
-        expectRevert("UncommencedAuction()");
+        vm.expectRevert(UncommencedAuction.selector);
         ah.settleAuction();
 
         ah.unpause();
 
         // Reverts when settling while auction is not paused.
-        expectRevert("UnpausedAuction()");
+        vm.expectRevert(UnpausedAuction.selector);
         ah.settleAuction();
         ah.pause();
 
         vm.startPrank(BIDDER);
 
         // Reverts when settling an auction not yet settled.
-        expectRevert("IncompleteAuction()");
+        vm.expectRevert(IncompleteAuction.selector);
         ah.settleAuction();
 
         // Transfers NFT to DAO when there were no bidders.
@@ -411,7 +411,7 @@ contract DopamineAuctionHouseTest is Test, IDopamineAuctionHouseEvents {
         assertTrue(auction.settled);
 
         // Settling already settled auction reverts.
-        expectRevert("AlreadySettled()");
+        vm.expectRevert(AlreadySettled.selector);
         ah.settleAuction();
 
         vm.startPrank(ADMIN);
@@ -445,13 +445,13 @@ contract DopamineAuctionHouseTest is Test, IDopamineAuctionHouseEvents {
 
     function testSettleCurrentAndCreateNewAuction() public {
         // Reverts when auction is paused.
-        expectRevert("PausedAuction()");
+        vm.expectRevert(PausedAuction.selector);
         ah.settleCurrentAndCreateNewAuction();
 
         ah.unpause(); 
 
         // Reverts when settling an auction not yet settled.
-        expectRevert("IncompleteAuction()");
+        vm.expectRevert(IncompleteAuction.selector);
         ah.settleCurrentAndCreateNewAuction();
 
         // Settles new auction and creates a new one.
@@ -511,7 +511,7 @@ contract DopamineAuctionHouseTest is Test, IDopamineAuctionHouseEvents {
         
         // Upgrades should not work if called by unauthorized upgrader.
         vm.startPrank(BIDDER);
-        expectRevert("UnauthorizedUpgrade()");
+        vm.expectRevert(UnauthorizedUpgrade.selector);
         ah.upgradeTo(address(upgradedImpl));
 
         // Perform an upgrade that initializes with faulty dao and reserve.
@@ -570,8 +570,9 @@ contract DopamineAuctionHouseTest is Test, IDopamineAuctionHouseEvents {
 
         // Other actions fail due to faulty implementation initialization.
         vm.startPrank(BIDDER);
-        expectRevert("Reentrant()");
+        vm.expectRevert(Reentrant.selector);
         ahImpl.createBid{ value: 1 ether }(NFT);
     }
+
 
 }

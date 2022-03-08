@@ -1,12 +1,11 @@
 // SPDX-License-Identifier: GPL-3.0
-
-/// @title Interface for RaritySocietyToken
-
 pragma solidity ^0.8.9;
+
+import "./IDopamintPassEvents.sol";
 
 import { IERC721 } from '@openzeppelin/contracts/token/ERC721/IERC721.sol';
 
-interface IDopamintPass is IERC721 {
+interface IDopamintPass is IERC721, IDopamintPassEvents {
 
     struct Drop {
 
@@ -16,22 +15,6 @@ interface IDopamintPass is IERC721 {
 
         uint256 endTime;
     }
-
-    event Mint(uint256 indexed tokenId);
-
-    event Burn(uint256 indexed tokenId);
-
-    event ChangeMinter(address minter);
-
-    event LockMinter();
-
-    event NewDropDelay(uint256 dropDelay);
-
-    event DropCreated(uint256 indexed dropId, uint256 startIndex, uint256 dropSize, uint256 startTime, string dropHash);
-
-    event DropCompleted(uint256 indexed dropId, uint256 endTime);
-
-    event DropDelegate(address delegator, address delegatee, uint256 tokenId);
 
     function setDropDelay(uint256 dropDelay) external;
 

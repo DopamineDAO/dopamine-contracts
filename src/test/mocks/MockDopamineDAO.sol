@@ -6,7 +6,7 @@ pragma solidity ^0.8.9;
 
 import '../../interfaces/IDopamineDAOToken.sol';
 import { DopamineDAO } from '../../governance/DopamineDAO.sol';
-import "../utils/Hevm.sol";
+import "../utils/HEVM.sol";
 
 /// @notice Signer unsupported for EIP-712 voting.
 error UnsupportedSigner();
@@ -24,7 +24,7 @@ contract MockDopamineDAO is DopamineDAO {
     constructor(address proxy) DopamineDAO(proxy) {}
 
     // Retrieve proposal as struct for easier testing.
-    function getProposal() public returns (Proposal memory) {
+    function getProposal() public view returns (Proposal memory) {
         return proposal;
     }
 

@@ -8,26 +8,7 @@ import '@openzeppelin/contracts/token/ERC721/IERC721.sol';
 import '@openzeppelin/contracts/token/ERC721/extensions/IERC721Metadata.sol';
 import '@openzeppelin/contracts/token/ERC721/IERC721Receiver.sol';
 
-/// @notice Token has already minted.
-error DuplicateMint();
-
-/// @notice Originating address does not own the NFT.
-error InvalidOwner();
-
-/// @notice Receiving contract does not implement the ERC721 wallet interface.
-error InvalidReceiver();
-
-/// @notice Receiving address cannot be the zero address.
-error ZeroAddressReceiver();
-
-/// @notice NFT does not exist.
-error NonExistentNFT();
-
-/// @notice NFT collection has hit maximum supply capacity.
-error SupplyMaxCapacity();
-
-/// @notice Sender is not NFT owner, approved address, or owner operator.
-error UnauthorizedSender();
+import '../errors.sol';
 
 /// @title DθPΛM1NΞ ERC-721 base contract
 /// @notice ERC-721 contract with metadata extension and maximum supply.
@@ -170,7 +151,7 @@ contract ERC721 is IERC721, IERC721Metadata {
     }
 
     /// @notice Returns the token URI associated with the token of id `id`.
-    function tokenURI(uint256 id) public view virtual returns (string memory) {
+    function tokenURI(uint256) public view virtual returns (string memory) {
         return "";
     }
 

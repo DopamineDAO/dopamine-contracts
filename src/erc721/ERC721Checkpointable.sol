@@ -6,22 +6,6 @@ pragma solidity ^0.8.9;
 
 import './ERC721.sol';
 
-////////////////////////////////////////////////////////////////////////////////
-///                              Custom Errors                               ///
-////////////////////////////////////////////////////////////////////////////////
- 
-/// @notice Signature has expired and is no longer valid.
-error ExpiredSignature();
-
-/// @notice Block number being queried is invalid.
-error InvalidBlock();
-
-/// @notice Signature is invalid.
-error InvalidSignature();
-
-/// @notice Number does not fit in 32 bytes.
-error InvalidUint32();
-
 /// @title DθPΛM1NΞ ERC-721 voting contract.
 /// @notice ERC-721 voting contract inspired by Nouns DAO and Compound.
 abstract contract ERC721Checkpointable is ERC721 {

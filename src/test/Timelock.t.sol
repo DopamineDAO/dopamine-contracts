@@ -2,12 +2,13 @@
 pragma solidity >=0.8.0;
 
 import "../governance/Timelock.sol";
+import "../interfaces/ITimelockEvents.sol";
 
 import "./utils/test.sol";
 import "./utils/console.sol";
 
 /// @title Timelock Test Suites
-contract TimelockTest is Test {
+contract TimelockTest is Test, ITimelockEvents {
 
     /// @notice Default timelock parameters.
     uint256 constant DELAY = 60 * 60 * 24 * 3; // 3 days
@@ -29,39 +30,6 @@ contract TimelockTest is Test {
 
     Timelock timelock;
 
-    /// @notice Timelock events.
-    event NewAdmin(address oldAdmin, address newAdmin);
-
-    event NewPendingAdmin(address pendingAdmin);
-
-	event DelaySet(uint256 delay);
-
-	event CancelTransaction(
-		bytes32 indexed txHash,
-		address indexed target,
-		uint256 value,
-		string signature,
-		bytes data,
-		uint256 eta
-	);
-	event ExecuteTransaction(
-		bytes32 indexed txHash,
-		address indexed target,
-		uint256 value,
-		string signature,
-		bytes data,
-		uint256 eta
-	);
-	event QueueTransaction(
-		bytes32 indexed txHash,
-		address indexed target,
-		uint256 value,
-		string signature,
-		bytes data,
-		uint256 eta
-	);
-
-
     function setUp() public {
         vm.roll(BLOCK_START);
         vm.warp(BLOCK_TIMESTAMP);
@@ -74,10 +42,10 @@ contract TimelockTest is Test {
 
     function testConstructor() public {
         /// Reverts when setting invalid voting period.
-        expectRevert("InvalidDelay()");
+        vm.expectRevert(InvalidDelay.selector);
         timelock = new Timelock(ADMIN, 0);
 
-        expectRevert("InvalidDelay()");
+        vm.expectRevert(InvalidDelay.selector);
         timelock = new Timelock(ADMIN, 99999999999);
 
         timelock = new Timelock(ADMIN, DELAY);
@@ -98,19 +66,19 @@ contract TimelockTest is Test {
 
     function testSetDelay() public {
         // Reverts when not set by the timelock.
-        expectRevert("TimelockOnly()");
+        vm.expectRevert(TimelockOnly.selector);
         timelock.setDelay(DELAY);
 
         vm.startPrank(address(timelock));
 
         // Reverts when delay too small.
         uint256 minDelay = timelock.MIN_DELAY();
-        expectRevert("InvalidDelay()");
+        vm.expectRevert(InvalidDelay.selector);
         timelock.setDelay(minDelay - 1);
 
         // Reverts when delay too large.
         uint256 maxDelay = timelock.MAX_DELAY();
-        expectRevert("InvalidDelay()");
+        vm.expectRevert(InvalidDelay.selector);
         timelock.setDelay(maxDelay + 1);
 
         // Emits expected `DelaySet` event.
@@ -123,7 +91,7 @@ contract TimelockTest is Test {
 
     function testSetPendingAdmin() public {
         // Reverts when not set by the timelock.
-        expectRevert("TimelockOnly()");
+        vm.expectRevert(TimelockOnly.selector);
         timelock.setPendingAdmin(FROM);
 
         vm.startPrank(address(timelock));
@@ -140,7 +108,7 @@ contract TimelockTest is Test {
         // Reverts when caller is not the pending admin.
         vm.startPrank(address(timelock));
         timelock.setPendingAdmin(FROM);
-        expectRevert("PendingAdminOnly()");
+        vm.expectRevert(PendingAdminOnly.selector);
         timelock.acceptAdmin();
 
         // Emits the expected `NewAdmin` event when executed by pending admin.
@@ -156,13 +124,13 @@ contract TimelockTest is Test {
 
     function testQueueTransaction() public {
         // Reverts when not called by the admin.
-        expectRevert("AdminOnly()");
+        vm.expectRevert(AdminOnly.selector);
         timelock.queueTransaction(address(timelock), 0, SIGNATURE, CALLDATA, BLOCK_TIMESTAMP + DELAY);
 
         vm.startPrank(ADMIN);
         
         // Reverts when the ETA is too soon.
-        expectRevert("PrematureTx()");
+        vm.expectRevert(PrematureTx.selector);
         timelock.queueTransaction(address(timelock), 0, SIGNATURE, CALLDATA, BLOCK_TIMESTAMP + DELAY - 1);
 
         assertTrue(!timelock.queuedTransactions(txHash));
@@ -177,7 +145,7 @@ contract TimelockTest is Test {
 
     function testCancelTransaction() public {
         // Reverts when not called by the admin.
-        expectRevert("AdminOnly()");
+        vm.expectRevert(AdminOnly.selector);
         timelock.cancelTransaction(address(timelock), 0, SIGNATURE, CALLDATA, BLOCK_TIMESTAMP + DELAY);
 
         vm.startPrank(ADMIN);
@@ -194,7 +162,7 @@ contract TimelockTest is Test {
 
     function testExecuteTransaction() public {
         // Reverts when not called by the admin.
-        expectRevert("AdminOnly()");
+        vm.expectRevert(AdminOnly.selector);
         timelock.executeTransaction(address(timelock), 0, SIGNATURE, CALLDATA, BLOCK_TIMESTAMP + DELAY);
 
         vm.startPrank(ADMIN);
@@ -203,23 +171,23 @@ contract TimelockTest is Test {
         timelock.queueTransaction(address(timelock), 0, SIGNATURE, REVERT_CALLDATA, BLOCK_TIMESTAMP + DELAY);
 
         // Reverts when a call has not been previously queued.
-        expectRevert("UnqueuedTx()");
+        vm.expectRevert(UnqueuedTx.selector);
         timelock.executeTransaction(address(timelock), 1, SIGNATURE, CALLDATA, BLOCK_TIMESTAMP + DELAY);
 
         // Reverts when ETA has yet to be reached.
         vm.warp(BLOCK_TIMESTAMP - 1);
-        expectRevert("PrematureTx()");
+        vm.expectRevert(PrematureTx.selector);
         timelock.executeTransaction(address(timelock), 0, SIGNATURE, CALLDATA, BLOCK_TIMESTAMP + DELAY);
 
         // Reverts when timelock ETA passes the grace period.
         vm.warp(BLOCK_TIMESTAMP + DELAY + timelock.GRACE_PERIOD() + 1);
-        expectRevert("StaleTx()");
+        vm.expectRevert(StaleTx.selector);
         timelock.executeTransaction(address(timelock), 0, SIGNATURE, CALLDATA, BLOCK_TIMESTAMP + DELAY);
 
         vm.warp(BLOCK_TIMESTAMP + DELAY);
 
         // Reverts when call fails.
-        expectRevert("RevertedTx()");
+        vm.expectRevert(RevertedTx.selector);
         timelock.executeTransaction(address(timelock), 0, SIGNATURE, REVERT_CALLDATA, BLOCK_TIMESTAMP + DELAY);
 
         // Successfully emits the expected `ExecuteTransaction` event.
