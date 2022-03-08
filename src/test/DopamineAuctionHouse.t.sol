@@ -4,8 +4,12 @@ pragma solidity >=0.8.0;
 import "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
 
 import "./mocks/MockDopamineAuctionHouse.sol";
+import "./mocks/MockDopamineAuctionHouseUpgraded.sol";
+import "./mocks/MockMaliciousBidder.sol";
+import "./mocks/MockGasBurner.sol";
 import "./mocks/MockDopamineAuctionHouseToken.sol";
 import "../auction/DopamineAuctionHouse.sol";
+import "../interfaces/IDopamineAuctionHouse.sol";
 
 import "./utils/test.sol";
 import "./utils/console.sol";
@@ -14,7 +18,7 @@ contract MockContractUnpayable { }
 contract MockContractPayable { receive() external payable {} }
 
 /// @title Dopamine Auction Test Suites
-contract DopamineAuctionHouseTest is Test {
+contract DopamineAuctionHouseTest is Test, IDopamineAuctionHouseEvents {
 
     bool constant PROXY = true;
 
@@ -22,7 +26,7 @@ contract DopamineAuctionHouseTest is Test {
     uint256 constant NFT_1 = 1;
 
     /// @notice Default auction house parameters.
-    uint256 constant TREASURY_SPLIT = 50; // 50%
+    uint256 constant TREASURY_SPLIT = 30; // 50%
     uint256 constant TIME_BUFFER = 10 minutes;
     uint256 constant RESERVE_PRICE = 1 ether;
     uint256 constant DURATION = 60 * 60 * 12; // 12 hours
@@ -34,7 +38,7 @@ contract DopamineAuctionHouseTest is Test {
     /// @notice Addresses used for testing.
     address constant ADMIN = address(1337);
     address constant BIDDER = address(99);
-    address constant BIDDER_1 = address(99);
+    address constant BIDDER_1 = address(89);
     address constant DAO = address(69);
     address constant RESERVE = address(1);
 
@@ -47,54 +51,18 @@ contract DopamineAuctionHouseTest is Test {
 
     address payable reserve;
     address payable dao;
-
-    event AuctionCreated(
-        uint256 indexed tokenId,
-        uint256 startTime,
-        uint256 endTime
-    );
-
-    event AuctionBid(
-        uint256 indexed tokenId,
-        address bidder,
-        uint256 value,
-        bool extended
-    );
-
-    event AuctionExtended(
-        uint256 indexed tokenId,
-        uint256 endTime
-    );
-
-    event AuctionPaused(address pauser);
-
-    event AuctionUnpaused(address unpauser);
-    
-    event AuctionSettled(
-        uint256 indexed tokenId,
-        address winner,
-        uint256 amount
-    );
-
-    event AuctionTimeBufferSet(uint256 timeBuffer);
-
-    event AuctionReservePriceSet(uint256 reservePrice);
-
-    event AuctionTreasurySplitSet(uint256 teamFeePercentage);
-
-    event AuctionDurationSet(uint256 duration);
-
-    event NewPendingAdmin(address pendingAdmin);
-
-    event NewAdmin(address oldAdmin, address newAdmin);
+    MockMaliciousBidder MALICIOUS_BIDDER = new MockMaliciousBidder();
+    MockGasBurner GAS_BURNER_BIDDER = new MockGasBurner();
 
     function setUp() public virtual {
         vm.roll(BLOCK_START);
         vm.warp(BLOCK_TIMESTAMP);
         vm.startPrank(ADMIN);
 
-        vm.deal(address(BIDDER), BIDDER_INITIAL_BAL);
-        vm.deal(address(BIDDER_1), BIDDER_1_INITIAL_BAL);
+        vm.deal(BIDDER, BIDDER_INITIAL_BAL);
+        vm.deal(BIDDER_1, BIDDER_1_INITIAL_BAL);
+        vm.deal(address(MALICIOUS_BIDDER), 100 ether);
+        vm.deal(address(GAS_BURNER_BIDDER), 100 ether);
 
         reserve = payable(address(new MockContractPayable()));
         dao = payable(address(new MockContractPayable()));
@@ -339,22 +307,271 @@ contract DopamineAuctionHouseTest is Test {
         expectRevert("BidTooLow()");
         ah.createBid{ value: 0 }(NFT);
 
+        // Successfully creates a bid.
+        vm.startPrank(BIDDER);
+        vm.expectEmit(true, true, true, true);
+        emit AuctionBid(NFT, BIDDER, 1 ether, false);
+        ah.createBid{ value: 1 ether }(NFT);
+        assertEq(BIDDER.balance, BIDDER_INITIAL_BAL - 1 ether);
+
+        IDopamineAuctionHouse.Auction memory auction = ah.getAuction();
+        assertEq(auction.tokenId, NFT);
+        assertEq(auction.amount, 1 ether);
+        assertEq(auction.startTime, BLOCK_TIMESTAMP);
+        assertEq(auction.endTime, BLOCK_TIMESTAMP + DURATION);
+        assertEq(auction.bidder, BIDDER);
+        assertTrue(!auction.settled);
+
+        // Throws when bidding less than 5% of previous bid.
+        expectRevert("BidTooLow()");
+        ah.createBid{ value: 1 ether * 104 / 100 }(NFT);
+
+        // Min time to forward for time extension to apply.
+        uint256 et = BLOCK_TIMESTAMP + DURATION - TIME_BUFFER + 1;
+        vm.warp(et);
+        vm.startPrank(BIDDER_1);
+
+        // Auctions get successfully extended if applicable.
+        vm.expectEmit(true, true, true, true);
+        emit AuctionExtended(NFT, et + TIME_BUFFER);
+        vm.expectEmit(true, true, true, true);
+        emit AuctionBid(NFT, BIDDER_1, 2 ether, true);
+        ah.createBid{ value: 2 ether }(NFT);
+
+        // Auction attributes also get updated.
+        auction = ah.getAuction();
+        assertEq(auction.tokenId, NFT);
+        assertEq(auction.amount, 2 ether);
+        assertEq(auction.startTime, BLOCK_TIMESTAMP);
+        assertEq(auction.endTime, et + TIME_BUFFER);
+        assertEq(auction.bidder, BIDDER_1);
+        assertTrue(!auction.settled);
+
+        // Refunds the previous bidder.
+        assertEq(BIDDER.balance, BIDDER_INITIAL_BAL);
+        assertEq(BIDDER_1.balance, BIDDER_1_INITIAL_BAL - 2 ether);
+        // Keeps eth and notifies via event in case of failed refunds.
+        vm.startPrank(address(MALICIOUS_BIDDER));
+        ah.createBid{ value: 4 ether }(NFT);
+        vm.startPrank(BIDDER);
+        vm.expectEmit(true, true, true, true);
+        emit RefundFailed(address(MALICIOUS_BIDDER));
+        ah.createBid{ value: 8 ether }(NFT);
+        assertEq(address(ah).balance, 12 ether);
+
+        // Check malicious gas burner bidders cannot exploit auction.
+        vm.startPrank(address(GAS_BURNER_BIDDER));
+        ah.createBid{ value: 9 ether }(NFT);
+        vm.startPrank(BIDDER);
+        uint256 gasStart = gasleft();
+        vm.expectEmit(true, true, true, true);
+        emit RefundFailed(address(GAS_BURNER_BIDDER));
+        ah.createBid{ value: 10 ether }(NFT);
+        uint256 gasEnd = gasleft();
+        assertLt(gasStart - gasEnd, 150000);
+        
         // Throws when bidding after auction expiration.
-        vm.warp(BLOCK_TIMESTAMP + DURATION + 1);
+        vm.warp(et + TIME_BUFFER + 1);
         expectRevert("ExpiredAuction()");
         ah.createBid(NFT);
-        vm.warp(BLOCK_TIMESTAMP);
-
-        // Successfully casts a bid.
-        vm.startPrank(BIDDER);
-        console.log("BEFORE");
-        console.log(address(ah).balance);
-        console.log(address(BIDDER).balance);
-        ah.createBid{ value: 5 ether }(NFT);
-        console.log(address(ah).balance);
-        console.log(address(BIDDER).balance);
-        console.log(BIDDER_INITIAL_BAL);
-        assertTrue(false);
-
     }
+
+    function testSettleAuction() public {
+        // Reverts when settling before auction commencement.
+        expectRevert("UncommencedAuction()");
+        ah.settleAuction();
+
+        ah.unpause();
+
+        // Reverts when settling while auction is not paused.
+        expectRevert("UnpausedAuction()");
+        ah.settleAuction();
+        ah.pause();
+
+        vm.startPrank(BIDDER);
+
+        // Reverts when settling an auction not yet settled.
+        expectRevert("IncompleteAuction()");
+        ah.settleAuction();
+
+        // Transfers NFT to DAO when there were no bidders.
+        vm.warp(BLOCK_TIMESTAMP + DURATION);
+        vm.expectEmit(true, true, true, true);
+        emit AuctionSettled(NFT, address(0), 0);
+        ah.settleAuction();
+        assertEq(token.ownerOf(NFT), address(dao));
+
+        // Relevant attributes appropriately updated.
+        IDopamineAuctionHouse.Auction memory auction = ah.getAuction();
+        assertEq(auction.tokenId, NFT);
+        assertEq(auction.amount, 0 ether);
+        assertEq(auction.startTime, BLOCK_TIMESTAMP);
+        assertEq(auction.endTime, BLOCK_TIMESTAMP + DURATION);
+        assertEq(auction.bidder, address(0));
+        assertTrue(auction.settled);
+
+        // Settling already settled auction reverts.
+        expectRevert("AlreadySettled()");
+        ah.settleAuction();
+
+        vm.startPrank(ADMIN);
+        ah.unpause();
+
+        // Settling awards NFT to last bidder.
+        vm.startPrank(BIDDER);
+        ah.createBid{ value: 1 ether }(NFT_1);
+        vm.startPrank(ADMIN);
+        ah.pause();
+        vm.warp(BLOCK_TIMESTAMP + DURATION * 2);
+        vm.expectEmit(true, true, true, true);
+        emit AuctionSettled(NFT_1, BIDDER, 1 ether);
+        ah.settleAuction();
+        assertEq(token.ownerOf(NFT_1), BIDDER);
+
+        // Revenue appropriately allocated to dao and reserve.
+        uint256 treasuryProceeds = 1 ether * TREASURY_SPLIT / 100;
+        assertEq(dao.balance, treasuryProceeds);
+        assertEq(reserve.balance, 1 ether - treasuryProceeds);
+
+        // Relevant attributes appropriately updated.
+        auction = ah.getAuction();
+        assertEq(auction.tokenId, NFT_1);
+        assertEq(auction.amount, 1 ether);
+        assertEq(auction.startTime, BLOCK_TIMESTAMP + DURATION);
+        assertEq(auction.endTime, BLOCK_TIMESTAMP + DURATION * 2);
+        assertEq(auction.bidder, BIDDER);
+        assertTrue(auction.settled);
+    }
+
+    function testSettleCurrentAndCreateNewAuction() public {
+        // Reverts when auction is paused.
+        expectRevert("PausedAuction()");
+        ah.settleCurrentAndCreateNewAuction();
+
+        ah.unpause(); 
+
+        // Reverts when settling an auction not yet settled.
+        expectRevert("IncompleteAuction()");
+        ah.settleCurrentAndCreateNewAuction();
+
+        // Settles new auction and creates a new one.
+        vm.startPrank(BIDDER);
+        ah.createBid{ value: 1 ether }(NFT);
+        vm.warp(BLOCK_TIMESTAMP + DURATION);
+        vm.expectEmit(true, true, true, true);
+        emit AuctionSettled(NFT, BIDDER, 1 ether);
+        vm.expectEmit(true, true, true, true);
+        emit AuctionCreated(NFT_1, BLOCK_TIMESTAMP + DURATION, BLOCK_TIMESTAMP + 2 * DURATION);
+        ah.settleCurrentAndCreateNewAuction();
+
+        // NFT awarded to last bidder.
+        assertEq(token.ownerOf(NFT), BIDDER);
+
+        // Proceeds distributed.
+        uint256 treasuryProceeds = 1 ether * TREASURY_SPLIT / 100;
+        assertEq(dao.balance, treasuryProceeds);
+        assertEq(reserve.balance, 1 ether - treasuryProceeds);
+
+        // Relevant attributes appropriately updated.
+        IDopamineAuctionHouse.Auction memory auction = ah.getAuction();
+        assertEq(auction.tokenId, NFT_1);
+        assertEq(auction.amount, 0 ether);
+        assertEq(auction.startTime, BLOCK_TIMESTAMP + DURATION);
+        assertEq(auction.endTime, BLOCK_TIMESTAMP + DURATION * 2);
+        assertEq(auction.bidder, address(0));
+        assertTrue(!auction.settled);
+
+        // Settles current auction and pauses in case next NFT mint fails.
+        vm.warp(BLOCK_TIMESTAMP + DURATION * 2);
+        token.disableMinting();
+        vm.expectEmit(true, true, true, true);
+        emit AuctionSettled(NFT_1, address(0), 0 ether);
+        vm.expectEmit(true, true, true, true);
+        emit AuctionPaused(BIDDER);
+        ah.settleCurrentAndCreateNewAuction();
+        
+        // No bids here - check NFT transferred to the DAO.
+        assertEq(token.ownerOf(NFT_1), address(dao));
+    }
+
+    function testUpgrade() public {
+        // Setup upgrade to be performed during live auction.
+        ah.unpause();
+        vm.startPrank(BIDDER);
+        ah.createBid{ value: 2 ether }(NFT);
+        IDopamineAuctionHouse.Auction memory auction = ah.getAuction();
+        assertEq(auction.tokenId, NFT);
+        assertEq(auction.amount, 2 ether);
+        assertEq(auction.startTime, BLOCK_TIMESTAMP);
+        assertEq(auction.endTime, BLOCK_TIMESTAMP + DURATION);
+        assertEq(auction.bidder, BIDDER);
+        assertTrue(!auction.settled);
+
+        MockDopamineAuctionHouseUpgraded upgradedImpl = new MockDopamineAuctionHouseUpgraded();
+        
+        // Upgrades should not work if called by unauthorized upgrader.
+        vm.startPrank(BIDDER);
+        expectRevert("UnauthorizedUpgrade()");
+        ah.upgradeTo(address(upgradedImpl));
+
+        // Perform an upgrade that initializes with faulty dao and reserve.
+        vm.startPrank(ADMIN);
+        address faultyReserve = address(new MockContractUnpayable());
+        address faultyDao = address(new MockContractUnpayable());
+        bytes memory data = abi.encodeWithSelector(
+            upgradedImpl.initializeV2.selector,
+            faultyReserve,
+            faultyDao
+        );
+        ah.upgradeToAndCall(address(upgradedImpl), data);
+        MockDopamineAuctionHouseUpgraded ahUpgraded = MockDopamineAuctionHouseUpgraded(address(ah));
+
+        // Check existing auction parameters remain the same.
+        auction = ahUpgraded.getAuction();
+        assertEq(auction.tokenId, NFT);
+        assertEq(auction.amount, 2 ether);
+        assertEq(auction.startTime, BLOCK_TIMESTAMP);
+        assertEq(auction.endTime, BLOCK_TIMESTAMP + DURATION);
+        assertEq(auction.bidder, BIDDER);
+        assertTrue(!auction.settled);
+
+        // Check that re-initialized parameters were updated.
+        assertEq(ahUpgraded.dao(), faultyDao);
+        assertEq(ahUpgraded.reserve(), faultyReserve);
+
+        // Settle auction and check funds remain in auction contract.
+        vm.warp(BLOCK_TIMESTAMP + DURATION);
+        ahUpgraded.settleCurrentAndCreateNewAuction();
+        assertEq(faultyDao.balance, 0);
+        assertEq(faultyReserve.balance, 0);
+        assertEq(address(ahUpgraded).balance, 2 ether);
+
+        // Ensure new functions can be called.
+        ahUpgraded.setDAO(dao);
+        ahUpgraded.setReserve(reserve);
+
+        // Withdraw funds with upgraded contract.
+        ahUpgraded.withdraw();
+        assertEq(dao.balance, 2 ether);
+    }
+
+    function testImplementationUnusable() public {
+        // Implementation cannot be re-initialized.
+        vm.expectRevert("Function must be called through delegatecall");
+        ahImpl.initialize(
+            address(token),
+            reserve,
+            dao,
+            TREASURY_SPLIT,
+            TIME_BUFFER,
+            RESERVE_PRICE,
+            DURATION
+        );
+
+        // Other actions fail due to faulty implementation initialization.
+        vm.startPrank(BIDDER);
+        expectRevert("Reentrant()");
+        ahImpl.createBid{ value: 1 ether }(NFT);
+    }
+
 }

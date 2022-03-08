@@ -14,7 +14,7 @@ import "./utils/test.sol";
 import "./utils/console.sol";
 
 /// @title ERC721 Test Suites
-contract DopamineDAOTest is Test {
+contract DopamineDAOTest is Test, IDopamineDAOEvents {
 
     /// @notice Proposal function calldata.
     string constant SIGNATURE = "setDelay(uint256)";
@@ -39,7 +39,6 @@ contract DopamineDAOTest is Test {
     // Proposals queued at this block.
     uint256 BLOCK_QUEUE = BLOCK_PROPOSAL + VOTING_DELAY + VOTING_PERIOD + 1;
 
-
     /// @notice Addresses used for testing.
     address constant VETOER = address(12629);
     address FROM; // Generated using private key `PK_FROM`.
@@ -55,44 +54,6 @@ contract DopamineDAOTest is Test {
     Timelock timelock;
     MockDopamineDAO dao;
     MockDopamineDAO daoImpl;
-
-    /// @notice Dopamine DAO events.
-    event ProposalCreated(
-        uint32 id,
-        address proposer,
-        address[] targets,
-        uint256[] values,
-        string[] signatures,
-        bytes[] calldatas,
-        uint32 startBlock,
-        uint32 endBlock,
-        uint32 quorumThreshold,
-        string description
-    );
-
-    event VoteCast(address indexed voter, uint32 proposalId, uint8 support, uint32 votes);
-
-    event ProposalCanceled(uint32 id);
-
-    event ProposalQueued(uint32 id, uint256 eta);
-
-    event ProposalExecuted(uint32 id);
-
-    event ProposalVetoed(uint32 id);
-
-    event VotingDelaySet(uint32 votingDelay);
-
-    event VotingPeriodSet(uint32 votingPeriod);
-
-    event ProposalThresholdSet(uint32 proposalThreshold);
-
-    event QuorumThresholdBPSSet(uint256 quorumThresholdBPS);
-
-    event NewPendingAdmin(address pendingAdmin);
-
-    event NewAdmin(address oldAdmin, address newAdmin);
-
-    event NewVetoer(address vetoer);
 
     /// @notice Start test with initialized proposal.
     modifier proposalCreated {
