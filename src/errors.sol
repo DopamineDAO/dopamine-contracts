@@ -69,6 +69,9 @@ error PendingAdminOnly();
 /// @notice Function callable only by the admin.
 error AdminOnly();
 
+/// @notice Function callable only by the owner.
+error OwnerOnly();
+
 ////////////////////////////////////////////////////////////////////////////////
 ///                                GOVERNANCE                                ///
 //////////////////////////////////////////////////////////////////////////////// 
@@ -141,3 +144,13 @@ error VetoerOnly();
 
 /// @notice Veto power has been revoked.
 error VetoPowerRevoked();
+
+////////////////////////////////////////////////////////////////////////////////
+///                             Merkle Whitelist                             /// 
+////////////////////////////////////////////////////////////////////////////////
+
+/// @notice Whitelisted NFT already claimed.
+error AlreadyClaimed();
+
+/// @notice Proof for claim is invalid.
+error InvalidProof();

@@ -1,27 +1,26 @@
 // SPDX-License-Identifier: GPL-3.0
 
-/// @title The Rarity Society ERC-721 token
-
 pragma solidity ^0.8.9;
 
-import '@openzeppelin/contracts/utils/Strings.sol';
-import { Ownable } from '@openzeppelin/contracts/access/Ownable.sol';
+import './errors.sol';
+
 import { IDopamintPass } from './interfaces/IDopamintPass.sol';
-import { ERC721Checkpointable } from './erc721/ERC721Checkpointable.sol';
 import { ERC721 } from './erc721/ERC721.sol';
 import { IERC721 } from '@openzeppelin/contracts/token/ERC721/IERC721.sol';
+import { ERC721Checkpointable } from './erc721/ERC721Checkpointable.sol';
 import { IProxyRegistry } from './interfaces/IProxyRegistry.sol';
-
-/// @notice Function callable only by the owner.
-error OwnerOnly();
 
 contract DopamintPass is ERC721Checkpointable, IDopamintPass {
 
-    using Strings for uint256;
-
     address owner;
 
+    string public constant NAME = "Dopamint Pass";
+
+    string public constant SYMBOL = "DOPE";
+
     uint256 public constant MAX_SUPPLY = 9999;
+
+    uint256 public constant NUM_WHITELISTED = 20;
 
     uint256 public constant MIN_DROP_SIZE = 1;
 
@@ -35,6 +34,8 @@ contract DopamintPass is ERC721Checkpointable, IDopamintPass {
 
     // An address who has permissions to mint RaritySociety tokens
     address public minter;
+
+	bytes32 public merkleRoot;
 
     // Whether the minter can be updated
     bool public isMinterLocked;
@@ -62,11 +63,8 @@ contract DopamintPass is ERC721Checkpointable, IDopamintPass {
     mapping(uint256 => string) private dropURIs;
     mapping(uint256 => bool) private dropFixed;
 
-    mapping(uint256 => address) private dropDelegates;
+    mapping(uint256 => uint256) private claimedBitMap;
 
-    /**
-     * @notice Require that the minter has not been locked.
-     */
     modifier whenMinterNotLocked() {
         require(!isMinterLocked, 'Minter is locked');
         _;
@@ -88,11 +86,10 @@ contract DopamintPass is ERC721Checkpointable, IDopamintPass {
     }
 
     constructor(
-        string memory name_,
-        string memory symbol_,
         address minter_,
         IProxyRegistry proxyRegistry_
-    ) ERC721Checkpointable(name_, symbol_, 10) {
+    ) ERC721Checkpointable(NAME, SYMBOL, MAX_SUPPLY) {
+		owner = msg.sender;
         minter = minter_;
         proxyRegistry = proxyRegistry_;
     }
@@ -111,6 +108,59 @@ contract DopamintPass is ERC721Checkpointable, IDopamintPass {
     
     function completeDrop() external onlyMinter {
         _completeDrop();
+    }
+
+	function setMerkleRoot(bytes32 _merkleRoot) external onlyOwner {
+        merkleRoot = _merkleRoot;
+    }
+
+    function isClaimed(uint256 index) public view returns (bool) {
+        uint256 bucket = index >> 8;
+        uint256 mask = 1 << (index & 0xff);
+        return claimedBitMap[bucket] & mask != 0;
+    }
+
+    function claim(bytes32[] calldata merkleProof) external {
+        bytes32 leaf = keccak256(abi.encodePacked(msg.sender));
+        (bool validProof, uint256 index) = _verify(merkleProof, leaf);
+
+        if (!validProof) {
+            revert InvalidProof();
+        }
+
+        if (isClaimed(index)) {
+            revert AlreadyClaimed();
+        }
+
+        _setClaimed(index);
+        emit Claimed(msg.sender);
+
+        _mintTo(msg.sender, _currentId++);
+    }
+
+    function _setClaimed(uint256 index) private {
+        uint256 bucket = index >> 8;
+        uint256 mask = 1 << (index & 0xff);
+        claimedBitMap[bucket] |= mask;
+    }
+
+    function _verify(bytes32[] memory proof, bytes32 leaf) private view returns (bool, uint256) {
+        bytes32 hash = leaf;
+        uint256 index;
+
+        unchecked {
+            for (uint256 i = 0; i < proof.length; i++) {
+                index *= 2;
+                bytes32 proofElement = proof[i];
+                if (hash <= proofElement) {
+                    hash = keccak256(abi.encodePacked(hash, proofElement));
+                } else {
+                    hash = keccak256(abi.encodePacked(proofElement, hash));
+                    index += 1;
+                }
+            }
+            return (hash == merkleRoot, index);
+        }
     }
 
     function _createDrop(string calldata hash, uint256 dropSize) internal {
@@ -145,9 +195,6 @@ contract DopamintPass is ERC721Checkpointable, IDopamintPass {
         emit DropCompleted(drops++, drop.endTime);
     }
 
-    /**
-     * @notice Override isApprovedForAll to whitelist user's OpenSea proxy accounts to enable gas-less listings.
-     */
     function isApprovedForAll(address owner, address operator) public view override(IERC721, ERC721) returns (bool) {
         // Whitelist OpenSea proxy contract for easy trading.
         if (proxyRegistry.proxies(owner) == operator) {
@@ -156,7 +203,6 @@ contract DopamintPass is ERC721Checkpointable, IDopamintPass {
         return super.isApprovedForAll(owner, operator);
     }
 
-    // Mints initial tokens for the team
     function teamMint(address recipient) external onlyOwner {
         require(totalSupply < TEAM_MINTS, "team minting completed");
         require(!drop.initiated, "drop has already started");
@@ -166,9 +212,6 @@ contract DopamintPass is ERC721Checkpointable, IDopamintPass {
         }
     }
 
-    /**
-     * @notice Mint a rarity society.
-     */
     function mint() public override onlyMinter returns (uint256) {
         require(totalSupply < MAX_SUPPLY, "maximum supply reached");
         require(drop.initiated, "drop has not yet started");
@@ -176,9 +219,6 @@ contract DopamintPass is ERC721Checkpointable, IDopamintPass {
         return _mintTo(minter, _currentId++);
     }
 
-    /**
-     * @notice Burn a noun.
-     */
     function burn(uint256 _tokenId) public override onlyMinter {
         _burn(_tokenId);
         emit Burn(_tokenId);
@@ -197,14 +237,10 @@ contract DopamintPass is ERC721Checkpointable, IDopamintPass {
         }
 
         // If no base URI, or both are set, return the drop URI
-        return string(abi.encodePacked(dropURI, tokenId.toString()));
+        return string(abi.encodePacked(dropURI, _toString(tokenId)));
     }
 
 
-    /**
-     * @notice Set the token minter.
-     * @dev Only callable by the owner when not locked.
-     */
     function setMinter(address _minter) external override onlyOwner whenMinterNotLocked {
         minter = _minter;
 
@@ -229,23 +265,6 @@ contract DopamintPass is ERC721Checkpointable, IDopamintPass {
         emit Mint(_tokenId);
 
         return _tokenId;
-    }
-
-    function getDropDelegate(uint256 tokenId) public view returns (address) {
-        // require(_exists(tokenId), 'query for nonexistent token');
-        address delegate = dropDelegates[tokenId];
-        return delegate == address(0) ? ownerOf[tokenId] : delegate;
-    }
-
-    function dropDelegate(address delegatee, uint256 tokenId) public {
-        // require(ERC721.ownerOf(tokenId) == msg.sender, 'gifting of unowned token');
-        if (delegatee == address(0)) delegatee = msg.sender;
-        _dropDelegate(delegatee, tokenId);
-    }
-
-    function _dropDelegate(address delegatee, uint256 tokenId) internal {
-        dropDelegates[tokenId] = delegatee;
-        // emit DropDelegate(ERC721.ownerOf(tokenId), delegatee, tokenId);
     }
 
     // @notice Returns integer that represents the drop corresponding to tokenId
@@ -280,6 +299,31 @@ contract DopamintPass is ERC721Checkpointable, IDopamintPass {
 		require(!dropFixed[dropId], "drop URI setting privileges already revoked");
 		dropFixed[dropId] = true;
 	}
+
+
+	 function _toString(uint256 value) internal pure returns (string memory) {
+        // Inspired by OraclizeAPI's implementation - MIT licence
+        // https://github.com/oraclize/ethereum-api/blob/b42146b063c7d6ee1358846c198246239e9360e8/oraclizeAPI_0.4.25.sol
+
+        if (value == 0) {
+            return "0";
+        }
+        uint256 temp = value;
+        uint256 digits;
+        while (temp != 0) {
+            digits++;
+            temp /= 10;
+        }
+        bytes memory buffer = new bytes(digits);
+        while (value != 0) {
+            digits -= 1;
+            buffer[digits] = bytes1(uint8(48 + uint256(value % 10)));
+            value /= 10;
+        }
+        return string(buffer);
+    }
+
+
 
 }
 

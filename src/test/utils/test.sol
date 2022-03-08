@@ -2,6 +2,7 @@
 pragma solidity >=0.8.0;
 
 import "ds-test/test.sol";
+import "./console.sol";
 import "./Hevm.sol";
 
 
@@ -73,6 +74,12 @@ contract Test is DSTest {
             )
         );
         return keccak256(abi.encodePacked("\x19\x01", domainSeparator, structHash));
+    }
+
+    function logStringArr(string[] memory arr) public {
+        for (uint256 i = 0; i < arr.length; i++) {
+            console.logString(arr[i]);
+        }
     }
 
 }

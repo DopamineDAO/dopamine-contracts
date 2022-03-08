@@ -39,6 +39,7 @@
   "function proposalId() view returns (uint32)",
   "function proposalThreshold() view returns (uint32)",
   "function propose(address[] targets, uint256[] values, string[] signatures, bytes[] calldatas, string description) returns (uint32)",
+  "function proxiableUUID() view returns (bytes32)",
   "function queue()",
   "function quorumThresholdBPS() view returns (uint32)",
   "function receipts(address) view returns (uint32 id, uint8 support, uint32 votes)",

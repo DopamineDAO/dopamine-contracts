@@ -33,6 +33,7 @@
   "function pause()",
   "function paused() view returns (bool)",
   "function pendingAdmin() view returns (address)",
+  "function proxiableUUID() view returns (bytes32)",
   "function reserve() view returns (address)",
   "function reservePrice() view returns (uint256)",
   "function setDuration(uint256 newDuration)",
