@@ -11,8 +11,7 @@ import "../interfaces/IDopamineDAO.sol";
 import {Timelock} from "../governance/Timelock.sol";
 import "../governance/DopamineDAO.sol";
 
-import "./utils/test.sol";
-import "./utils/console.sol";
+import {Test} from "./utils/test.sol";
 
 /// @title ERC721 Test Suites
 contract DopamineDAOTest is Test, IDopamineDAOEvents {

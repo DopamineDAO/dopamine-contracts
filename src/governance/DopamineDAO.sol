@@ -138,14 +138,14 @@ contract DopamineDAO is UUPSUpgradeable, DopamineDAOStorageV1, IDopamineDAO {
             revert InvalidActionCount();
         }
 
-        ProposalState state = state();
+        ProposalState proposalState = state();
         if (
             proposal.startBlock != 0 && 
                 (
-                    state == ProposalState.Pending ||
-                    state == ProposalState.Active ||
-                    state == ProposalState.Succeeded ||
-                    state == ProposalState.Queued
+                    proposalState == ProposalState.Pending ||
+                    proposalState == ProposalState.Active ||
+                    proposalState == ProposalState.Succeeded ||
+                    proposalState == ProposalState.Queued
                 )
         ) {
             revert UnsettledProposal();
@@ -489,7 +489,7 @@ contract DopamineDAO is UUPSUpgradeable, DopamineDAOStorageV1, IDopamineDAO {
 	}
 
     /// @notice Performs authorization check for UUPS upgrades.
-    function _authorizeUpgrade(address) internal override {
+    function _authorizeUpgrade(address) internal view override {
         if (msg.sender != admin && msg.sender != vetoer) {
             revert UnauthorizedUpgrade();
         }

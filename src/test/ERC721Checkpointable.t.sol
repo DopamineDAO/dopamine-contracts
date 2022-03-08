@@ -3,8 +3,7 @@ pragma solidity >=0.8.0;
 
 import "./mocks/MockERC721Checkpointable.sol";
 
-import "./utils/test.sol";
-import "./utils/console.sol";
+import {Test} from "./utils/test.sol";
 
 struct Checkpoint {
     uint32 fromBlock;

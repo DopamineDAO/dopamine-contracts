@@ -2,12 +2,13 @@
 pragma solidity >=0.8.0;
 
 import "../governance/Timelock.sol";
+import "../interfaces/ITimelockEvents.sol";
 
 import "./utils/test.sol";
 import "./utils/console.sol";
 
 /// @title Timelock Test Suites
-contract TimelockTest is Test {
+contract TimelockTest is Test, ITimelockEvents {
 
     /// @notice Default timelock parameters.
     uint256 constant DELAY = 60 * 60 * 24 * 3; // 3 days
@@ -28,39 +29,6 @@ contract TimelockTest is Test {
     bytes32 revertTxHash;
 
     Timelock timelock;
-
-    /// @notice Timelock events.
-    event NewAdmin(address oldAdmin, address newAdmin);
-
-    event NewPendingAdmin(address pendingAdmin);
-
-	event DelaySet(uint256 delay);
-
-	event CancelTransaction(
-		bytes32 indexed txHash,
-		address indexed target,
-		uint256 value,
-		string signature,
-		bytes data,
-		uint256 eta
-	);
-	event ExecuteTransaction(
-		bytes32 indexed txHash,
-		address indexed target,
-		uint256 value,
-		string signature,
-		bytes data,
-		uint256 eta
-	);
-	event QueueTransaction(
-		bytes32 indexed txHash,
-		address indexed target,
-		uint256 value,
-		string signature,
-		bytes data,
-		uint256 eta
-	);
-
 
     function setUp() public {
         vm.roll(BLOCK_START);

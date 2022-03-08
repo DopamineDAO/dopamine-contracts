@@ -9,6 +9,7 @@ import "@nomiclabs/hardhat-ethers";
 import "solidity-coverage";
 import "hardhat-abi-exporter";
 
+import "./tasks/config";
 import "./tasks/deploy";
 import "./tasks/propose";
 import "./tasks/mint";
@@ -26,6 +27,9 @@ const config: HardhatUserConfig = {
         enabled: true,
         runs: 10_000,
       },
+			remappings: [
+				"ds-test/=lib/ds-test/contracts/",
+			],
     },
   },
   typechain: {

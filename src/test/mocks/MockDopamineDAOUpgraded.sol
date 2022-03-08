@@ -21,7 +21,7 @@ contract MockDopamineDAOUpgraded is DopamineDAO {
         newParameter = newParameter_;
     }
 
-    function test() public {
+    function test() public pure {
         revert DummyError();
     }
 

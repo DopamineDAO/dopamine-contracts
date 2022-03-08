@@ -8,7 +8,7 @@ import { IDopamineAuctionHouseToken } from '../../interfaces/IDopamineAuctionHou
 contract MockDopamineAuctionHouse is DopamineAuctionHouse {
 
     // Retrieve auction as struct for easier testing.
-    function getAuction() public returns (Auction memory) {
+    function getAuction() public view returns (Auction memory) {
         return auction;
     }
 

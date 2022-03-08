@@ -9,6 +9,7 @@ import '@openzeppelin/contracts/token/ERC721/extensions/IERC721Metadata.sol';
 import '@openzeppelin/contracts/token/ERC721/IERC721Receiver.sol';
 
 import '../errors.sol';
+
 /// @title DθPΛM1NΞ ERC-721 base contract
 /// @notice ERC-721 contract with metadata extension and maximum supply.
 contract ERC721 is IERC721, IERC721Metadata {
@@ -150,7 +151,7 @@ contract ERC721 is IERC721, IERC721Metadata {
     }
 
     /// @notice Returns the token URI associated with the token of id `id`.
-    function tokenURI(uint256 id) public view virtual returns (string memory) {
+    function tokenURI(uint256) public view virtual returns (string memory) {
         return "";
     }
 
