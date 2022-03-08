@@ -4,80 +4,12 @@ pragma solidity ^0.8.9;
 import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 
 import '../interfaces/IDopamineDAO.sol';
+import '../errors.sol';
 import './DopamineDAOStorage.sol';
 
 ////////////////////////////////////////////////////////////////////////////////
 ///                              Custom Errors                               ///
 ////////////////////////////////////////////////////////////////////////////////
-
-/// @notice Function callable only by the admin.
-error AdminOnly();
-
-/// @notice Governance contract already initialized.
-error AlreadyInitialized();
-
-/// @notice Proposal has already been settled.
-error AlreadySettled();
-
-/// @notice Proposal already voted for.
-error AlreadyVoted();
-
-/// @notice Mismatch between input arrays.
-error ArityMismatch();
-
-/// @notice Duplicate transaction queued.
-error DuplicateTransaction();
-
-/// @notice Voting power insufficient.
-error InsufficientVotingPower();
-
-/// @notice Invalid number of actions proposed.
-error InvalidActionCount();
-
-/// @notice Proposal threshold is invalid.
-error InvalidProposalThreshold();
-
-/// @notice Quorum threshold is invalid.
-error InvalidQuorumThreshold();
-
-/// @notice Signature invalid.
-error InvalidSignature();
-
-/// @notice Vote type is not valid.
-error InvalidVote();
-
-/// @notice Voting delay set is invalid.
-error InvalidVotingDelay();
-
-/// @notice Voting period set is invalid.
-error InvalidVotingPeriod();
-
-/// @notice Only the proposer may invoke this action.
-error ProposerOnly();
-
-/// @notice Function callable only by the pending owner.
-error PendingAdminOnly();
-
-/// @notice Inactive proposals may not be voted for.
-error InactiveProposal();
-
-/// @notice Upgrade requires either admin or vetoer privileges.
-error UnauthorizedUpgrade();
-
-/// @notice Proposal has failed to or has yet to be successful.
-error UnpassedProposal();
-
-/// @notice Proposal has failed to or has yet to be queued.
-error UnqueuedProposal();
-
-/// @notice A proposal is currently running and must be settled first.
-error UnsettledProposal();
-
-/// @notice Function callable only by the vetoer.
-error VetoerOnly();
-
-/// @notice Veto power has been revoked.
-error VetoPowerRevoked();
 
 /// @title Dopamine DAO Implementation Contract
 /// @notice Compound Governor Bravo fork built for DθPΛM1NΞ NFTs.

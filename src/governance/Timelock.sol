@@ -3,32 +3,7 @@ pragma solidity ^0.8.9;
 import '../interfaces/ITimelock.sol';
 import "../test/utils/console.sol";
 
-/// @notice Function callable only by the admin.
-error AdminOnly();
-
-/// @notice Invalid set timelock delay.
-error InvalidDelay();
-
-/// @notice Signature does not match that in calldata.
-error InvalidSignature();
-
-/// @notice Function callable only by the pending owner.
-error PendingAdminOnly();
-
-/// @notice Transaction executed prematurely.
-error PrematureTx();
-
-/// @notice Transaction execution was reverted.
-error RevertedTx();
-
-/// @notice Transaction is stale.
-error StaleTx();
-
-/// @notice Function callable only by the timelock itself.
-error TimelockOnly();
-
-/// @notice Transaction is not yet queued.
-error UnqueuedTx();
+import '../errors.sol';
 
 /// @title Timelock Contract
 /// @notice Administrative time-locked execution framework for the DAO.

@@ -151,17 +151,18 @@ contract ERC721CheckpointableTest is Test {
 
         // Reverts when block.timestamp past expiration.
         vm.warp(TIMESTAMP_EXPIRY + 1);
-        expectRevert("ExpiredSignature()");
+        vm.expectRevert(ExpiredSignature.selector);
         token.delegateBySig(FROM, TO, TIMESTAMP_EXPIRY, v, r, s);
+
         // Reverts if incorrect parameter is passed in.
         vm.warp(TIMESTAMP_START);
-        expectRevert("InvalidSignature()");
+        vm.expectRevert(InvalidSignature.selector);
         token.delegateBySig(FROM, TO, 99999, v, r, s);
 
         token.delegateBySig(FROM, TO, TIMESTAMP_EXPIRY, v, r, s);
 
         // Reverts if same signature used twice.
-        expectRevert("InvalidSignature()");
+        vm.expectRevert(InvalidSignature.selector);
         token.delegateBySig(FROM, TO, TIMESTAMP_EXPIRY, v, r, s);
     }
 

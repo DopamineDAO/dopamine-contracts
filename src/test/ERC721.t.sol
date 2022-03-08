@@ -96,7 +96,7 @@ contract ERC721Test is Test {
 
         // Approvals fail when invoked by the unauthorized address.
         vm.prank(OPERATOR);
-        expectRevert("UnauthorizedSender()");
+        vm.expectRevert(UnauthorizedSender.selector);
         token.approve(OPERATOR, NFT);
 
         // Approvals succeed when executed by the authorized operator.
@@ -139,11 +139,11 @@ contract ERC721Test is Test {
 
     function testMint() public {
         // Reverts when minting to the zero-address
-        expectRevert("ZeroAddressReceiver()");
+        vm.expectRevert(ZeroAddressReceiver.selector);
         token.mint(address(0), NFT);
 
         // Reverts when minting an already minted NFT.
-        expectRevert("DuplicateMint()");
+        vm.expectRevert(DuplicateMint.selector);
         token.mint(FROM, NFT);
 
         uint256 prevSupply = token.totalSupply();
@@ -161,7 +161,7 @@ contract ERC721Test is Test {
         for (uint256 i = 1; token.totalSupply() < MAX_SUPPLY; i++) {
             token.mint(FROM, NFT_1 + i);
         }
-        expectRevert("SupplyMaxCapacity()");
+        vm.expectRevert(SupplyMaxCapacity.selector);
         token.mint(FROM, MAX_SUPPLY);
 
         // Mint works again if another is first burned.
@@ -171,7 +171,7 @@ contract ERC721Test is Test {
 
     function testBurn() public {
         // Reverts when burned NFT does not exist.
-        expectRevert("NonExistentNFT()");
+        vm.expectRevert(NonExistentNFT.selector);
         token.burn(NFT_1);
         uint256 prevSupply = token.totalSupply();
 
@@ -209,12 +209,12 @@ contract ERC721Test is Test {
   	function _testSafeTransferFailure(function(address, address, uint256) external fn) internal {
         // Should throw when receiver magic value is invalid.
         MockERC721Receiver invalidReceiver = new MockERC721Receiver(0xDEADBEEF, false);
-        expectRevert("InvalidReceiver()");
+        vm.expectRevert(InvalidReceiver.selector);
         fn(FROM, address(invalidReceiver), NFT);
 
         // Should throw when receiver function throws.
         invalidReceiver = new MockERC721Receiver(RECEIVER_MAGIC_VALUE, true);
-        expectRevert("Throwing()");
+        vm.expectRevert(Throwing.selector);
         fn(FROM, address(invalidReceiver), NFT);
 
         // Should throw when receiver function is not implemented.
@@ -254,14 +254,14 @@ contract ERC721Test is Test {
     }
 
     function _testTransferFailure(function(address, address, uint256) external fn) internal {
-        expectRevert("ZeroAddressReceiver()");
+        vm.expectRevert(ZeroAddressReceiver.selector);
         fn(FROM, address(0), NFT);
 
-        expectRevert("InvalidOwner()");
+        vm.expectRevert(InvalidOwner.selector);
         fn(TO, TO, NFT);
 
         vm.prank(TO);
-        expectRevert("UnauthorizedSender()");
+        vm.expectRevert(UnauthorizedSender.selector);
         fn(FROM, TO, NFT);
     }
 
