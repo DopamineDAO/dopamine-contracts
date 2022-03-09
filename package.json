@@ -1,5 +1,5 @@
 {
-  "name": "Rarity Society contracts",
+  "name": "Rarity-Society-contracts",
   "private": true,
   "scripts": {
     "clean": "npx rimraf node_modules",
