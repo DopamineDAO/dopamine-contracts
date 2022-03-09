@@ -3,10 +3,12 @@ import { task, types } from "hardhat/config";
 
 // Listed in order of deployment. Wrong order results in error.
 enum Contract {
-  RaritySocietyToken,
+  DopamintPass,
+	DopamineAuctionHouseProxy,
+	DopamineAuctionHouse,
   Timelock,
-  RaritySocietyDAOImpl,
-  RaritySocietyDAOProxy,
+	DopamineDAOProxy,
+	DopamineDAO,
 }
 
 type Args = (string | number)[];
@@ -54,7 +56,7 @@ task(
   });
 });
 
-task("deploy", "Deploys Rarity Society contracts")
+task("deploy", "Deploys Dopamine contracts")
   .addParam("chainid", "expected network chain ID", undefined, types.int)
   .addParam(
     "registry",
@@ -163,17 +165,44 @@ task("deploy", "Deploys Rarity Society contracts")
       return deployedContract.address;
     };
 
-    // 1. Deploy RaritySocietyToken:
-    const raritySocietyTokenArgs: Args = [
+    // 1. Deploy DopamintPass:
+    const dopamintPassArgs: Args = [
       args.minter || deployer.address,
       args.registry,
+      args.minter || deployer.address,
+			""
     ];
-    const raritySocietyToken = await deployContract(
-      Contract[Contract.RaritySocietyToken],
-      raritySocietyTokenArgs,
+    const dopamintPass = await deployContract(
+      Contract[Contract.DopamintPass],
+      dopamintPassArgs,
       currNonce++
     );
 
+    // 2. Deploy auction proxy
+    const dopamineAuctionHouseProxyArgs = [
+      ethers.utils.getContractAddress({
+        from: deployer.address,
+        nonce: nonce + Contract.DopamineAuctionHouse,
+      }),
+      new Interface(DopamineAuctionHouseABI).encodeFunctionData('initialize', [
+				dopamintPass,
+				deployer.address,
+				ethers.utils.getContractAddress({
+					from: deployer.address,
+					nonce: nonce + Contract.DopamineDAOProxy,
+				}),
+				args.treasurySplit,
+				args.timeBuffer,
+				args.reservePrice,
+				args.duration
+			]),
+    ];
+
+    const timelock = await deployContract(
+      Contract[Contract.Timelock],
+      timelockArgs,
+      currNonce++
+    );
     // 2. Deploy Timelock
     const timelockArgs = [
       ethers.utils.getContractAddress({

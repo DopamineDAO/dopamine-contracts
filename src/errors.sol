@@ -1,6 +1,30 @@
 // SPDX-License-Identifier: GPL-3.0
 pragma solidity ^0.8.9;
 
+////////////////////////////////////////////////////////////////////////////////
+///                               DOPAMINTPASS                               /// 
+////////////////////////////////////////////////////////////////////////////////
+
+/// @notice DopamintPass drop hit allocated capacity.
+error DropMaxCapacity();
+
+/// @notice Insufficient time passed since last drop was created.
+error InsufficientTimePassed();
+
+/// @notice Configured drop delay is invalid.
+error InvalidDropDelay();
+
+/// @notice COnfigured drop size is invalid.
+error InvalidDropSize();
+
+/// @notice Action cannot be completed as a current drop is ongoing.
+error OngoingDrop();
+
+/// @notice No such drop exists.
+error NonexistentDrop();
+
+
+
 //////////////////////////////////////////////////////////////////////////////// 
 ///                                   MISC                                   ///
 ////////////////////////////////////////////////////////////////////////////////
@@ -63,14 +87,17 @@ error UnauthorizedSender();
 ///                              ADMINISTRATIVE                              ///
 ////////////////////////////////////////////////////////////////////////////////
  
-/// @notice Function callable only by the pending owner.
-error PendingAdminOnly();
-
 /// @notice Function callable only by the admin.
 error AdminOnly();
 
+/// @notice Function callable only by the minter.
+error MinterOnly();
+
 /// @notice Function callable only by the owner.
 error OwnerOnly();
+
+/// @notice Function callable only by the pending owner.
+error PendingAdminOnly();
 
 ////////////////////////////////////////////////////////////////////////////////
 ///                                GOVERNANCE                                ///
