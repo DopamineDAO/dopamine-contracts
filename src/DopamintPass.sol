@@ -120,8 +120,8 @@ contract DopamintPass is ERC721Checkpointable, IDopamintPass {
         return claimedBitMap[bucket] & mask != 0;
     }
 
-    function claim(bytes32[] calldata merkleProof) external {
-        bytes32 leaf = keccak256(abi.encodePacked(msg.sender));
+    function claim(bytes32[] calldata merkleProof, uint256 id) external {
+        bytes32 leaf = keccak256(abi.encodePacked(msg.sender, id));
         (bool validProof, uint256 index) = _verify(merkleProof, leaf);
 
         if (!validProof) {
@@ -144,9 +144,8 @@ contract DopamintPass is ERC721Checkpointable, IDopamintPass {
         claimedBitMap[bucket] |= mask;
     }
 
-    function _verify(bytes32[] memory proof, bytes32 leaf) private view returns (bool, uint256) {
+    function _verify(bytes32[] memory proof, bytes32 leaf) private view returns (bool, uint256 index) {
         bytes32 hash = leaf;
-        uint256 index;
 
         unchecked {
             for (uint256 i = 0; i < proof.length; i++) {
