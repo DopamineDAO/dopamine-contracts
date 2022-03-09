@@ -1,21 +1,15 @@
 interface IDopamintPassEvents {
 
-    event Burn(uint256 indexed tokenId);
+	event Claimed(address indexed claimer, uint256 tokenId);
 
-	event Claimed(address indexed claimer);
+    event DropCreated(uint256 indexed dropId, uint256 startIndex, uint256 dropSize, bytes32 provenanceHash);
 
-    event DropCompleted(uint256 indexed dropId, uint256 endTime);
+    event DropDelaySet(uint256 dropDelay);
 
-    event DropCreated(uint256 indexed dropId, uint256 startIndex, uint256 dropSize, uint256 startTime, string dropHash);
+    event DropSizeSet(uint256 dropSize);
 
-    event DropDelegate(address delegator, address delegatee, uint256 tokenId);
+    event MinterLocked();
 
-    event ChangeMinter(address minter);
-
-    event LockMinter();
-
-    event Mint(uint256 indexed tokenId);
-
-    event NewDropDelay(uint256 dropDelay);
+    event NewMinter(address oldMinter, address newMinter);
 
 }

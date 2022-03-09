@@ -17,19 +17,16 @@ contract DopamintPassTest is Test, IDopamintPassEvents {
     uint256 constant BLOCK_TIMESTAMP = 9999;
     uint256 constant BLOCK_START = 99; // Testing starts at this block.
 
-    address constant W1 = address(2);
-    address constant W2 = address(22);
-    address constant W3 = address(66);
-    address constant W4 = address(126);
-    address constant W5 = address(215);
-    address constant W6 = address(356);
-    address constant W7 = address(457);
-    address constant W8 = address(638);
-    address constant W9 = address(703);
-    address constant W10 = address(763);
+    address constant W1 = address(9210283791031090);
+    address constant W2 = address(192832719737912913);
 
     /// @notice Whitelisted addresses (index = token received).
-    address[10] WHITELISTED = [W1, W2, W3, W4, W5, W6, W7, W8, W9, W10];
+    address[4] WHITELISTED = [
+        W1, 
+        address(291909102),
+        W2,
+        address(21828118)
+    ];
     string[] proofInputs;
     uint256 constant CLAIM_SLOT = 4;
 
@@ -48,7 +45,7 @@ contract DopamintPassTest is Test, IDopamintPassEvents {
         vm.warp(BLOCK_TIMESTAMP);
         vm.startPrank(OWNER);
 
-        token = new DopamintPass(OWNER, IProxyRegistry(PROXY_REGISTRY));
+        token = new DopamintPass(OWNER, IProxyRegistry(PROXY_REGISTRY), OWNER, "");
 
         addressToString(W1, 0);
         
@@ -111,7 +108,6 @@ contract DopamintPassTest is Test, IDopamintPassEvents {
             _string[43 + len] = bytes1(48 + uint8(index - index / 10 * 10));
             index /= 10;
         }
-        console.log(string(_string));
 		return string(_string);
 	}
 }

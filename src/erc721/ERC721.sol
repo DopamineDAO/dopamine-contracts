@@ -205,7 +205,7 @@ contract ERC721 is IERC721, IERC721Metadata {
     /// @dev Assumes `maxSupply` < `type(uint256).max` to save on gas. 
     /// @param to Address receiving the minted NFT.
     /// @param id identifier of the NFT being minted.
-    function _mint(address to, uint256 id) internal virtual {
+    function _mint(address to, uint256 id) internal virtual returns (uint256) {
         if (to == address(0)) {
             revert ZeroAddressReceiver();
         }
@@ -224,6 +224,7 @@ contract ERC721 is IERC721, IERC721Metadata {
         }
         ownerOf[id] = to;
         emit Transfer(address(0), to, id);
+        return id;
     }
 
 	/// @notice Burns NFT of id `id`.
