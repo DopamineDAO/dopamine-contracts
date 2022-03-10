@@ -17,12 +17,15 @@ contract DopamintPassTest is Test, IDopamintPassEvents {
     uint256 constant BLOCK_TIMESTAMP = 9999;
     uint256 constant BLOCK_START = 99; // Testing starts at this block.
 
-    address constant W1 = address(2);
+    address constant W1 = address(9210283791031090);
+    address constant W2 = address(192832719737912913);
 
-    /// @notice Whitelisted addresses.
-    address[2] WHITELISTED = [
-        W1,
-        address(12)
+    /// @notice Whitelisted addresses (index = token received).
+    address[4] WHITELISTED = [
+        W1, 
+        address(291909102),
+        W2,
+        address(21828118)
     ];
     string[] proofInputs;
     uint256 constant CLAIM_SLOT = 4;
@@ -42,18 +45,25 @@ contract DopamintPassTest is Test, IDopamintPassEvents {
         vm.warp(BLOCK_TIMESTAMP);
         vm.startPrank(OWNER);
 
-        token = new DopamintPass(OWNER, IProxyRegistry(PROXY_REGISTRY));
-        string[] memory inputs = new string[](5);
-        proofInputs = new string[](7);
-        proofInputs[0] = "npx";
-        proofInputs[1] = "hardhat";
-        proofInputs[2] = "merkleproof";
-        proofInputs[3] = "--address";
+        token = new DopamintPass(OWNER, IProxyRegistry(PROXY_REGISTRY), OWNER, "");
+
+        addressToString(W1, 0);
+        
+        // 3 inputs for CLI args
+        string[] memory inputs = new string[](3 + WHITELISTED.length);
         inputs[0] = "npx";
         inputs[1] = "hardhat";
         inputs[2] = "merkle";
-        for (uint256 i = 0; i < 2; i++) {
-            string memory whitelisted = addressToString(WHITELISTED[i]);
+
+        // 5 inputs for CLI args
+        proofInputs = new string[](5 + WHITELISTED.length);
+        proofInputs[0] = "npx";
+        proofInputs[1] = "hardhat";
+        proofInputs[2] = "merkleproof";
+        proofInputs[3] = "--input";
+
+        for (uint256 i = 0; i < WHITELISTED.length; i++) {
+            string memory whitelisted = addressToString(WHITELISTED[i], i);
             inputs[i + 3] = whitelisted;
             proofInputs[i + 5] = whitelisted;
         }
@@ -63,49 +73,41 @@ contract DopamintPassTest is Test, IDopamintPassEvents {
     }
 
     function testClaim() public {
-        proofInputs[CLAIM_SLOT] = addressToString(W1);
-        bytes memory proof = vm.ffi(proofInputs);
-        token.claim(bytesToBytes32Array(proof));
+        proofInputs[CLAIM_SLOT] = addressToString(W1, 0);
+        bytes32[] memory proof = abi.decode(vm.ffi(proofInputs), (bytes32[]));
+        for (uint256 i = 0; i < proof.length; i++) {
+            console.logBytes32(proof[i]);
+        }
+        vm.startPrank(W1);
+        token.claim(proof, 0);
     }
 
-	/// @notice Taken from https://ethereum.stackexchange.com/questions/70300/how-to-convert-an-ethereum-address-to-an-ascii-string-in-solidity/70301
-	function addressToString(address _address) public pure returns(string memory) {
+	/// Returns input tom erkle encoder in format `{ADDRESS}:{TOKEN_ID}`.
+	function addressToString(address _address, uint256 index) public view returns(string memory) {
+        uint256 len;
+        uint256 j = index;
+        while (j != 0) {
+            ++len;
+            j /= 10;
+        }
 		bytes32 _bytes = bytes32(uint256(uint160(_address)));
 		bytes memory HEX = "0123456789abcdef";
-		bytes memory _string = new bytes(42);
+		bytes memory _string = new bytes(43 + (index == 0 ? 1 : len));
 		_string[0] = '0';
 		_string[1] = 'x';
 		for(uint i = 0; i < 20; i++) {
 			_string[2+i*2] = HEX[uint8(_bytes[i + 12] >> 4)];
 			_string[3+i*2] = HEX[uint8(_bytes[i + 12] & 0x0f)];
 		}
+        _string[42] = ":";
+        if (index == 0) {
+            _string[43] = "0";
+        } 
+        while (index != 0) {
+            len -= 1;
+            _string[43 + len] = bytes1(48 + uint8(index - index / 10 * 10));
+            index /= 10;
+        }
 		return string(_string);
 	}
-
-	function bytesToBytes32Array(bytes memory data)
-		public
-		pure
-		returns (bytes32[] memory)
-	{
-		// Find 32 bytes segments nb
-		uint256 dataNb = data.length / 32;
-		// Create an array of dataNb elements
-		bytes32[] memory dataList = new bytes32[](dataNb);
-		// Start array index at 0
-		uint256 index = 0;
-		// Loop all 32 bytes segments
-		for (uint256 i = 32; i <= data.length; i = i + 32) {
-			bytes32 temp;
-			// Get 32 bytes from data
-			assembly {
-				temp := mload(add(data, i))
-			}
-			// Add extracted 32 bytes to list
-			dataList[index] = temp;
-			index++;
-		}
-		// Return data list
-		return (dataList);
-	}
-
 }

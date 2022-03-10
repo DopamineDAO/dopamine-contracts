@@ -4,14 +4,19 @@ import { task, types } from "hardhat/config";
 import { utils } from "ethers";
 
 task('merkle', 'Create a merkle distribution')
-	.addOptionalVariadicPositionalParam(
-		'addresses',
-		'List of addresses',
+	.addVariadicPositionalParam(
+		'inputs',
+		'List of address:tokenId pairings',
 		[]
 	)
-	.setAction(async ({ addresses }, { ethers }) => {
+	.setAction(async ({ inputs }, { ethers }) => {
 		const merkleTree = new MerkleTree(
-			addresses.map((address: string) => merkleHash(address)),
+			inputs.map(
+				(input: string) => merkleHash(
+					input.split(':')[0],
+					input.split(':')[1]
+				)
+			),
 			keccak256,
 			{ sortPairs: true }
 		);
@@ -21,30 +26,40 @@ task('merkle', 'Create a merkle distribution')
 
 task('merkleproof', 'Get merkle proof')
 	.addOptionalVariadicPositionalParam(
-		'addresses',
-		'List of addresses',
+		'inputs',
+		'List of address:tokenId pairings',
 		[]
 	)
 	.addOptionalParam(
-		'address',
-		'Address to retrieve proof',
+		'input',
+		'String in the format {address}:{id}',
 		'',
 		types.string
 	)
-	.setAction(async ({ addresses, address }, { ethers }) => {
+	.setAction(async ({ inputs, input }, { ethers }) => {
 		const merkleTree = new MerkleTree(
-			addresses.map((address: string) => merkleHash(address)),
+			inputs.map(
+				(input: string) => merkleHash(
+					input.split(':')[0],
+					input.split(':')[1]
+				)
+			),
 			keccak256,
 			{ sortPairs: true }
 		);
 		const merkleRoot = merkleTree.getHexRoot();
-		console.log(merkleTree.getHexProof(
-			merkleHash(address)
-		));
+		const address = input.split(':')[0];
+		const id = input.split(':')[1];
+		const proof = merkleTree.getHexProof(
+			merkleHash(address, id)
+		)
+
+		const encodedProof = utils.defaultAbiCoder.encode(["bytes32[]"], [proof]);
+		console.log(encodedProof);
 	});
 
-function merkleHash(address: string): Buffer {
+function merkleHash(address: string, id: string): Buffer {
 	return Buffer.from(
-		utils.solidityKeccak256(["address"], [address]).slice('0x'.length), 'hex'
+		utils.solidityKeccak256(["address", "uint256"], [address, id]).slice('0x'.length), 'hex'
 	);
 }

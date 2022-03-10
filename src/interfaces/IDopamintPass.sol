@@ -20,8 +20,6 @@ interface IDopamintPass is IERC721, IDopamintPassEvents {
 
     function mint() external returns (uint256);
 
-    function burn(uint256 tokenId) external;
-
     function setMinter(address minter) external;
 
     function lockMinter() external;
