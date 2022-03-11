@@ -42,7 +42,7 @@ const config: HardhatUserConfig = {
       accounts: [process.env.PRIVATE_KEY!].filter(Boolean),
     },
     rinkeby: {
-      url: `https://rinkeby.infura.io/v3/${process.env.PROJECT_ID}`,
+      url: `https://eth-rinkeby.alchemyapi.io/v2/${process.env.API_KEY}`,
       accounts: [process.env.PRIVATE_KEY!].filter(Boolean),
     },
   },
