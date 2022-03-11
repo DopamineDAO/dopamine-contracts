@@ -1,14 +1,17 @@
 import fs from "fs";
+import { default as DopamineAuctionHouseABI } from '../abi/src/auction/DopamineAuctionHouse.sol/DopamineAuctionHouse.json';
+import { default as DopamineDAOABI } from '../abi/src/governance/DopamineDAO.sol/DopamineDAO.json';
+import { Interface } from "ethers/lib/utils";
 import { task, types } from "hardhat/config";
 
 // Listed in order of deployment. Wrong order results in error.
 enum Contract {
   DopamintPass,
-	DopamineAuctionHouseProxy,
 	DopamineAuctionHouse,
+	DopamineAuctionHouseProxy,
   Timelock,
-	DopamineDAOProxy,
 	DopamineDAO,
+	DopamineDAOProxy,
 }
 
 type Args = (string | number)[];
@@ -37,14 +40,15 @@ task("deploy-testing", "Deploy Rarity Society contracts to Ropsten")
     });
   });
 
-task("deploy-staging", "Deploy Rarity Society contracts to Rinkeby").setAction(
-  async (args, { run }) => {
-    await run("deploy", {
-      chainid: 4,
-      registry: "0xf57b2c51ded3a29e6891aba85459d600256cf317",
-    });
-  }
-);
+task("deploy-staging", "Deploy Rarity Society contracts to Rinkeby")
+  .addParam("verify", "whether to verify on Etherscan", false, types.boolean)
+	.setAction(
+		async (args, { run }) => {
+			await run("deploy", {
+				chainid: 4,
+				registry: "0xf57b2c51ded3a29e6891aba85459d600256cf317",
+		});
+	});
 
 task(
   "deploy-prod",
@@ -67,7 +71,7 @@ task("deploy", "Deploys Dopamine contracts")
   .addOptionalParam(
     "verify",
     "whether to verify on Etherscan",
-    true,
+    false,
     types.boolean
   )
   .addOptionalParam(
@@ -106,6 +110,42 @@ task("deploy", "Deploys Dopamine contracts")
     1,
     types.int
   )
+	.addOptionalParam(
+		"treasurySplit",
+		"% of auction revenue directed to Dopamine DAO",
+		50,
+		types.int
+	)
+	.addOptionalParam(
+		"dropSize",
+		"# of DopamintPasses to distribute for a given drop",
+		99,
+		types.int
+	)
+	.addOptionalParam(
+		"dropDelay",
+		"time in seconds to wait between drops",
+		60 * 60 * 24 * 33,
+		types.int
+	)
+	.addOptionalParam(
+		"timeBuffer",
+		"time in seconds to add for auction extensions",
+		60 * 10,
+		types.int
+	)
+	.addOptionalParam(
+		"reservePrice",
+		"starting reserve price for auctions",
+		1,
+		types.int
+	)
+	.addOptionalParam(
+		"duration",
+		"how long each auction should last",
+		60 * 60 * 4,
+		types.int
+	)
   .addOptionalParam(
     "quorumVotesBPS",
     "proposal quorum votes (basis points)",
@@ -167,10 +207,15 @@ task("deploy", "Deploys Dopamine contracts")
 
     // 1. Deploy DopamintPass:
     const dopamintPassArgs: Args = [
-      args.minter || deployer.address,
+      ethers.utils.getContractAddress({
+        from: deployer.address,
+        nonce: nonce + Contract.DopamineAuctionHouseProxy,
+      }),
       args.registry,
-      args.minter || deployer.address,
-			""
+      deployer.address,
+			args.dropSize,
+			args.dropDelay,
+			ethers.utils.formatBytes32String("Test")
     ];
     const dopamintPass = await deployContract(
       Contract[Contract.DopamintPass],
@@ -178,12 +223,16 @@ task("deploy", "Deploys Dopamine contracts")
       currNonce++
     );
 
-    // 2. Deploy auction proxy
+    // 2. Deploy auction house.
+    const dopamineAuctionHouse = await deployContract(
+      Contract[Contract.DopamineAuctionHouse],
+      [],
+      currNonce++
+    );
+
+		// 3. Deploy auction house proxy.
     const dopamineAuctionHouseProxyArgs = [
-      ethers.utils.getContractAddress({
-        from: deployer.address,
-        nonce: nonce + Contract.DopamineAuctionHouse,
-      }),
+			dopamineAuctionHouse,
       new Interface(DopamineAuctionHouseABI).encodeFunctionData('initialize', [
 				dopamintPass,
 				deployer.address,
@@ -197,17 +246,17 @@ task("deploy", "Deploys Dopamine contracts")
 				args.duration
 			]),
     ];
-
-    const timelock = await deployContract(
-      Contract[Contract.Timelock],
-      timelockArgs,
+    const dopamineAuctionHouseProxy = await deployContract(
+      Contract[Contract.DopamineAuctionHouseProxy],
+      dopamineAuctionHouseProxyArgs,
       currNonce++
     );
-    // 2. Deploy Timelock
+
+		// 4. Deploy timelock.
     const timelockArgs = [
       ethers.utils.getContractAddress({
         from: deployer.address,
-        nonce: nonce + Contract.RaritySocietyDAOProxy,
+        nonce: nonce + Contract.DopamineDAOProxy,
       }),
       args.timelockDelay,
     ];
@@ -217,46 +266,52 @@ task("deploy", "Deploys Dopamine contracts")
       currNonce++
     );
 
-    // 3. Deploy Rarity Society DAO Impl
-    const raritySocietyDAOImplArgs: Args = [];
-    const raritySocietyDAOImpl = await deployContract(
-      Contract[Contract.RaritySocietyDAOImpl],
-      raritySocietyDAOImplArgs,
+    // 5. Deploy Dopamine DAO
+    const dopamineDAOArgs: Args = [
+      ethers.utils.getContractAddress({
+        from: deployer.address,
+        nonce: nonce + Contract.DopamineDAOProxy,
+      }),
+		];
+    const dopamineDAO = await deployContract(
+      Contract[Contract.DopamineDAO],
+      dopamineDAOArgs,
       currNonce++
     );
 
-    // 4. Deploy Rarity Society DAO Proxy
-    const raritySocietyDAOProxyArgs: Args = [
-      timelock,
-      raritySocietyToken,
-      args.vetoer || deployer.address,
-      timelock,
-      raritySocietyDAOImpl,
-      args.votingPeriod,
-      args.votingDelay,
-      args.proposalThreshold,
-      args.quorumVotesBPS,
+    // 6. Deploy Dopamine DAO Proxy
+    const dopamineDAOProxyArgs = [
+			dopamineDAO,
+      new Interface(DopamineDAOABI).encodeFunctionData('initialize', [
+				timelock,
+				dopamintPass,
+				args.vetoer || deployer.address,
+				args.votingPeriod,
+				args.votingDelay,
+				args.proposalThreshold,
+				args.quorumVotesBPS
+			]),
     ];
-    const raritySocietyDAOProxy = await deployContract(
-      Contract[Contract.RaritySocietyDAOProxy],
-      raritySocietyDAOProxyArgs,
+    const dopamineDAOProxy = await deployContract(
+      Contract[Contract.DopamineDAOProxy],
+      dopamineDAOProxyArgs,
       currNonce++
     );
 
     if (args.verify) {
       const toVerify: Record<string, VerifyParams> = {
-        raritySocietyToken: {
-          address: raritySocietyToken,
-          args: raritySocietyTokenArgs,
+        dopamintPass: {
+          address: dopamintPass,
+          args: dopamintPassArgs,
         },
-        raritySocietyDAOImpl: {
-          address: raritySocietyDAOImpl,
-          args: raritySocietyDAOImplArgs,
-					path: "contracts/governance/RaritySocietyDAOImpl.sol:RaritySocietyDAOImpl",
+        dopamineDAO: {
+          address: dopamineDAO,
+          args: dopamineDAOArgs,
+					path: "contracts/governance/DopamineDAO.sol:DopamineDAO",
         },
-        raritySocietyDAOProxy: {
-          address: raritySocietyDAOProxy,
-          args: raritySocietyDAOProxyArgs,
+        dopamineDAOProxy: {
+          address: dopamineDAOProxy,
+          args: dopamineDAOProxyArgs,
         },
       };
       for (const contract in toVerify) {

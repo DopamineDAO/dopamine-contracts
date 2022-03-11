@@ -19,8 +19,6 @@ contract DopamintPass is ERC721Checkpointable, IDopamintPass {
 
     uint256 public constant MAX_SUPPLY = 9999;
 
-    uint256 public constant NUM_WHITELISTED = 33;
-
     uint256 public constant MIN_DROP_SIZE = 1;
     uint256 public constant MAX_DROP_SIZE = 999;
 
@@ -33,9 +31,6 @@ contract DopamintPass is ERC721Checkpointable, IDopamintPass {
     // An address who has permissions to mint RaritySociety tokens
     address public minter;
 
-    /// @notice Address that collects gifted DopamintPasses.
-    address public reserve = address(this);
-
 	bytes32 public merkleRoot;
 
     // Whether the minter can be updated
@@ -46,11 +41,11 @@ contract DopamintPass is ERC721Checkpointable, IDopamintPass {
 
     string public baseURI = "https://dopamine.xyz";
 
-    uint256 public dropSize;
-    uint256 public dropDelay; 
-
     /// @notice Ending index for each drop (non-inclusive).
     uint256[] private _dropEndIndices;
+
+    uint256 public dropSize;
+    uint256 public dropDelay; 
 
     uint256 public dropEndIndex;
     uint256 public dropEndTime;
@@ -83,19 +78,30 @@ contract DopamintPass is ERC721Checkpointable, IDopamintPass {
         _;
     }
 
+    /// @notice Initializes the DopamintPass with the first drop created..
+    /// @param minter_ The address which will control the NFT emissions.
+    /// @param proxyRegistry_ The OpenSea proxy registry address.
+    /// @param dropSize_ The number of DopamintPasses to issue for the next drop.
+    /// @param dropDelay_ The minimum time in seconds to wait before a new drop.
+    /// @param whitelist The merkle root hash of season 1 DopamintPass partners.
+    /// @param provenance A provenance hash record of all DopamintPass drops.
+    /// @dev Chain ID and domain separator are assigned here as immutables.
     constructor(
         address minter_,
         IProxyRegistry proxyRegistry_,
-        address reserve_,
-        bytes32 provenanceHash
+        uint256 dropSize_,
+        uint256 dropDelay_,
+        bytes32 whitelist,
+        bytes32 provenance
     ) ERC721Checkpointable(NAME, SYMBOL, MAX_SUPPLY) {
 		owner = msg.sender;
         minter = minter_;
         proxyRegistry = proxyRegistry_;
 
-        createDrop(NUM_WHITELISTED, provenanceHash);
+        setDropSize(dropSize_);
+        setDropDelay(dropDelay_);
 
-        reserve = reserve_;
+        createDrop(NUM_WHITELISTED, provenanceHash);
     }
 
     /// @notice Mints a DopamintPass to the minter.
@@ -145,7 +151,7 @@ contract DopamintPass is ERC721Checkpointable, IDopamintPass {
     }
     
     /// @param newDropDelay The drops delay, in seconds.
-    function setDropDelay(uint256 newDropDelay) external override onlyOwner {
+    function setDropDelay(uint256 newDropDelay) public override onlyOwner {
         if (newDropDelay < MIN_DROP_DELAY || newDropDelay > MAX_DROP_DELAY) {
             revert InvalidDropDelay();
         }
@@ -155,7 +161,7 @@ contract DopamintPass is ERC721Checkpointable, IDopamintPass {
 
     /// @notice Sets a new drop size `newDropSize`.
     /// @param newDropSize The number of NFTs to mint for the next drop.
-    function setDropSize(uint256 newDropSize) external onlyOwner {
+    function setDropSize(uint256 newDropSize) public onlyOwner {
         if (newDropSize < MIN_DROP_SIZE || newDropSize > MAX_DROP_SIZE) {
             revert InvalidDropSize();
         }
@@ -198,8 +204,6 @@ contract DopamintPass is ERC721Checkpointable, IDopamintPass {
         }
         return super.isApprovedForAll(owner, operator);
     }
-
-
 
 	function setMerkleRoot(bytes32 _merkleRoot) external onlyOwner {
         merkleRoot = _merkleRoot;
