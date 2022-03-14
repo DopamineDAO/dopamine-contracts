@@ -14,38 +14,28 @@ contract DopamintPass is ERC721Checkpointable, IDopamintPass {
     address owner;
 
     string public constant NAME = "Dopamint Pass";
-
     string public constant SYMBOL = "DOPE";
 
-    uint256 public constant MAX_SUPPLY = 9999;
+    uint256 public constant MAX_WHITELIST_SIZE = 99;
 
     uint256 public constant MIN_DROP_SIZE = 1;
-    uint256 public constant MAX_DROP_SIZE = 999;
+    uint256 public constant MAX_DROP_SIZE = 9999;
 
     uint256 public constant MIN_DROP_DELAY = 4 weeks;
-
     uint256 public constant MAX_DROP_DELAY = 24 weeks;
-
-    uint256 public constant TEAM_MINTS = 5;
 
     // An address who has permissions to mint RaritySociety tokens
     address public minter;
-
-	bytes32 public merkleRoot;
-
-    // Whether the minter can be updated
-    bool public isMinterLocked;
 
     // OpenSea's Proxy Registry
     IProxyRegistry public proxyRegistry;
 
     string public baseURI = "https://dopamine.xyz";
 
-    /// @notice Ending index for each drop (non-inclusive).
-    uint256[] private _dropEndIndices;
 
     uint256 public dropSize;
     uint256 public dropDelay; 
+    uint256 public whitelistSize;
 
     uint256 public dropEndIndex;
     uint256 public dropEndTime;
@@ -54,13 +44,12 @@ contract DopamintPass is ERC721Checkpointable, IDopamintPass {
     mapping(uint256 => bytes32) private _dropProvenanceHashes;
     // Maps drops to their IPFS hashes.
     mapping(uint256 => bytes32) private _dropIPFSHashes;
+    // Maps drops to their whitelists (merkle roots).
+    mapping(uint256 => bytes32) private _dropWhitelists;
 
-    mapping(uint256 => uint256) private claimedBitMap;
-
-    modifier whenMinterNotLocked() {
-        require(!isMinterLocked, 'Minter is locked');
-        _;
-    }
+    /// @notice Ending index for each drop (non-inclusive).
+    uint256[] private _dropEndIndices;
+    uint256 private _id;
 
     /// @notice Modifier to restrict calls to owner only.
     modifier onlyOwner() {
@@ -83,71 +72,64 @@ contract DopamintPass is ERC721Checkpointable, IDopamintPass {
     /// @param proxyRegistry_ The OpenSea proxy registry address.
     /// @param dropSize_ The number of DopamintPasses to issue for the next drop.
     /// @param dropDelay_ The minimum time in seconds to wait before a new drop.
-    /// @param whitelist The merkle root hash of season 1 DopamintPass partners.
-    /// @param provenance A provenance hash record of all DopamintPass drops.
     /// @dev Chain ID and domain separator are assigned here as immutables.
     constructor(
         address minter_,
         IProxyRegistry proxyRegistry_,
         uint256 dropSize_,
         uint256 dropDelay_,
-        bytes32 whitelist,
-        bytes32 provenance
-    ) ERC721Checkpointable(NAME, SYMBOL, MAX_SUPPLY) {
+        uint256 whitelistSize_,
+        uint256 maxSupply_
+    ) ERC721Checkpointable(NAME, SYMBOL, maxSupply_) {
 		owner = msg.sender;
         minter = minter_;
         proxyRegistry = proxyRegistry_;
 
         setDropSize(dropSize_);
         setDropDelay(dropDelay_);
-
-        createDrop(NUM_WHITELISTED, provenanceHash);
+        setWhitelistSize(whitelistSize_);
     }
 
     /// @notice Mints a DopamintPass to the minter.
     function mint() public override onlyMinter returns (uint256) {
-        if (totalSupply >= dropEndIndex) {
+        if (_id >= dropEndIndex) {
             revert DropMaxCapacity();
         }
-        return _mint(minter, totalSupply);
+        return _mint(minter, _id++);
     }
 
-    /// @notice Set the minter of the contract
-    function setMinter(address newMinter) external override onlyOwner whenMinterNotLocked {
-        emit NewMinter(minter, newMinter);
-        minter = newMinter;
-    }
-
-    /// @notice Lock the minter, permanently fixing the emissions source.
-    function lockMinter() external override onlyOwner whenMinterNotLocked {
-        isMinterLocked = true;
-        emit MinterLocked();
-    }
-
-    /// @notice Creates a new drop of size `dropSize`.
-    /// @param numGifted Number of DopamintPasses to mint to the reserve.
+    /// @notice Creates a new drop.
+    /// @param whitelist A merkle root of the drop's whitelist.
     /// @param provenanceHash A provenance hash for the drop collection.
-    function createDrop(uint256 numGifted, bytes32 provenanceHash) public onlyOwner {
-        if (totalSupply < dropEndIndex) {
+    function createDrop(bytes32 whitelist,  bytes32 provenanceHash) public onlyOwner {
+        if (_id < dropEndIndex) {
             revert OngoingDrop();
         }
         if (block.timestamp < dropEndTime) {
             revert InsufficientTimePassed();
         }
-        if (totalSupply + dropSize > MAX_SUPPLY || numGifted > dropSize) {
+        if (_id + dropSize > maxSupply) {
             revert DropMaxCapacity();
         }
 
-        uint256 startIndex = totalSupply;
+        uint256 startIndex = _id;
         uint256 dropNumber = _dropEndIndices.length;
 
+        _id += whitelistSize;
         dropEndIndex = startIndex + dropSize;
         dropEndTime = block.timestamp + dropDelay;
 
         _dropEndIndices.push(dropEndIndex);
         _dropProvenanceHashes[dropNumber] = provenanceHash;
+        _dropWhitelists[dropNumber] = whitelist;
 
-        emit DropCreated(dropNumber, startIndex, dropSize, provenanceHash);
+        emit DropCreated(dropNumber, startIndex, dropSize, whitelistSize, whitelist, provenanceHash);
+    }
+
+    /// @notice Set the minter of the contract
+    function setMinter(address newMinter) external override onlyOwner {
+        emit NewMinter(minter, newMinter);
+        minter = newMinter;
     }
     
     /// @param newDropDelay The drops delay, in seconds.
@@ -169,6 +151,16 @@ contract DopamintPass is ERC721Checkpointable, IDopamintPass {
         emit DropSizeSet(dropSize);
     }
 
+    /// @notice Sets a new whitelist size `newWhitelistSize`.
+    /// @param newWhitelistSize The number of NFTs to whitelist for the next drop.
+    function setWhitelistSize(uint256 newWhitelistSize) public onlyOwner {
+        if (newWhitelistSize > MAX_WHITELIST_SIZE || newWhitelistSize > dropSize) {
+            revert InvalidWhitelistSize();
+        }
+        whitelistSize = newWhitelistSize;
+        emit WhitelistSizeSet(dropSize);
+    }
+
     /// @notice Return the drop number of the DopamintPass with id `tokenId`.
     /// @param tokenId Identifier of the DopamintPass being queried.
     function getDropId(uint256 tokenId) public view returns (uint256) {
@@ -183,20 +175,26 @@ contract DopamintPass is ERC721Checkpointable, IDopamintPass {
         }
     }
 	
-	// function setDropIPFSHash(uint256 dropId, bytes32 hash) public onlyOwner {
-	// 	require(dropId <= drops, "drop has not yet started");
-	// 	dropURIs[dropId] = URI;
-	// }
+    /// @notice Permanently sets the IPFS hash `hash` for drop `dropId`.
+    /// @param dropId The drop identifier to set.
+    /// @param hash The IPFS hash associated with the drop.
+	function setDropIPFSHash(uint256 dropId, bytes32 hash) public onlyOwner {
+        uint256 numDrops = _dropEndIndices.length;
+        if (dropId >= numDrops) {
+            revert NonexistentDrop();
+        }
+        if (dropId == numDrops - 1 && _id < dropEndIndex) {
+            revert OngoingDrop();
+        }
+        if (_dropIPFSHashes[dropId] != bytes32(0)) {
+            revert IPFSHashAlreadySet();
+        }
+        _dropIPFSHashes[dropId] = hash;
+	}
 
 
-	// function _fixDrop(uint256 dropId) public onlyOwner {
-	// 	require(dropId <= drops, "drop has not yet started");
-	// 	require(!dropFixed[dropId], "drop URI setting privileges already revoked");
-	// 	dropFixed[dropId] = true;
-	// }
-
-
-
+    /// @notice Checks if `operator` is an authorized operator for `owner`.
+    /// @dev Ensures OS proxy is whitelisted for operating on behalf of owners.
     function isApprovedForAll(address owner, address operator) public view override(IERC721, ERC721) returns (bool) {
         // Whitelist OpenSea proxy contract for easy trading.
         if (proxyRegistry.proxies(owner) == operator) {
@@ -205,76 +203,68 @@ contract DopamintPass is ERC721Checkpointable, IDopamintPass {
         return super.isApprovedForAll(owner, operator);
     }
 
-	function setMerkleRoot(bytes32 _merkleRoot) external onlyOwner {
-        merkleRoot = _merkleRoot;
-    }
-
-    function isClaimed(uint256 index) public view returns (bool) {
-        uint256 bucket = index >> 8;
-        uint256 mask = 1 << (index & 0xff);
-        return claimedBitMap[bucket] & mask != 0;
-    }
-
-    function claim(bytes32[] calldata merkleProof, uint256 tokenId) external {
+    /// @notice Claim `tokenId` for minting by presenting merkle proof `proof`.
+    /// @param proof Merkle proof associated with the claim.
+    /// @param tokenId Identifier of NFT being claimed.
+    function claim(bytes32[] calldata proof, uint256 tokenId) external {
+        bytes32 whitelist = _dropWhitelists[getDropId(tokenId)];
         bytes32 leaf = keccak256(abi.encodePacked(msg.sender, tokenId));
-        (bool validProof, uint256 index) = _verify(merkleProof, leaf);
 
-        if (!validProof) {
+        if (!_verify(whitelist, proof, leaf)) {
             revert InvalidProof();
         }
 
-        if (isClaimed(index)) {
-            revert AlreadyClaimed();
-        }
-
-        _setClaimed(index);
-        emit Claimed(msg.sender, tokenId);
-
-        _transferFrom(address(this), msg.sender, tokenId);
+        _mint(msg.sender, tokenId);
     }
 
-    function _setClaimed(uint256 index) private {
-        uint256 bucket = index >> 8;
-        uint256 mask = 1 << (index & 0xff);
-        claimedBitMap[bucket] |= mask;
-    }
-
-    function _verify(bytes32[] memory proof, bytes32 leaf) private view returns (bool, uint256 index) {
+    /// @notice Verifies `leaf` is part of merkle tree rooted at `merkleRoot`.
+    function _verify(
+        bytes32 merkleRoot,
+        bytes32[] memory proof,
+        bytes32 leaf
+    ) private view returns (bool) 
+    {
         bytes32 hash = leaf;
 
         unchecked {
             for (uint256 i = 0; i < proof.length; i++) {
-                index *= 2;
                 bytes32 proofElement = proof[i];
                 if (hash <= proofElement) {
                     hash = keccak256(abi.encodePacked(hash, proofElement));
                 } else {
                     hash = keccak256(abi.encodePacked(proofElement, hash));
-                    index += 1;
                 }
             }
-            return (hash == merkleRoot, index);
+            return hash == merkleRoot;
         }
     }
 
+    /// @notice Set a new base URI for the DopamintPass.
+    /// @param newBaseURI The new base URI to set.
     function setBaseURI(string memory newBaseURI) public onlyOwner {
         baseURI = newBaseURI;
     }
 
+    /// @notice Retrieves the token metadata URI for NFT of id `tokenId`.
+    /// @dev Before drop finalization, the token URI for an NFT is equivalent to
+    ///  {baseURI}/{id}, and once a drop is finalized, it may be replaced by an
+    ///  IPFS link whose contents equate to the initially set provenance hash.
+    /// @param tokenId The identifier of the NFT being queried.
     function tokenURI(uint256 tokenId) public view virtual override returns (string memory) {
         if (ownerOf[tokenId] == address(0)) {
             revert NonExistentNFT();
         }
 
-        uint256 dropId = getDropId(tokenId);
-
-        // If no base URI, or both are set, return the drop URI
-        return string(abi.encodePacked(dropId, _toString(tokenId)));
+        bytes32 ipfsHash  = _dropIPFSHashes[getDropId(tokenId)];
+        if (ipfsHash == bytes32(0)) { // Drop not yet finalized.
+            return string(abi.encodePacked(baseURI, _toString(tokenId), '.json'));
+        } else {
+            return string(abi.encodePacked('https://ipfs.io/ipfs/', ipfsHash, '/', _toString(tokenId), '.json'));
+        }
     }
 
 
 	 function _toString(uint256 value) internal pure returns (string memory) {
-        // Inspired by OraclizeAPI's implementation - MIT licence
         // https://github.com/oraclize/ethereum-api/blob/b42146b063c7d6ee1358846c198246239e9360e8/oraclizeAPI_0.4.25.sol
 
         if (value == 0) {

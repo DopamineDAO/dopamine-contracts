@@ -14,8 +14,14 @@ error InsufficientTimePassed();
 /// @notice Configured drop delay is invalid.
 error InvalidDropDelay();
 
-/// @notice COnfigured drop size is invalid.
+/// @notice Configured whitelist size is invalid.
+error InvalidWhitelistSize();
+
+/// @notice Configured drop size is invalid.
 error InvalidDropSize();
+
+/// @notice IPFS hash for the specified drop has already been set.
+error IPFSHashAlreadySet();
 
 /// @notice Action cannot be completed as a current drop is ongoing.
 error OngoingDrop();

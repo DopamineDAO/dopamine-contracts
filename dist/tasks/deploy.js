@@ -41,7 +41,9 @@ var Contract;
         verify: args.verify,
     });
 }));
-(0, config_1.task)("deploy-staging", "Deploy Rarity Society contracts to Rinkeby").setAction((args, { run }) => __awaiter(void 0, void 0, void 0, function* () {
+(0, config_1.task)("deploy-staging", "Deploy Rarity Society contracts to Rinkeby")
+    .addParam("verify", "whether to verify on Etherscan", false, config_1.types.boolean)
+    .setAction((args, { run }) => __awaiter(void 0, void 0, void 0, function* () {
     yield run("deploy", {
         chainid: 4,
         registry: "0xf57b2c51ded3a29e6891aba85459d600256cf317",
@@ -56,7 +58,7 @@ var Contract;
 (0, config_1.task)("deploy", "Deploys Dopamine contracts")
     .addParam("chainid", "expected network chain ID", undefined, config_1.types.int)
     .addParam("registry", "OpenSea proxy registry address", undefined, config_1.types.string)
-    .addOptionalParam("verify", "whether to verify on Etherscan", true, config_1.types.boolean)
+    .addOptionalParam("verify", "whether to verify on Etherscan", false, config_1.types.boolean)
     .addOptionalParam("minter", "Rarity Society token minter", undefined, config_1.types.string)
     .addOptionalParam("vetoer", "Rarity Society DAO veto address", undefined, config_1.types.string)
     .addOptionalParam("timelockDelay", "timelock delay (seconds)", 60 * 60 * 24 * 2, config_1.types.int)

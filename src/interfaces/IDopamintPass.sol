@@ -22,5 +22,4 @@ interface IDopamintPass is IERC721, IDopamintPassEvents {
 
     function setMinter(address minter) external;
 
-    function lockMinter() external;
 }
