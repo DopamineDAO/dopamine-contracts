@@ -32,7 +32,8 @@ contract DopamintPassTest is Test, IDopamintPassEvents {
     uint256 constant NFT = WHITELIST_SIZE;
     uint256 constant NFT_1 = WHITELIST_SIZE + 1;
 
-    bytes32 PROVENANCE_HASH = keccak256("dopamine");
+    bytes32 PROVENANCE_HASH = 0xf21123649788fb044e6d832e66231b26867af618ea80221e57166f388c2efb2f;
+    string IPFS_URI = "https://ipfs.io/ipfs/Qme57kZ2VuVzcj5sC3tVHFgyyEgBTmAnyTK45YVNxKf6hi/";
 
     /// @notice Whitelist test addresses.
     address constant W1 = address(9210283791031090);
@@ -195,7 +196,7 @@ contract DopamintPassTest is Test, IDopamintPassEvents {
     }
 
 
-    function testWhitelistSize() public {
+    function testSetWhitelistSize() public {
         // Reverts if whitelist size too large.
         uint256 maxWhitelistSize = token.MAX_WHITELIST_SIZE();
         vm.expectRevert(InvalidWhitelistSize.selector);
@@ -209,6 +210,58 @@ contract DopamintPassTest is Test, IDopamintPassEvents {
         vm.expectEmit(true, true, true, true);
         emit WhitelistSizeSet(WHITELIST_SIZE);
         token.setWhitelistSize(WHITELIST_SIZE);
+    }
+
+    function testSetDropURI() public {
+        // Reverts when drop has not yet been created.
+        vm.expectRevert(NonExistentDrop.selector);
+        token.setDropURI(0, IPFS_URI);
+
+        token.createDrop(bytes32(0), PROVENANCE_HASH);
+        vm.expectEmit(true, true, true, true);
+        emit DropURISet(0, IPFS_URI);
+        token.setDropURI(0, IPFS_URI);
+    }
+
+    function testTokenURI() public {
+        // Reverts when token not yet minted.
+        vm.expectRevert(NonExistentNFT.selector);
+        token.tokenURI(NFT);
+
+        token.createDrop(bytes32(0), PROVENANCE_HASH);
+        token.mint();
+        assertEq(token.tokenURI(NFT), "https://dopamine.xyz/5");
+
+        token.setDropURI(0, IPFS_URI);
+        assertEq(token.tokenURI(NFT), "https://ipfs.io/ipfs/Qme57kZ2VuVzcj5sC3tVHFgyyEgBTmAnyTK45YVNxKf6hi/5");
+
+
+    }
+
+    function testGetDropId() public {
+        // Reverts when token of drop has not yet been created.
+        vm.expectRevert(NonExistentNFT.selector);
+        token.getDropId(NFT);
+
+        // Even on drop creation, reverts if token not yet minted.
+        token.createDrop(bytes32(0), PROVENANCE_HASH);
+        vm.expectRevert(NonExistentNFT.selector);
+        token.getDropId(NFT);
+
+        // Once minted, NFT assigned the correct drop.
+        token.mint();
+        assertEq(token.getDropId(NFT), 0);
+
+        // Last token of collection assigned correct drop id.
+        for (uint256 i = 0; i < DROP_SIZE - WHITELIST_SIZE - 1; i++) {
+            token.mint();
+        }
+        assertEq(token.getDropId(DROP_SIZE - 1), 0);
+
+        vm.warp(BLOCK_TIMESTAMP + DROP_DELAY);
+        token.createDrop(bytes32(0), PROVENANCE_HASH);
+        token.mint();
+        assertEq(token.getDropId(DROP_SIZE + WHITELIST_SIZE), 1);
     }
 
     function _testClaim() public {

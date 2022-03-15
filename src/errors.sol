@@ -27,7 +27,7 @@ error IPFSHashAlreadySet();
 error OngoingDrop();
 
 /// @notice No such drop exists.
-error NonexistentDrop();
+error NonExistentDrop();
 
 
 

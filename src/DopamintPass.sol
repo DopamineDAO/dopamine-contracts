@@ -30,8 +30,7 @@ contract DopamintPass is ERC721Checkpointable, IDopamintPass {
     // OpenSea's Proxy Registry
     IProxyRegistry public proxyRegistry;
 
-    string public baseURI = "https://dopamine.xyz";
-
+    string public baseURI = "https://dopamine.xyz/";
 
     uint256 public dropSize;
     uint256 public dropDelay; 
@@ -42,8 +41,8 @@ contract DopamintPass is ERC721Checkpointable, IDopamintPass {
 
     // Maps drops to their provenance markers.
     mapping(uint256 => bytes32) private _dropProvenanceHashes;
-    // Maps drops to their IPFS hashes.
-    mapping(uint256 => bytes32) private _dropIPFSHashes;
+    // Maps drops to their IPFS URIs.
+    mapping(uint256 => string) private _dropURIs;
     // Maps drops to their whitelists (merkle roots).
     mapping(uint256 => bytes32) private _dropWhitelists;
 
@@ -158,7 +157,7 @@ contract DopamintPass is ERC721Checkpointable, IDopamintPass {
             revert InvalidWhitelistSize();
         }
         whitelistSize = newWhitelistSize;
-        emit WhitelistSizeSet(dropSize);
+        emit WhitelistSizeSet(whitelistSize);
     }
 
     /// @notice Return the drop number of the DopamintPass with id `tokenId`.
@@ -175,21 +174,23 @@ contract DopamintPass is ERC721Checkpointable, IDopamintPass {
         }
     }
 	
-    /// @notice Permanently sets the IPFS hash `hash` for drop `dropId`.
+    /// @notice Sets the base URI.
+    /// @param newBaseURI The base URI to set.
+	function setBaseURI(string calldata newBaseURI) public onlyOwner {
+        baseURI = newBaseURI;
+        emit BaseURISet(newBaseURI);
+	}
+
+    /// @notice Sets the IPFS URI `dropURI` for drop `dropId`.
     /// @param dropId The drop identifier to set.
-    /// @param hash The IPFS hash associated with the drop.
-	function setDropIPFSHash(uint256 dropId, bytes32 hash) public onlyOwner {
+	/// @param dropURI The drop URI to permanently set.
+	function setDropURI(uint256 dropId, string calldata dropURI) public onlyOwner {
         uint256 numDrops = _dropEndIndices.length;
         if (dropId >= numDrops) {
-            revert NonexistentDrop();
+            revert NonExistentDrop();
         }
-        if (dropId == numDrops - 1 && _id < dropEndIndex) {
-            revert OngoingDrop();
-        }
-        if (_dropIPFSHashes[dropId] != bytes32(0)) {
-            revert IPFSHashAlreadySet();
-        }
-        _dropIPFSHashes[dropId] = hash;
+        _dropURIs[dropId] = dropURI;
+        emit DropURISet(dropId, dropURI);
 	}
 
 
@@ -239,11 +240,6 @@ contract DopamintPass is ERC721Checkpointable, IDopamintPass {
         }
     }
 
-    /// @notice Set a new base URI for the DopamintPass.
-    /// @param newBaseURI The new base URI to set.
-    function setBaseURI(string memory newBaseURI) public onlyOwner {
-        baseURI = newBaseURI;
-    }
 
     /// @notice Retrieves the token metadata URI for NFT of id `tokenId`.
     /// @dev Before drop finalization, the token URI for an NFT is equivalent to
@@ -255,12 +251,11 @@ contract DopamintPass is ERC721Checkpointable, IDopamintPass {
             revert NonExistentNFT();
         }
 
-        bytes32 ipfsHash  = _dropIPFSHashes[getDropId(tokenId)];
-        if (ipfsHash == bytes32(0)) { // Drop not yet finalized.
-            return string(abi.encodePacked(baseURI, _toString(tokenId), '.json'));
-        } else {
-            return string(abi.encodePacked('https://ipfs.io/ipfs/', ipfsHash, '/', _toString(tokenId), '.json'));
-        }
+        string memory dropURI  = _dropURIs[getDropId(tokenId)];
+		if (bytes(dropURI).length == 0) {
+			dropURI = baseURI;
+		}
+		return string(abi.encodePacked(dropURI, _toString(tokenId)));
     }
 
 
