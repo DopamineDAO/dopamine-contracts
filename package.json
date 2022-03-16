@@ -1,5 +1,5 @@
 {
-  "name": "Rarity Society contracts",
+  "name": "dopamine-dao-contracts",
   "private": true,
   "scripts": {
     "clean": "npx rimraf node_modules",

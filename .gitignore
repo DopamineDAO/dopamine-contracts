@@ -36,3 +36,6 @@ abi/@openzeppelin
 abi/contracts/test
 abi/contracts/erc721
 abi/contracts/interfaces
+
+# Build files
+dist
