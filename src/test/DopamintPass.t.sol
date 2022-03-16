@@ -234,8 +234,6 @@ contract DopamintPassTest is Test, IDopamintPassEvents {
 
         token.setDropURI(0, IPFS_URI);
         assertEq(token.tokenURI(NFT), "https://ipfs.io/ipfs/Qme57kZ2VuVzcj5sC3tVHFgyyEgBTmAnyTK45YVNxKf6hi/5");
-
-
     }
 
     function testGetDropId() public {
