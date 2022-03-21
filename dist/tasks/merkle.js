@@ -21,7 +21,7 @@ const ethers_1 = require("ethers");
     .setAction(({ inputs }, { ethers }) => __awaiter(void 0, void 0, void 0, function* () {
     const merkleTree = new merkletreejs_1.default(inputs.map((input) => merkleHash(input.split(':')[0], input.split(':')[1])), keccak256_1.default, { sortPairs: true });
     const merkleRoot = merkleTree.getHexRoot();
-    console.log(merkleRoot);
+    process.stdout.write(merkleRoot);
 }));
 (0, config_1.task)('merkleproof', 'Get merkle proof')
     .addOptionalVariadicPositionalParam('inputs', 'List of address:tokenId pairings', [])
@@ -33,7 +33,7 @@ const ethers_1 = require("ethers");
     const id = input.split(':')[1];
     const proof = merkleTree.getHexProof(merkleHash(address, id));
     const encodedProof = ethers_1.utils.defaultAbiCoder.encode(["bytes32[]"], [proof]);
-    console.log(encodedProof);
+    process.stdout.write(encodedProof);
 }));
 function merkleHash(address, id) {
     return Buffer.from(ethers_1.utils.solidityKeccak256(["address", "uint256"], [address, id]).slice('0x'.length), 'hex');

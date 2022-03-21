@@ -2,7 +2,9 @@
 pragma solidity >=0.8.0;
 
 import "../interfaces/IDopamintPass.sol";
+import "../interfaces/IProxyRegistry.sol";
 import "../DopamintPass.sol";
+import "./mocks/MockProxyRegistry.sol";
 
 import "./utils/test.sol";
 import "./utils/console.sol";
@@ -16,8 +18,7 @@ contract DopamintPassTest is Test, IDopamintPassEvents {
     address constant TO = address(69);
     address constant OPERATOR = address(420);
 
-    address constant PROXY_REGISTRY = address(12629);
-
+    IProxyRegistry PROXY_REGISTRY;
     DopamintPass token;
 
     /// @notice Block settings for testing.
@@ -33,7 +34,7 @@ contract DopamintPassTest is Test, IDopamintPassEvents {
     uint256 constant NFT_1 = WHITELIST_SIZE + 1;
 
     bytes32 PROVENANCE_HASH = 0xf21123649788fb044e6d832e66231b26867af618ea80221e57166f388c2efb2f;
-    string IPFS_URI = "https://ipfs.io/ipfs/Qme57kZ2VuVzcj5sC3tVHFgyyEgBTmAnyTK45YVNxKf6hi/";
+    string constant IPFS_URI = "https://ipfs.io/ipfs/Qme57kZ2VuVzcj5sC3tVHFgyyEgBTmAnyTK45YVNxKf6hi/";
 
     /// @notice Whitelist test addresses.
     address constant W1 = address(9210283791031090);
@@ -52,9 +53,15 @@ contract DopamintPassTest is Test, IDopamintPassEvents {
     function setUp() public virtual {
         vm.roll(BLOCK_START);
         vm.warp(BLOCK_TIMESTAMP);
+        vm.startPrank(TO);
+
+        MockProxyRegistry r  = new MockProxyRegistry();
+        r.registerProxy(); // Register OS delegate on behalf of `TO`.
+        PROXY_REGISTRY = IProxyRegistry(address(r));
+
         vm.startPrank(OWNER);
 
-        token = new DopamintPass(OWNER, IProxyRegistry(PROXY_REGISTRY), DROP_SIZE, DROP_DELAY, WHITELIST_SIZE, MAX_SUPPLY);
+        token = new DopamintPass(OWNER, PROXY_REGISTRY, DROP_SIZE, DROP_DELAY, WHITELIST_SIZE, MAX_SUPPLY);
 
         // 3 inputs for CLI args
         inputs = new string[](3 + WHITELISTED.length);
@@ -76,9 +83,17 @@ contract DopamintPassTest is Test, IDopamintPassEvents {
         }
     }
 
+    function testIsApprovedForAll() public {
+        // Users with registered OS delegates are approved automatically.
+        assertTrue(token.isApprovedForAll(TO, PROXY_REGISTRY.proxies(TO)));
+
+        // Otherwise, they are not.
+        assertTrue(!token.isApprovedForAll(FROM, PROXY_REGISTRY.proxies(TO)));
+    }
+
     function testConstructor() public {
         assertEq(token.minter(), OWNER);
-        assertEq(address(token.proxyRegistry()), PROXY_REGISTRY);
+        assertEq(address(token.proxyRegistry()), address(PROXY_REGISTRY));
         assertEq(token.dropSize(), DROP_SIZE);
         assertEq(token.dropDelay(), DROP_DELAY);
         assertEq(token.whitelistSize(), WHITELIST_SIZE);
@@ -87,12 +102,12 @@ contract DopamintPassTest is Test, IDopamintPassEvents {
 
         // Reverts when setting invalid drop size.
         uint256 minDropSize = token.MIN_DROP_SIZE();
-        vm.expectRevert(InvalidDropSize.selector);
+        vm.expectRevert(DropSizeInvalid.selector);
         new DopamintPass(OWNER, IProxyRegistry(PROXY_REGISTRY), minDropSize - 1, DROP_DELAY, WHITELIST_SIZE, MAX_SUPPLY);
         
         // Reverts when setting invalid drop delay.
         uint256 maxDropDelay = token.MAX_DROP_DELAY();
-        vm.expectRevert(InvalidDropDelay.selector);
+        vm.expectRevert(DropDelayInvalid.selector);
         new DopamintPass(OWNER, IProxyRegistry(PROXY_REGISTRY), DROP_SIZE, maxDropDelay + 1, WHITELIST_SIZE, MAX_SUPPLY);
 
     }
@@ -130,14 +145,14 @@ contract DopamintPassTest is Test, IDopamintPassEvents {
         assertEq(token.dropEndTime(), BLOCK_TIMESTAMP + DROP_DELAY);
 
         // Should revert if drop creation called during ongoing drop.
-        vm.expectRevert(OngoingDrop.selector);
+        vm.expectRevert(DropOngoing.selector);
         token.createDrop(bytes32(0), PROVENANCE_HASH);
         for (uint256 i = 0; i < DROP_SIZE - WHITELIST_SIZE; i++) {
             token.mint();
         }
 
         // Should revert if insufficient time has passed.
-        vm.expectRevert(InsufficientTimePassed.selector);
+        vm.expectRevert(DropTooEarly.selector);
         token.createDrop(bytes32(0), PROVENANCE_HASH);
 
         // Should revert on creating a new drop if supply surpasses maximum.
@@ -155,7 +170,7 @@ contract DopamintPassTest is Test, IDopamintPassEvents {
 
     function testSetMinter() public {
         vm.expectEmit(true, true, true, true);
-        emit NewMinter(OWNER, TO);
+        emit MinterChanged(OWNER, TO);
         token.setMinter(TO);
         assertEq(token.minter(), TO);
     }
@@ -163,12 +178,12 @@ contract DopamintPassTest is Test, IDopamintPassEvents {
     function testSetDropDelay() public {
         // Reverts if the drop delay is too low.
         uint256 minDropDelay = token.MIN_DROP_DELAY();
-        vm.expectRevert(InvalidDropDelay.selector);
+        vm.expectRevert(DropDelayInvalid.selector);
         token.setDropDelay(minDropDelay - 1);
 
         // Reverts if the drop delay is too high.
         uint256 maxDropDelay = token.MAX_DROP_DELAY();
-        vm.expectRevert(InvalidDropDelay.selector);
+        vm.expectRevert(DropDelayInvalid.selector);
         token.setDropDelay(maxDropDelay + 1);
 
         // Emits expected DropDelaySet event.
@@ -180,12 +195,12 @@ contract DopamintPassTest is Test, IDopamintPassEvents {
     function testSetDropSize() public {
         // Reverts if the drop size is too low.
         uint256 minDropSize = token.MIN_DROP_SIZE();
-        vm.expectRevert(InvalidDropSize.selector);
+        vm.expectRevert(DropSizeInvalid.selector);
         token.setDropSize(minDropSize - 1);
 
         // Reverts if the drop size is too high.
         uint256 maxDropSize = token.MAX_DROP_SIZE();
-        vm.expectRevert(InvalidDropSize.selector);
+        vm.expectRevert(DropSizeInvalid.selector);
         token.setDropSize(maxDropSize + 1);
 
         // Emits expected DropSizeSet event.
@@ -198,12 +213,12 @@ contract DopamintPassTest is Test, IDopamintPassEvents {
 
     function testSetWhitelistSize() public {
         // Reverts if whitelist size too large.
-        uint256 maxWhitelistSize = token.MAX_WHITELIST_SIZE();
-        vm.expectRevert(InvalidWhitelistSize.selector);
+        uint256 maxWhitelistSize = token.MAX_WL_SIZE();
+        vm.expectRevert(DropWhitelistOverCapacity.selector);
         token.setWhitelistSize(maxWhitelistSize + 1);
 
         // Reverts if larger than drop size.
-        vm.expectRevert(InvalidWhitelistSize.selector);
+        vm.expectRevert(DropWhitelistOverCapacity.selector);
         token.setWhitelistSize(DROP_SIZE + 1);
 
         // Emits expected WhitelistSizeSet event.
@@ -212,20 +227,31 @@ contract DopamintPassTest is Test, IDopamintPassEvents {
         token.setWhitelistSize(WHITELIST_SIZE);
     }
 
+    function testSetBaseURI() public {
+        // Should change the base URI of the NFT.
+        vm.expectEmit(true, true, true, true);
+        emit BaseURISet("https://dopam1ne.xyz");
+        token.setBaseURI("https://dopam1ne.xyz");
+
+        assertEq(token.baseUri(), "https://dopam1ne.xyz");
+    }
+
     function testSetDropURI() public {
         // Reverts when drop has not yet been created.
-        vm.expectRevert(NonExistentDrop.selector);
+        vm.expectRevert(DropNonExistent.selector);
         token.setDropURI(0, IPFS_URI);
 
         token.createDrop(bytes32(0), PROVENANCE_HASH);
+
         vm.expectEmit(true, true, true, true);
         emit DropURISet(0, IPFS_URI);
         token.setDropURI(0, IPFS_URI);
+
     }
 
     function testTokenURI() public {
         // Reverts when token not yet minted.
-        vm.expectRevert(NonExistentNFT.selector);
+        vm.expectRevert(TokenNonExistent.selector);
         token.tokenURI(NFT);
 
         token.createDrop(bytes32(0), PROVENANCE_HASH);
@@ -238,38 +264,56 @@ contract DopamintPassTest is Test, IDopamintPassEvents {
 
     function testGetDropId() public {
         // Reverts when token of drop has not yet been created.
-        vm.expectRevert(NonExistentNFT.selector);
-        token.getDropId(NFT);
-
-        // Even on drop creation, reverts if token not yet minted.
-        token.createDrop(bytes32(0), PROVENANCE_HASH);
-        vm.expectRevert(NonExistentNFT.selector);
-        token.getDropId(NFT);
+        vm.expectRevert(DropNonExistent.selector);
+        token.dropId(NFT);
 
         // Once minted, NFT assigned the correct drop.
+        token.createDrop(bytes32(0), PROVENANCE_HASH);
         token.mint();
-        assertEq(token.getDropId(NFT), 0);
+        assertEq(token.dropId(NFT), 0);
 
         // Last token of collection assigned correct drop id.
         for (uint256 i = 0; i < DROP_SIZE - WHITELIST_SIZE - 1; i++) {
             token.mint();
         }
-        assertEq(token.getDropId(DROP_SIZE - 1), 0);
+        assertEq(token.dropId(DROP_SIZE - 1), 0);
 
         vm.warp(BLOCK_TIMESTAMP + DROP_DELAY);
         token.createDrop(bytes32(0), PROVENANCE_HASH);
         token.mint();
-        assertEq(token.getDropId(DROP_SIZE + WHITELIST_SIZE), 1);
+        assertEq(token.dropId(DROP_SIZE + WHITELIST_SIZE), 1);
     }
 
-    function _testClaim() public {
+    function testClaim() public {
+        // Create drop with whitelist.
+        bytes32 merkleRoot = bytes32(vm.ffi(inputs));
+        token.createDrop(merkleRoot, PROVENANCE_HASH);
+
+        // First whitelisted user can claim assigned NFT.
         proofInputs[CLAIM_SLOT] = addressToString(W1, 0);
         bytes32[] memory proof = abi.decode(vm.ffi(proofInputs), (bytes32[]));
-        for (uint256 i = 0; i < proof.length; i++) {
-            console.logBytes32(proof[i]);
-        }
         vm.startPrank(W1);
         token.claim(proof, 0);
+        assertEq(token.ownerOf(0), W1);
+
+        // Claiming same NFT twice fails.
+        vm.expectRevert(TokenAlreadyMinted.selector);
+        token.claim(proof, 0);
+
+        // Claiming wrong NFT reverts due to invalid proof.
+        vm.expectRevert(ProofInvalid.selector);
+        token.claim(proof, 1);
+
+        // Proof presented by wrong owner fails.
+        proofInputs[CLAIM_SLOT] = addressToString(W2, 2);
+        proof = abi.decode(vm.ffi(proofInputs), (bytes32[]));
+        vm.expectRevert(ProofInvalid.selector);
+        token.claim(proof, 2);
+
+        // Works for whitelisted member.
+        vm.startPrank(W2);
+        token.claim(proof, 2);
+        assertEq(token.ownerOf(2), W2);
     }
 
 	/// Returns input tom erkle encoder in format `{ADDRESS}:{TOKEN_ID}`.

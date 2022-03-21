@@ -2,95 +2,141 @@
 pragma solidity ^0.8.9;
 
 ////////////////////////////////////////////////////////////////////////////////
-///                               DOPAMINTPASS                               /// 
+///				 ░▒█▀▀▄░█▀▀█░▒█▀▀█░█▀▀▄░▒█▀▄▀█░▄█░░▒█▄░▒█░▒█▀▀▀              ///
+///              ░▒█░▒█░█▄▀█░▒█▄▄█▒█▄▄█░▒█▒█▒█░░█▒░▒█▒█▒█░▒█▀▀▀              ///
+///              ░▒█▄▄█░█▄▄█░▒█░░░▒█░▒█░▒█░░▒█░▄█▄░▒█░░▀█░▒█▄▄▄              ///
 ////////////////////////////////////////////////////////////////////////////////
+
+// This file is a shared repository of all errors used in Dopamine's contracts.
+
+////////////////////////////////////////////////////////////////////////////////
+///                               DopamintPass                               /// 
+////////////////////////////////////////////////////////////////////////////////
+
+/// @notice Configured drop delay is invalid.
+error DropDelayInvalid();
 
 /// @notice DopamintPass drop hit allocated capacity.
 error DropMaxCapacity();
 
-/// @notice Insufficient time passed since last drop was created.
-error InsufficientTimePassed();
-
-/// @notice Configured drop delay is invalid.
-error InvalidDropDelay();
-
-/// @notice Configured whitelist size is invalid.
-error InvalidWhitelistSize();
-
-/// @notice Configured drop size is invalid.
-error InvalidDropSize();
-
-/// @notice IPFS hash for the specified drop has already been set.
-error IPFSHashAlreadySet();
+/// @notice No such drop exists.
+error DropNonExistent();
 
 /// @notice Action cannot be completed as a current drop is ongoing.
-error OngoingDrop();
+error DropOngoing();
 
-/// @notice No such drop exists.
-error NonExistentDrop();
+/// @notice Configured drop size is invalid.
+error DropSizeInvalid();
 
+/// @notice Insufficient time passed since last drop was created.
+error DropTooEarly();
 
+/// @notice Configured whitelist size is too large.
+error DropWhitelistOverCapacity();
 
-//////////////////////////////////////////////////////////////////////////////// 
-///                                   MISC                                   ///
+////////////////////////////////////////////////////////////////////////////////
+///                          Dopamine Auction House                          ///
 ////////////////////////////////////////////////////////////////////////////////
 
-/// @notice Number does not fit in 32 bytes.
-error InvalidUint32();
+/// @notice Auction has already been settled.
+error AuctionAlreadySettled();
 
-/// @notice Block number being queried is invalid.
-error InvalidBlock();
+/// @notice The NFT specified in the auction bid is invalid.
+error AuctionBidTokenInvalid();
+
+/// @notice Bid placed was too low (see `reservePrice` and `MIN_BID_DIFF`).
+error AuctionBidTooLow();
+
+/// @notice Auction duration set is invalid.
+error AuctionDurationInvalid();
+
+/// @notice The auction has expired.
+error AuctionExpired();
+
+/// @notice Operation cannot be performed as auction is paused.
+error AuctionMustBePaused();
+
+/// @notice Operation cannot be performed as auction is unpaused.
+error AuctionMustBeUnpaused();
+
+/// @notice Auction has not yet started.
+error AuctionNotYetStarted();
+
+/// @notice Auction has yet to complete.
+error AuctionOngoing();
+
+/// @notice Reserve price set is invalid.
+error AuctionReservePriceInvalid();
+
+/// @notice Time buffer set is invalid.
+error AuctionTimeBufferInvalid();
+
+/// @notice Treasury split is invalid, must be in range [0, 100].
+error AuctionTreasurySplitInvalid();
+
+//////////////////////////////////////////////////////////////////////////////// 
+///                              Miscellaneous                               ///
+////////////////////////////////////////////////////////////////////////////////
 
 /// @notice Mismatch between input arrays.
 error ArityMismatch();
 
+/// @notice Block number being queried is invalid.
+error BlockInvalid();
+
+/// @notice Reentrancy vulnerability.
+error FunctionReentrant();
+
+/// @notice Number does not fit in 32 bytes.
+error Uint32ConversionInvalid();
+
 ////////////////////////////////////////////////////////////////////////////////
-///                                 UPGRADES                                 ///
+///                                 Upgrades                                 ///
 ////////////////////////////////////////////////////////////////////////////////
 
 /// @notice Contract already initialized.
-error AlreadyInitialized();
+error ContractAlreadyInitialized();
 
 /// @notice Upgrade requires either admin or vetoer privileges.
-error UnauthorizedUpgrade();
+error UpgradeUnauthorized();
 
 ////////////////////////////////////////////////////////////////////////////////
 ///                                 EIP-712                                  ///
 ////////////////////////////////////////////////////////////////////////////////
 
 /// @notice Signature has expired and is no longer valid.
-error ExpiredSignature();
+error SignatureExpired();
 
 /// @notice Signature invalid.
-error InvalidSignature();
+error SignatureInvalid();
 
 ////////////////////////////////////////////////////////////////////////////////
-///                                 ERC-721                                  ///
+///                                 EIP-721                                  ///
 ////////////////////////////////////////////////////////////////////////////////
-
-/// @notice Token has already minted.
-error DuplicateMint();
 
 /// @notice Originating address does not own the NFT.
-error InvalidOwner();
-
-/// @notice Receiving contract does not implement the ERC721 wallet interface.
-error InvalidReceiver();
+error OwnerInvalid();
 
 /// @notice Receiving address cannot be the zero address.
-error ZeroAddressReceiver();
+error ReceiverInvalid();
 
-/// @notice NFT does not exist.
-error NonExistentNFT();
+/// @notice Receiving contract does not implement the ERC721 wallet interface.
+error SafeTransferUnsupported();
+
+/// @notice Sender is not NFT owner, approved address, or owner operator.
+error SenderUnauthorized();
 
 /// @notice NFT collection has hit maximum supply capacity.
 error SupplyMaxCapacity();
 
-/// @notice Sender is not NFT owner, approved address, or owner operator.
-error UnauthorizedSender();
+/// @notice Token has already minted.
+error TokenAlreadyMinted();
+
+/// @notice NFT does not exist.
+error TokenNonExistent();
 
 ////////////////////////////////////////////////////////////////////////////////
-///                              ADMINISTRATIVE                              ///
+///                              Administrative                              ///
 ////////////////////////////////////////////////////////////////////////////////
  
 /// @notice Function callable only by the admin.
@@ -106,71 +152,41 @@ error OwnerOnly();
 error PendingAdminOnly();
 
 ////////////////////////////////////////////////////////////////////////////////
-///                                GOVERNANCE                                ///
+///                                Governance                                ///
 //////////////////////////////////////////////////////////////////////////////// 
 
-/// @notice Proposal has already been settled.
-error AlreadySettled();
-
-/// @notice Proposal already voted for.
-error AlreadyVoted();
-
-/// @notice Duplicate transaction queued.
-error DuplicateTransaction();
-
-/// @notice Voting power insufficient.
-error InsufficientVotingPower();
-
 /// @notice Invalid number of actions proposed.
-error InvalidActionCount();
+error ProposalActionCountInvalid();
 
-/// @notice Invalid set timelock delay.
-error InvalidDelay();
+/// @notice Proposal has already been settled.
+error ProposalAlreadySettled();
 
-/// @notice Proposal threshold is invalid.
-error InvalidProposalThreshold();
+/// @notice Inactive proposals may not be voted for.
+error ProposalInactive();
+
+/// @notice Proposal has failed to or has yet to be queued.
+error ProposalNotYetQueued();
 
 /// @notice Quorum threshold is invalid.
-error InvalidQuorumThreshold();
+error ProposalQuorumThresholdInvalid();
 
-/// @notice Vote type is not valid.
-error InvalidVote();
+/// @notice Proposal threshold is invalid.
+error ProposalThresholdInvalid();
+
+/// @notice Proposal has failed to or has yet to be successful.
+error ProposalUnpassed();
+
+/// @notice A proposal is currently running and must be settled first.
+error ProposalUnsettled();
 
 /// @notice Voting delay set is invalid.
-error InvalidVotingDelay();
+error ProposalVotingDelayInvalid();
 
 /// @notice Voting period set is invalid.
-error InvalidVotingPeriod();
+error ProposalVotingPeriodInvalid();
 
 /// @notice Only the proposer may invoke this action.
 error ProposerOnly();
-
-/// @notice Transaction executed prematurely.
-error PrematureTx();
-
-/// @notice Transaction execution was reverted.
-error RevertedTx();
-
-/// @notice Transaction is stale.
-error StaleTx();
-
-/// @notice Inactive proposals may not be voted for.
-error InactiveProposal();
-
-/// @notice Function callable only by the timelock itself.
-error TimelockOnly();
-
-/// @notice Proposal has failed to or has yet to be successful.
-error UnpassedProposal();
-
-/// @notice Proposal has failed to or has yet to be queued.
-error UnqueuedProposal();
-
-/// @notice Transaction is not yet queued.
-error UnqueuedTx();
-
-/// @notice A proposal is currently running and must be settled first.
-error UnsettledProposal();
 
 /// @notice Function callable only by the vetoer.
 error VetoerOnly();
@@ -178,12 +194,43 @@ error VetoerOnly();
 /// @notice Veto power has been revoked.
 error VetoPowerRevoked();
 
+/// @notice Proposal already voted for.
+error VoteAlreadyCast();
+
+/// @notice Vote type is not valid.
+error VoteInvalid();
+
+/// @notice Voting power insufficient.
+error VotingPowerInsufficient();
+
+////////////////////////////////////////////////////////////////////////////////
+///                                 Timelock                                 /// 
+////////////////////////////////////////////////////////////////////////////////
+
+/// @notice Invalid set timelock delay.
+error TimelockDelayInvalid();
+
+/// @notice Function callable only by the timelock itself.
+error TimelockOnly();
+
+/// @notice Duplicate transaction queued.
+error TransactionAlreadyQueued();
+
+/// @notice Transaction is not yet queued.
+error TransactionNotYetQueued();
+
+/// @notice Transaction executed prematurely.
+error TransactionPremature();
+
+/// @notice Transaction execution was reverted.
+error TransactionReverted();
+
+/// @notice Transaction is stale.
+error TransactionStale();
+
 ////////////////////////////////////////////////////////////////////////////////
 ///                             Merkle Whitelist                             /// 
 ////////////////////////////////////////////////////////////////////////////////
 
-/// @notice Whitelisted NFT already claimed.
-error AlreadyClaimed();
-
 /// @notice Proof for claim is invalid.
-error InvalidProof();
+error ProofInvalid();

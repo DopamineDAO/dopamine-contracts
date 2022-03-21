@@ -1,14 +1,14 @@
 // SPDX-License-Identifier: GPL-3.0
 pragma solidity >=0.8.0;
 
-import "../../erc721/ERC721Checkpointable.sol";
+import "../../erc721/ERC721Votable.sol";
 import "../utils/HEVM.sol";
 import "../utils/console.sol";
 
 /// @notice Signer unsupported for EIP-712 voting.
 error UnsupportedSigner();
 
-contract MockERC721Checkpointable is ERC721Checkpointable {
+contract MockERC721Votable is ERC721Votable {
 
     uint256 EXPIRY = 10**9;
 
@@ -22,7 +22,7 @@ contract MockERC721Checkpointable is ERC721Checkpointable {
     Hevm constant vm = Hevm(HEVM_ADDRESS);
 
     constructor(uint256 maxSupply_)
-        ERC721Checkpointable(NAME, SYMBOL, maxSupply_) {}
+        ERC721Votable(NAME, SYMBOL, maxSupply_) {}
 
     // Mock method to save a bunch of signer keys for EIP-712 testing.
     function initSigners(uint256[3] memory pks) public {

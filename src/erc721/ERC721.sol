@@ -1,60 +1,74 @@
-// SPDX-License-Identifier: MIT
-
-/// @title Minimal ERC721 Token Implementation
-
+// SPDX-License-Identifier: GPL-3.0
 pragma solidity ^0.8.9;
 
-import '@openzeppelin/contracts/token/ERC721/IERC721.sol';
-import '@openzeppelin/contracts/token/ERC721/extensions/IERC721Metadata.sol';
-import '@openzeppelin/contracts/token/ERC721/IERC721Receiver.sol';
+////////////////////////////////////////////////////////////////////////////////
+///				 ░▒█▀▀▄░█▀▀█░▒█▀▀█░█▀▀▄░▒█▀▄▀█░▄█░░▒█▄░▒█░▒█▀▀▀              ///
+///              ░▒█░▒█░█▄▀█░▒█▄▄█▒█▄▄█░▒█▒█▒█░░█▒░▒█▒█▒█░▒█▀▀▀              ///
+///              ░▒█▄▄█░█▄▄█░▒█░░░▒█░▒█░▒█░░▒█░▄█▄░▒█░░▀█░▒█▄▄▄              ///
+////////////////////////////////////////////////////////////////////////////////
 
-import '../errors.sol';
+/// Transfer & minting methods derive from ERC721.sol of Rari Capital's solmate:
+/// https://github.com/Rari-Capital/solmate/blob/main/src/tokens/ERC721.sol
+/// Credit goes to Transmissions11 (Solmate author) for these gas optimizations.
 
-/// @title DθPΛM1NΞ ERC-721 base contract
-/// @notice ERC-721 contract with metadata extension and maximum supply.
+import {IERC721} from "@openzeppelin/contracts/token/ERC721/IERC721.sol";
+import {IERC721Metadata} from "@openzeppelin/contracts/token/ERC721/extensions/IERC721Metadata.sol";
+import {IERC721Receiver} from "@openzeppelin/contracts/token/ERC721/IERC721Receiver.sol";
+
+import "../errors.sol";
+
+/// @title Dopamine DAO minimal ERC-721 contract with capped supply
+/// @notice This is a minimal ERC-721 implementation that supports the metadata
+///  extension, tracks total supply, and includes a capped maximum supply.
+/// @dev This ERC-721 implementation is optimized for mints and transfers of
+///  individual tokens (as opposed to bulk). It also includes EIP-712 methods &
+///  data structures to allow for signing processes to be built on top of it.
 contract ERC721 is IERC721, IERC721Metadata {
 
-    /// @notice Name of the NFT collection.
+    /// @notice The name of the token collection.
     string public name;
 
-    /// @notice Abbreviated name of the NFT collection.
+    /// @notice The abbreviated name of the token collection.
     string public symbol;
 
-    /// @notice Total number of NFTs in circulation.
+    /// @notice The total number of tokens in circulation.
     uint256 public totalSupply;
 
-    /// @notice Maximum allowed number of circulating NFTs.
+    /// @notice The maximum number of NFTs that can ever exist.
 	uint256 public immutable maxSupply;
 
     /// @notice Gets the number of NFTs owned by an address.
-    /// @dev This implementation does not throw for 0-address queries.
+    /// @dev This implementation does not throw for zero-address queries.
     mapping(address => uint256) public balanceOf;
 
     /// @notice Gets the assigned owner of an address.
+    /// @dev This implementation does not throw for zero-address NFTs.
     mapping(uint256 => address) public ownerOf;
 
     /// @notice Gets the approved address for an NFT.
+    /// @dev This implementation does not throw for zero-address queries.
     mapping(uint256 => address) public getApproved;
 
-    /// @notice Nonces for preventing replay attacks when signing.
+    /// @notice Maps an address to a nonce for replay protection.
+    /// @dev Nonces are used with EIP-712 signing built on top of this contract.
     mapping(address => uint256) public nonces;
 
-    /// @notice Checks for an owner if an address is an authorized operator.
-    mapping(address => mapping(address => bool)) internal _operatorOf;
+    /// @dev Checks for an owner if an address is an authorized operator.
+    mapping(address => mapping(address => bool)) internal _operatorApprovals;
 
-    /// @notice EIP-712 immutables for signing messages.
+    // EIP-712 immutables for signing messages.
     uint256 internal immutable _CHAIN_ID;
     bytes32 internal immutable _DOMAIN_SEPARATOR;
 
-    /// @notice EIP-165 identifiers for all supported interfaces.
+    // EIP-165 identifiers for all supported interfaces.
     bytes4 private constant _ERC165_INTERFACE_ID = 0x01ffc9a7;
     bytes4 private constant _ERC721_INTERFACE_ID = 0x80ac58cd;
     bytes4 private constant _ERC721_METADATA_INTERFACE_ID = 0x5b5e139f;
     
-    /// @notice Initialize the NFT collection contract.
-    /// @param name_ Name of the NFT collection
-    /// @param symbol_ Abbreviated name of the NFT collection.
-    /// @param maxSupply_ Supply cap for the NFT collection
+    /// @notice Instantiates a new ERC-721 contract.
+    /// @param name_      The name of the NFT.
+    /// @param symbol_    The abbreviated name of the NFT.
+    /// @param maxSupply_ The maximum supply for the NFT.
     constructor(
         string memory name_,
         string memory symbol_,
@@ -70,122 +84,30 @@ contract ERC721 is IERC721, IERC721Metadata {
 
     /// @notice Transfers NFT of id `id` from address `from` to address `to`,
     ///  without performing any safety checks.
-    /// @param from The address of the current owner of the transferred NFT.
-    /// @param to The address of the new owner of the transferred NFT.
-    /// @param id The NFT being transferred.
+    /// @dev Existence of an NFT is inferred by having a non-zero owner address.
+    ///  Transfers clear owner approvals, but `Approval` events are omitted.
+    /// @param from The existing owner address of the NFT to be transferred.
+    /// @param to   The address of the new owner of the NFT to be transferred.
+    /// @param id   The id of the NFT being transferred.
     function transferFrom(
         address from,
         address to,
         uint256 id
-    ) public virtual {
-        _transferFrom(from, to, id);
-    }
-
-    /// @notice Transfers NFT of id `id` from address `from` to address `to`,
-    ///  with safety checks ensuring `to` is capable of receiving the NFT.
-    /// @param from The address of the current owner of the transferred NFT.
-    /// @param to The address of the new owner of the transferred NFT.
-    /// @param id The NFT being transferred.
-    function safeTransferFrom(
-        address from,
-        address to,
-        uint256 id,
-        bytes memory data
-    ) public virtual {
-        _transferFrom(from, to, id);
-
-        if (
-            to.code.length != 0 &&
-                IERC721Receiver(to).onERC721Received(msg.sender, from, id, data) !=
-                IERC721Receiver.onERC721Received.selector
-        ) {
-            revert InvalidReceiver();
-        }
-    }
-
-    /// @notice Equivalent to preceding function with empty `data`.
-    function safeTransferFrom(
-        address from,
-        address to,
-        uint256 id
-    ) public virtual {
-        _transferFrom(from, to, id);
-
-        if (
-            to.code.length != 0 &&
-                IERC721Receiver(to).onERC721Received(msg.sender, from, id, "") !=
-                IERC721Receiver.onERC721Received.selector
-        ) {
-            revert InvalidReceiver();
-        }
-    }
-
-    /// @notice Sets the approved address of NFT of id `id` to `approved`.
-    /// @param approved The new approved address for the NFT
-    /// @param id The id of the NFT to approve
-    function approve(address approved, uint256 id) public virtual {
-        address owner = ownerOf[id];
-
-        if (msg.sender != owner && !_operatorOf[owner][msg.sender]) {
-            revert UnauthorizedSender();
-        }
-
-        getApproved[id] = approved;
-        emit Approval(owner, approved, id);
-    }
-
-    /// @notice Checks if `operator` is an authorized operator for `owner`.
-    /// @param owner Address of the owner.
-    /// @param operator Address for the owner's operator.
-    /// @return true if `operator` is approved operator of `owner`, else false.
-    function isApprovedForAll(address owner, address operator) public view virtual returns (bool) {
-        return _operatorOf[owner][operator];
-    }
-
-    /// @notice Sets the operator for `msg.sender` to `operator`.
-    /// @param operator The operator address that will manage the sender's NFTs
-    /// @param approved Whether the operator is allowed to operate sender's NFTs
-    function setApprovalForAll(address operator, bool approved) public virtual {
-        _operatorOf[msg.sender][operator] = approved;
-        emit ApprovalForAll(msg.sender, operator, approved);
-    }
-
-    /// @notice Returns the token URI associated with the token of id `id`.
-    function tokenURI(uint256) public view virtual returns (string memory) {
-        return "";
-    }
-
-    /// @notice Checks if interface of identifier `interfaceId` is supported.
-    /// @param interfaceId ERC-165 identifier
-    /// @return `true` if `interfaceId` is supported, `false` otherwise.
-    function supportsInterface(bytes4 interfaceId) public pure virtual returns (bool) {
-        return
-            interfaceId == _ERC165_INTERFACE_ID ||
-            interfaceId == _ERC721_INTERFACE_ID ||
-            interfaceId == _ERC721_METADATA_INTERFACE_ID;
-    }
-
-    /// @notice Transfers NFT of id `id` from address `from` to address `to`.
-    /// @dev Existence of an NFT is inferred by having a non-zero owner address.
-    ///  To save gas, use Transfer events to track Approval clearances.
-    /// @param from The address of the owner of the NFT.
-    /// @param to The address of the new owner of the NFT.
-    /// @param id The id of the NFT being transferred.
-    function _transferFrom(address from, address to, uint256 id) internal virtual {
+    ) public {
         if (from != ownerOf[id]) {
-            revert InvalidOwner();
+            revert OwnerInvalid();
         }
 
         if (
             msg.sender != from &&
             msg.sender != getApproved[id] &&
-            !_operatorOf[from][msg.sender]
+            !_operatorApprovals[from][msg.sender]
         ) {
-            revert UnauthorizedSender();
+            revert SenderUnauthorized();
         }
 
         if (to == address(0)) {
-            revert ZeroAddressReceiver();
+            revert ReceiverInvalid();
         }
 
         _beforeTokenTransfer(from, to, id);
@@ -201,16 +123,116 @@ contract ERC721 is IERC721, IERC721Metadata {
         emit Transfer(from, to, id);
     }
 
+    /// @notice Transfers NFT of id `id` from address `from` to address `to`,
+    ///  with safety checks ensuring `to` is capable of receiving the NFT.
+    /// @dev Safety checks are only performed if `to` is a smart contract.
+    /// @param from The existing owner address of the NFT to be transferred.
+    /// @param to   The address of the new owner of the NFT to be transferred.
+    /// @param id   The id of the NFT being transferred.
+    /// @param data Additional transfer data to pass to the receiving contract.
+    function safeTransferFrom(
+        address from,
+        address to,
+        uint256 id,
+        bytes memory data
+    ) public {
+        transferFrom(from, to, id);
+
+        if (
+            to.code.length != 0 &&
+                IERC721Receiver(to).onERC721Received(msg.sender, from, id, data)
+                !=
+                IERC721Receiver.onERC721Received.selector
+        ) {
+            revert SafeTransferUnsupported();
+        }
+    }
+
+    /// @notice Transfers NFT of id `id` from address `from` to address `to`,
+    ///  with safety checks ensuring `to` is capable of receiving the NFT.
+    /// @dev Safety checks are only performed if `to` is a smart contract.
+    /// @param from The existing owner address of the NFT to be transferred.
+    /// @param to   The address of the new owner of the NFT to be transferred.
+    /// @param id   The id of the NFT being transferred.
+    function safeTransferFrom(
+        address from,
+        address to,
+        uint256 id
+    ) public {
+        transferFrom(from, to, id);
+
+        if (
+            to.code.length != 0 &&
+                IERC721Receiver(to).onERC721Received(msg.sender, from, id, "") 
+                !=
+                IERC721Receiver.onERC721Received.selector
+        ) {
+            revert SafeTransferUnsupported();
+        }
+    }
+
+    /// @notice Sets approved address of NFT of id `id` to address `approved`.
+    /// @param approved The new approved address for the NFT.
+    /// @param id       The id of the NFT to approve.
+    function approve(address approved, uint256 id) public virtual {
+        address owner = ownerOf[id];
+
+        if (msg.sender != owner && !_operatorApprovals[owner][msg.sender]) {
+            revert SenderUnauthorized();
+        }
+
+        getApproved[id] = approved;
+        emit Approval(owner, approved, id);
+    }
+
+    /// @notice Checks if `operator` is an authorized operator for `owner`.
+    /// @param owner    The address of the owner.
+    /// @param operator The address for the owner's operator.
+    /// @return True if `operator` is approved operator of `owner`, else false.
+    function isApprovedForAll(address owner, address operator)
+        public 
+        view 
+        virtual returns (bool) 
+    {
+        return _operatorApprovals[owner][operator];
+    }
+
+    /// @notice Sets the operator for `msg.sender` to `operator`.
+    /// @param operator The operator address that will manage the sender's NFTs
+    /// @param approved Whether the operator is allowed to operate sender's NFTs
+    function setApprovalForAll(address operator, bool approved) public {
+        _operatorApprovals[msg.sender][operator] = approved;
+        emit ApprovalForAll(msg.sender, operator, approved);
+    }
+
+    /// @notice Returns the metadata URI associated with the NFT of id `id`.
+    /// @param id The id of the NFT being queried.
+    /// @return A string URI pointing to metadata of the queried NFT.
+    function tokenURI(uint256 id) public view virtual returns (string memory) {
+        return "";
+    }
+
+    /// @notice Checks if interface of identifier `id` is supported.
+    /// @param id The ERC-165 interface identifier.
+    /// @return True if interface id `id` is supported, false otherwise.
+    function supportsInterface(bytes4 id) public pure virtual returns (bool) {
+        return
+            id == _ERC165_INTERFACE_ID ||
+            id == _ERC721_INTERFACE_ID ||
+            id == _ERC721_METADATA_INTERFACE_ID;
+    }
+
     /// @notice Mints NFT of id `id` to address `to`.
     /// @dev Assumes `maxSupply` < `type(uint256).max` to save on gas. 
     /// @param to Address receiving the minted NFT.
     /// @param id identifier of the NFT being minted.
-    function _mint(address to, uint256 id) internal virtual returns (uint256) {
+    /// @return The id of the minted NFT.
+    function _mint(address to, uint256 id) internal returns (uint256) {
         if (to == address(0)) {
-            revert ZeroAddressReceiver();
+            revert ReceiverInvalid();
         }
         if (ownerOf[id] != address(0)) {
-            revert DuplicateMint();
+            revert TokenAlreadyMinted();
         }
 
         _beforeTokenTransfer(address(0), to, id);
@@ -219,21 +241,23 @@ contract ERC721 is IERC721, IERC721Metadata {
             totalSupply++;
             balanceOf[to]++;
         }
+
         if (totalSupply > maxSupply) {
             revert SupplyMaxCapacity();
         }
+
         ownerOf[id] = to;
         emit Transfer(address(0), to, id);
         return id;
     }
 
-	/// @notice Burns NFT of id `id`.
+	/// @notice Burns NFT of id `id`, removing it from existence.
     /// @param id Identifier of the NFT being burned
     function _burn(uint256 id) internal virtual {
         address owner = ownerOf[id];
 
         if (owner == address(0)) {
-            revert NonExistentNFT();
+            revert TokenNonExistent();
         }
 
         _beforeTokenTransfer(owner, address(0), id);
@@ -247,15 +271,17 @@ contract ERC721 is IERC721, IERC721Metadata {
         emit Transfer(owner, address(0), id);
     }
 
-    /// @notice Pre-transfer hook for adding additional functionality.
-    /// @param from The address of the owner of the NFT.
-    /// @param to The address of the new owner of the NFT.
-    /// @param id The id of the NFT being transferred.
-    function _beforeTokenTransfer(address from, address to, uint256 id) internal virtual {
-    }
+    /// @notice Pre-transfer hook for embedding additional transfer behavior.
+    /// @param from The address of the existing owner of the NFT.
+    /// @param to   The address of the new owner of the NFT.
+    /// @param id   The id of the NFT being transferred.
+    function _beforeTokenTransfer(address from, address to, uint256 id) 
+        internal 
+        virtual 
+        {}
 
-	/// @notice Generates an EIP-712 domain separator for an ERC-721.
-    /// @return A 256-bit domain separator.
+	/// @notice Generates an EIP-712 domain separator for the NFT collection.
+    /// @return A 256-bit domain separator (see EIP-712 for details).
     function _buildDomainSeparator() internal view returns (bytes32) {
         return keccak256(
             abi.encode(
@@ -271,12 +297,18 @@ contract ERC721 is IERC721, IERC721Metadata {
 	/// @notice Returns an EIP-712 encoding of structured data `structHash`.
     /// @param structHash The structured data to be encoded and signed.
     /// @return A bytestring suitable for signing in accordance to EIP-712.
-    function _hashTypedData(bytes32 structHash) internal view returns (bytes32) {
-        return keccak256(abi.encodePacked("\x19\x01", _domainSeparator(), structHash));
+    function _hashTypedData(bytes32 structHash) 
+        internal 
+        view 
+        returns (bytes32) 
+    {
+        return keccak256(
+            abi.encodePacked("\x19\x01", _domainSeparator(), structHash)
+        );
     }
 
-    /// @notice Returns the domain separator tied to the contract.
-    /// @dev Recreated if chain id changes, otherwise cached value is used.
+    /// @notice Returns the domain separator tied to the NFT contract.
+    /// @dev Recreated if chain id changes, otherwise a cached value is used.
     /// @return 256-bit domain separator tied to this contract.
     function _domainSeparator() internal view returns (bytes32) {
         if (block.chainid == _CHAIN_ID) {

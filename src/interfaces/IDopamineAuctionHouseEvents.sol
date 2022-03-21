@@ -39,9 +39,9 @@ interface IDopamineAuctionHouseEvents {
 
     event AuctionDurationSet(uint256 duration);
 
-    event NewPendingAdmin(address pendingAdmin);
+    event PendingAdminSet(address pendingAdmin);
 
-    event NewAdmin(address oldAdmin, address newAdmin);
+    event AdminChanged(address oldAdmin, address newAdmin);
 
     event RefundFailed(address refunded);
 

@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0
 pragma solidity >=0.8.0;
 
-import "./mocks/MockERC721Checkpointable.sol";
+import "./mocks/MockERC721Votable.sol";
 
 import {Test} from "./utils/test.sol";
 
@@ -9,8 +9,8 @@ struct Checkpoint {
     uint32 fromBlock;
     uint32 votes;
 }
-/// @title ERC721Checkpointable Test Suite
-contract ERC721CheckpointableTest is Test {
+/// @title ERC721Votable Test Suite
+contract ERC721VotableTest is Test {
 
 	uint256 constant MAX_SUPPLY = 10;
 
@@ -33,7 +33,7 @@ contract ERC721CheckpointableTest is Test {
     address TO;
     address OPERATOR;
 
-    MockERC721Checkpointable token;
+    MockERC721Votable token;
 
     event DelegateChanged(
         address indexed delegator,
@@ -63,7 +63,7 @@ contract ERC721CheckpointableTest is Test {
         OPERATOR = vm.addr(PK_OPERATOR);
         vm.startPrank(FROM);
 
-        token = new MockERC721Checkpointable(MAX_SUPPLY);
+        token = new MockERC721Votable(MAX_SUPPLY);
         vm.roll(BLOCK_START);
         vm.warp(TIMESTAMP_START);
         token.mint(FROM, NFT);
@@ -78,15 +78,15 @@ contract ERC721CheckpointableTest is Test {
         token.transferFrom(FROM, TO, NFT);
         vm.roll(BLOCK_START + 2);
 
-        assertEq(token.getCurrentVotes(FROM), 0);
-        assertEq(token.getNumCheckpoints(FROM), 2);
-        assertEq(token.getCurrentVotes(TO), 1);
-        assertEq(token.getNumCheckpoints(TO), 1);
+        assertEq(token.currentVotes(FROM), 0);
+        assertEq(token.totalCheckpoints(FROM), 2);
+        assertEq(token.currentVotes(TO), 1);
+        assertEq(token.totalCheckpoints(TO), 1);
 
-        assertEq(token.getPriorVotes(FROM, BLOCK_START), 1);
-        assertEq(token.getPriorVotes(FROM, BLOCK_START + 1), 0);
-        assertEq(token.getPriorVotes(TO, BLOCK_START), 0);
-        assertEq(token.getPriorVotes(TO, BLOCK_START + 1), 1);
+        assertEq(token.priorVotes(FROM, BLOCK_START), 1);
+        assertEq(token.priorVotes(FROM, BLOCK_START + 1), 0);
+        assertEq(token.priorVotes(TO, BLOCK_START), 0);
+        assertEq(token.priorVotes(TO, BLOCK_START + 1), 1);
     }
 
     function testMint() public {
@@ -95,10 +95,10 @@ contract ERC721CheckpointableTest is Test {
         token.mint(TO, NFT_1);
         vm.roll(BLOCK_START + 2);
 
-        assertEq(token.getPriorVotes(TO, BLOCK_START), 0);
-        assertEq(token.getPriorVotes(TO, BLOCK_START + 1), 1);
-        assertEq(token.getCurrentVotes(TO), 1);
-        assertEq(token.getNumCheckpoints(TO), 1);
+        assertEq(token.priorVotes(TO, BLOCK_START), 0);
+        assertEq(token.priorVotes(TO, BLOCK_START + 1), 1);
+        assertEq(token.currentVotes(TO), 1);
+        assertEq(token.totalCheckpoints(TO), 1);
     }
 
     function testBurn() public {
@@ -107,10 +107,10 @@ contract ERC721CheckpointableTest is Test {
         token.burn(NFT);
         vm.roll(BLOCK_START + 2);
 
-        assertEq(token.getPriorVotes(FROM, BLOCK_START), 1);
-        assertEq(token.getPriorVotes(FROM, BLOCK_START + 1), 0);
-        assertEq(token.getCurrentVotes(FROM), 0);
-        assertEq(token.getNumCheckpoints(FROM), 2);
+        assertEq(token.priorVotes(FROM, BLOCK_START), 1);
+        assertEq(token.priorVotes(FROM, BLOCK_START + 1), 0);
+        assertEq(token.currentVotes(FROM), 0);
+        assertEq(token.totalCheckpoints(FROM), 2);
     }
 
     function testDelegate() public {
@@ -150,18 +150,18 @@ contract ERC721CheckpointableTest is Test {
 
         // Reverts when block.timestamp past expiration.
         vm.warp(TIMESTAMP_EXPIRY + 1);
-        vm.expectRevert(ExpiredSignature.selector);
+        vm.expectRevert(SignatureExpired.selector);
         token.delegateBySig(FROM, TO, TIMESTAMP_EXPIRY, v, r, s);
 
         // Reverts if incorrect parameter is passed in.
         vm.warp(TIMESTAMP_START);
-        vm.expectRevert(InvalidSignature.selector);
+        vm.expectRevert(SignatureInvalid.selector);
         token.delegateBySig(FROM, TO, 99999, v, r, s);
 
         token.delegateBySig(FROM, TO, TIMESTAMP_EXPIRY, v, r, s);
 
         // Reverts if same signature used twice.
-        vm.expectRevert(InvalidSignature.selector);
+        vm.expectRevert(SignatureInvalid.selector);
         token.delegateBySig(FROM, TO, TIMESTAMP_EXPIRY, v, r, s);
     }
 
@@ -187,15 +187,15 @@ contract ERC721CheckpointableTest is Test {
         assertEq(token.delegates(OPERATOR), TO);
 
         // Voting balances should remain the same.
-        assertEq(token.getCurrentVotes(OPERATOR), 0);
+        assertEq(token.currentVotes(OPERATOR), 0);
 
         // No checkpoints should be created.
-        assertEq(token.getNumCheckpoints(OPERATOR), 0);
+        assertEq(token.totalCheckpoints(OPERATOR), 0);
 
         // Votes should be 0 for all previous voting blocks.
         vm.roll(BLOCK_START + 2);
-        assertEq(token.getPriorVotes(OPERATOR, BLOCK_START), 0);
-        assertEq(token.getPriorVotes(OPERATOR, BLOCK_START + 1), 0);
+        assertEq(token.priorVotes(OPERATOR, BLOCK_START), 0);
+        assertEq(token.priorVotes(OPERATOR, BLOCK_START + 1), 0);
     }
 
     function _testDelegateToSelf(function(address) external fn) public reset {
@@ -208,18 +208,18 @@ contract ERC721CheckpointableTest is Test {
         assertEq(token.delegates(FROM), FROM);
 
         // Voting balances should remain the same.
-        assertEq(token.getCurrentVotes(FROM), 1);
+        assertEq(token.currentVotes(FROM), 1);
 
         // No additional checkpoints should be created.
-        assertEq(token.getNumCheckpoints(FROM), 1);
+        assertEq(token.totalCheckpoints(FROM), 1);
         (uint32 fromBlock, uint32 votes) = token.checkpoints(FROM, 0);
         assertEq(fromBlock, BLOCK_START);
         assertEq(votes, 1);
 
         // Prior votes should be correctly recorded.
         vm.roll(BLOCK_START + 2);
-        assertEq(token.getPriorVotes(FROM, BLOCK_START), 1);
-        assertEq(token.getPriorVotes(FROM, BLOCK_START + 1), 1);
+        assertEq(token.priorVotes(FROM, BLOCK_START), 1);
+        assertEq(token.priorVotes(FROM, BLOCK_START + 1), 1);
     }
 
     function _testDelegateToValidAddress(function(address) external fn) public reset {
@@ -236,11 +236,11 @@ contract ERC721CheckpointableTest is Test {
         assertEq(token.delegates(FROM), TO);
 
         // Voting balances should be adjusted.
-        assertEq(token.getCurrentVotes(FROM), 0);
-        assertEq(token.getCurrentVotes(TO), 1);
+        assertEq(token.currentVotes(FROM), 0);
+        assertEq(token.currentVotes(TO), 1);
 
         // Checkpoints hold expected values.
-        assertEq(token.getNumCheckpoints(FROM), 2);
+        assertEq(token.totalCheckpoints(FROM), 2);
         (uint32 fromBlock, uint32 votes) = token.checkpoints(FROM, 0);
         assertEq(fromBlock, BLOCK_START);
         assertEq(votes, 1);
@@ -248,17 +248,17 @@ contract ERC721CheckpointableTest is Test {
         assertEq(fromBlock, BLOCK_START + 1);
         assertEq(votes, 0);
 
-        assertEq(token.getNumCheckpoints(TO), 1);
+        assertEq(token.totalCheckpoints(TO), 1);
         (fromBlock, votes) = token.checkpoints(TO, 0);
         assertEq(fromBlock, BLOCK_START + 1);
         assertEq(votes, 1);
 
         // Prior votes should be correctly recorded.
         vm.roll(BLOCK_START + 2);
-        assertEq(token.getPriorVotes(FROM, BLOCK_START), 1);
-        assertEq(token.getPriorVotes(FROM, BLOCK_START + 1), 0);
-        assertEq(token.getPriorVotes(TO, BLOCK_START), 0);
-        assertEq(token.getPriorVotes(TO, BLOCK_START + 1), 1);
+        assertEq(token.priorVotes(FROM, BLOCK_START), 1);
+        assertEq(token.priorVotes(FROM, BLOCK_START + 1), 0);
+        assertEq(token.priorVotes(TO, BLOCK_START), 0);
+        assertEq(token.priorVotes(TO, BLOCK_START + 1), 1);
     }
 
     function _testTransferWithSenderDelegate(function(address) external fn) public reset {
@@ -277,16 +277,16 @@ contract ERC721CheckpointableTest is Test {
         emit DelegateVotesChanged(TO, 0, 1);
         token.transferFrom(FROM, TO, NFT);
 
-        assertEq(token.getCurrentVotes(FROM), 0);
-        assertEq(token.getCurrentVotes(OPERATOR), 0);
-        assertEq(token.getCurrentVotes(TO), 1);
+        assertEq(token.currentVotes(FROM), 0);
+        assertEq(token.currentVotes(OPERATOR), 0);
+        assertEq(token.currentVotes(TO), 1);
 
-        assertEq(token.getNumCheckpoints(FROM), 2);
+        assertEq(token.totalCheckpoints(FROM), 2);
         (uint32 fromBlock, uint32 votes) = token.checkpoints(FROM, 1);
         assertEq(fromBlock, BLOCK_START + 1);
         assertEq(votes, 0);
 
-        assertEq(token.getNumCheckpoints(OPERATOR), 2);
+        assertEq(token.totalCheckpoints(OPERATOR), 2);
         (fromBlock, votes) = token.checkpoints(OPERATOR, 0);
         assertEq(fromBlock, BLOCK_START + 1);
         assertEq(votes, 1);
@@ -294,18 +294,18 @@ contract ERC721CheckpointableTest is Test {
         assertEq(fromBlock, BLOCK_START + 2);
         assertEq(votes, 0);
 
-        assertEq(token.getNumCheckpoints(TO), 1);
+        assertEq(token.totalCheckpoints(TO), 1);
         (fromBlock, votes) = token.checkpoints(TO, 0);
         assertEq(fromBlock, BLOCK_START + 2);
         assertEq(votes, 1);
 
         vm.roll(BLOCK_START + 3);
-        assertEq(token.getPriorVotes(FROM, BLOCK_START + 1), 0);
-        assertEq(token.getPriorVotes(FROM, BLOCK_START + 2), 0);
-        assertEq(token.getPriorVotes(OPERATOR, BLOCK_START + 1), 1);
-        assertEq(token.getPriorVotes(OPERATOR, BLOCK_START + 2), 0);
-        assertEq(token.getPriorVotes(TO, BLOCK_START + 1), 0);
-        assertEq(token.getPriorVotes(TO, BLOCK_START + 2), 1);
+        assertEq(token.priorVotes(FROM, BLOCK_START + 1), 0);
+        assertEq(token.priorVotes(FROM, BLOCK_START + 2), 0);
+        assertEq(token.priorVotes(OPERATOR, BLOCK_START + 1), 1);
+        assertEq(token.priorVotes(OPERATOR, BLOCK_START + 2), 0);
+        assertEq(token.priorVotes(TO, BLOCK_START + 1), 0);
+        assertEq(token.priorVotes(TO, BLOCK_START + 2), 1);
     }
 
     function _testTransferWithReceiverDelegate(function(address) external fn) public reset {
@@ -322,27 +322,27 @@ contract ERC721CheckpointableTest is Test {
         emit DelegateVotesChanged(OPERATOR, 0, 1);
         token.transferFrom(FROM, TO, NFT);
 
-        assertEq(token.getCurrentVotes(FROM), 0);
-        assertEq(token.getCurrentVotes(OPERATOR), 1);
-        assertEq(token.getCurrentVotes(TO), 0);
+        assertEq(token.currentVotes(FROM), 0);
+        assertEq(token.currentVotes(OPERATOR), 1);
+        assertEq(token.currentVotes(TO), 0);
 
-        assertEq(token.getNumCheckpoints(FROM), 2);
+        assertEq(token.totalCheckpoints(FROM), 2);
         (uint32 fromBlock, uint32 votes) = token.checkpoints(FROM, 1);
         assertEq(fromBlock, BLOCK_START + 2);
         assertEq(votes, 0);
 
-        assertEq(token.getNumCheckpoints(OPERATOR), 1);
+        assertEq(token.totalCheckpoints(OPERATOR), 1);
         (fromBlock, votes) = token.checkpoints(OPERATOR, 0);
         assertEq(fromBlock, BLOCK_START + 2);
         assertEq(votes, 1);
 
         // No checkpoints should be added to the receiver.
-        assertEq(token.getNumCheckpoints(TO), 0);
+        assertEq(token.totalCheckpoints(TO), 0);
 
         vm.roll(BLOCK_START + 3);
-        assertEq(token.getPriorVotes(FROM, BLOCK_START + 2), 0);
-        assertEq(token.getPriorVotes(OPERATOR, BLOCK_START + 2), 1);
-        assertEq(token.getPriorVotes(TO, BLOCK_START + 2), 0);
+        assertEq(token.priorVotes(FROM, BLOCK_START + 2), 0);
+        assertEq(token.priorVotes(OPERATOR, BLOCK_START + 2), 1);
+        assertEq(token.priorVotes(TO, BLOCK_START + 2), 0);
     }
 
     function _testDelegateWithMultipleTransfers(function(address) external fn) public reset {
@@ -391,11 +391,11 @@ contract ERC721CheckpointableTest is Test {
         emit DelegateVotesChanged(TO, 1, 2);
         token.transferFrom(OPERATOR, FROM, NFT_1);
 
-        assertEq(token.getCurrentVotes(FROM), 0);
-        assertEq(token.getCurrentVotes(OPERATOR), 1);
-        assertEq(token.getCurrentVotes(TO), 2);
+        assertEq(token.currentVotes(FROM), 0);
+        assertEq(token.currentVotes(OPERATOR), 1);
+        assertEq(token.currentVotes(TO), 2);
 
-        assertEq(token.getNumCheckpoints(FROM), 4);
+        assertEq(token.totalCheckpoints(FROM), 4);
         (uint32 fromBlock, uint32 votes) = token.checkpoints(FROM, 1);
         assertEq(fromBlock, BLOCK_START + 1);
         assertEq(votes, 3);
@@ -406,7 +406,7 @@ contract ERC721CheckpointableTest is Test {
         assertEq(fromBlock, BLOCK_START + 3);
         assertEq(votes, 0);
 
-        assertEq(token.getNumCheckpoints(OPERATOR), 3);
+        assertEq(token.totalCheckpoints(OPERATOR), 3);
         (fromBlock, votes) = token.checkpoints(OPERATOR, 0);
         assertEq(fromBlock, BLOCK_START + 2);
         assertEq(votes, 1);
@@ -417,7 +417,7 @@ contract ERC721CheckpointableTest is Test {
         assertEq(fromBlock, BLOCK_START + 5);
         assertEq(votes, 1);
 
-        assertEq(token.getNumCheckpoints(TO), 4);
+        assertEq(token.totalCheckpoints(TO), 4);
         (fromBlock, votes) = token.checkpoints(TO, 0);
         assertEq(fromBlock, BLOCK_START + 2);
         assertEq(votes, 1);
@@ -432,21 +432,21 @@ contract ERC721CheckpointableTest is Test {
         assertEq(votes, 2);
 
         vm.roll(BLOCK_START + 6);
-        assertEq(token.getPriorVotes(FROM, BLOCK_START + 1), 3);
-        assertEq(token.getPriorVotes(FROM, BLOCK_START + 2), 1);
-        assertEq(token.getPriorVotes(FROM, BLOCK_START + 3), 0);
-        assertEq(token.getPriorVotes(FROM, BLOCK_START + 4), 0);
-        assertEq(token.getPriorVotes(FROM, BLOCK_START + 5), 0);
-        assertEq(token.getPriorVotes(OPERATOR, BLOCK_START + 1), 0);
-        assertEq(token.getPriorVotes(OPERATOR, BLOCK_START + 2), 1);
-        assertEq(token.getPriorVotes(OPERATOR, BLOCK_START + 3), 1);
-        assertEq(token.getPriorVotes(OPERATOR, BLOCK_START + 4), 2);
-        assertEq(token.getPriorVotes(OPERATOR, BLOCK_START + 5), 1);
-        assertEq(token.getPriorVotes(TO, BLOCK_START + 1), 0);
-        assertEq(token.getPriorVotes(TO, BLOCK_START + 2), 1);
-        assertEq(token.getPriorVotes(TO, BLOCK_START + 3), 2);
-        assertEq(token.getPriorVotes(TO, BLOCK_START + 4), 1);
-        assertEq(token.getPriorVotes(TO, BLOCK_START + 5), 2);
+        assertEq(token.priorVotes(FROM, BLOCK_START + 1), 3);
+        assertEq(token.priorVotes(FROM, BLOCK_START + 2), 1);
+        assertEq(token.priorVotes(FROM, BLOCK_START + 3), 0);
+        assertEq(token.priorVotes(FROM, BLOCK_START + 4), 0);
+        assertEq(token.priorVotes(FROM, BLOCK_START + 5), 0);
+        assertEq(token.priorVotes(OPERATOR, BLOCK_START + 1), 0);
+        assertEq(token.priorVotes(OPERATOR, BLOCK_START + 2), 1);
+        assertEq(token.priorVotes(OPERATOR, BLOCK_START + 3), 1);
+        assertEq(token.priorVotes(OPERATOR, BLOCK_START + 4), 2);
+        assertEq(token.priorVotes(OPERATOR, BLOCK_START + 5), 1);
+        assertEq(token.priorVotes(TO, BLOCK_START + 1), 0);
+        assertEq(token.priorVotes(TO, BLOCK_START + 2), 1);
+        assertEq(token.priorVotes(TO, BLOCK_START + 3), 2);
+        assertEq(token.priorVotes(TO, BLOCK_START + 4), 1);
+        assertEq(token.priorVotes(TO, BLOCK_START + 5), 2);
     }
 
 }

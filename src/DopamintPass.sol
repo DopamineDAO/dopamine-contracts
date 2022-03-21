@@ -1,64 +1,91 @@
 // SPDX-License-Identifier: GPL-3.0
 pragma solidity ^0.8.9;
 
-import './errors.sol';
+////////////////////////////////////////////////////////////////////////////////
+///				 ░▒█▀▀▄░█▀▀█░▒█▀▀█░█▀▀▄░▒█▀▄▀█░▄█░░▒█▄░▒█░▒█▀▀▀              ///
+///              ░▒█░▒█░█▄▀█░▒█▄▄█▒█▄▄█░▒█▒█▒█░░█▒░▒█▒█▒█░▒█▀▀▀              ///
+///              ░▒█▄▄█░█▄▄█░▒█░░░▒█░▒█░▒█░░▒█░▄█▄░▒█░░▀█░▒█▄▄▄              ///
+////////////////////////////////////////////////////////////////////////////////
 
-import { IDopamintPass } from './interfaces/IDopamintPass.sol';
-import { ERC721 } from './erc721/ERC721.sol';
-import { IERC721 } from '@openzeppelin/contracts/token/ERC721/IERC721.sol';
-import { ERC721Checkpointable } from './erc721/ERC721Checkpointable.sol';
-import { IProxyRegistry } from './interfaces/IProxyRegistry.sol';
+import "./errors.sol";
+import { IDopamintPass } from "./interfaces/IDopamintPass.sol";
+import { IProxyRegistry } from "./interfaces/IProxyRegistry.sol";
+import { ERC721 } from "./erc721/ERC721.sol";
+import { ERC721Votable } from "./erc721/ERC721Votable.sol";
 
-contract DopamintPass is ERC721Checkpointable, IDopamintPass {
+/// @title Dopamine DAO ERC-721 membership pass
+/// @notice DopamintPass holders are first-class members of the Dopamine DAO.
+///  The passes are minted through drops of varying sizes and durations, and
+///  each drop features a separate set of NFT metadata. These parameters are 
+///  configurable by the owner address, with emissions controlled by the minter
+///  address. A drop is "completed" once all non-whitelisted passes are minted.
+contract DopamintPass is ERC721Votable, IDopamintPass {
 
-    address owner;
+    /// @notice The name of the Dopamine membership pass.
+    string public constant NAME = "DopamintPass";
 
-    string public constant NAME = "Dopamint Pass";
+    /// @notice The abbreviated name of the Dopamine membership pass.
     string public constant SYMBOL = "DOPE";
 
-    uint256 public constant MAX_WHITELIST_SIZE = 99;
+    /// @notice The maximum number of passes that may be whitelisted per drop.
+    uint256 public constant MAX_WL_SIZE = 99;
 
+    /// @notice The minimum number of passes that can be minted for a drop.
     uint256 public constant MIN_DROP_SIZE = 1;
+
+    /// @notice The maximum number of passes that can be minted for a drop.
     uint256 public constant MAX_DROP_SIZE = 9999;
 
+    /// @notice The minimum delay to wait between creations of drops.
     uint256 public constant MIN_DROP_DELAY = 4 weeks;
+
+    /// @notice The maximum delay to wait between creations of drops.
     uint256 public constant MAX_DROP_DELAY = 24 weeks;
 
-    // An address who has permissions to mint RaritySociety tokens
+    /// @notice The address administering drop creation, sizing, and scheduling.
+    address public owner;
+
+    /// @notice The address responsible for controlling pass emissions.
     address public minter;
 
-    // OpenSea's Proxy Registry
+    /// @notice The OS registry address - whitelisted for gasless OS approvals.
     IProxyRegistry public proxyRegistry;
 
-    string public baseURI = "https://dopamine.xyz/";
+    /// @notice The URI each pass initially points to for metadata resolution.
+    /// @dev Before drop completion, `tokenURI()` resolves to "{baseUri}/{id}".
+    string public baseUri = "https://dopamine.xyz/";
 
-    uint256 public dropSize;
+    /// @notice The minimum time to wait in seconds between drop creations.
     uint256 public dropDelay; 
-    uint256 public whitelistSize;
 
+    /// @notice The current drop's ending pass id (exclusive boundary).
     uint256 public dropEndIndex;
+
+    /// @notice The time at which a new drop can start (if last drop completed).
     uint256 public dropEndTime;
 
-    // Maps drops to their provenance markers.
-    mapping(uint256 => bytes32) private _dropProvenanceHashes;
-    // Maps drops to their IPFS URIs.
-    mapping(uint256 => string) private _dropURIs;
-    // Maps drops to their whitelists (merkle roots).
-    mapping(uint256 => bytes32) private _dropWhitelists;
+    /// @notice The number of passes for each drop (includes those whitelisted).
+    uint256 public dropSize;
 
-    /// @notice Ending index for each drop (non-inclusive).
+    /// @notice The number of passes to allocate for whitelisting for each drop.
+    uint256 public whitelistSize;
+
+    /// @notice Maps a drop to its provenance hash.
+    mapping(uint256 => bytes32) public dropProvenanceHash;
+
+    /// @notice Maps a drop to its finalized IPFS / Arweave pass metadata URI.
+    mapping(uint256 => string) public dropURI;
+
+    /// @notice Maps a drop to its whitelist (merkle tree root).
+    mapping(uint256 => bytes32) public dropWhitelist;
+
+    /// @dev Maps a drop id to its ending pass id (exclusive boundary).
     uint256[] private _dropEndIndices;
+
+    /// @dev An internal tracker for the id of the next pass to mint.
     uint256 private _id;
 
-    /// @notice Modifier to restrict calls to owner only.
-    modifier onlyOwner() {
-        if (msg.sender != owner) {
-            revert OwnerOnly();
-        }
-        _;
-    }
-
-    /// @notice Modifier to restrict calls to minter only.
+    /// @notice Restricts a function call to address `minter`.
     modifier onlyMinter() {
         if (msg.sender != minter) {
             revert MinterOnly();
@@ -66,12 +93,20 @@ contract DopamintPass is ERC721Checkpointable, IDopamintPass {
         _;
     }
 
-    /// @notice Initializes the DopamintPass with the first drop created..
-    /// @param minter_ The address which will control the NFT emissions.
-    /// @param proxyRegistry_ The OpenSea proxy registry address.
-    /// @param dropSize_ The number of DopamintPasses to issue for the next drop.
-    /// @param dropDelay_ The minimum time in seconds to wait before a new drop.
-    /// @dev Chain ID and domain separator are assigned here as immutables.
+    /// @notice Restricts a function call to address `owner`.
+    modifier onlyOwner() {
+        if (msg.sender != owner) {
+            revert OwnerOnly();
+        }
+        _;
+    }
+
+    /// @notice Initializes the membership pass with specified drop settings.
+    /// @param minter_        The address which will control pass emissions.
+    /// @param proxyRegistry_ The OS proxy registry address.
+    /// @param dropSize_      The number of passes to issue for each drop.
+    /// @param dropDelay_     The minimum delay to wait between drop creations.
+    /// @dev `owner` is intended to eventually switch to the Dopamine DAO proxy.
     constructor(
         address minter_,
         IProxyRegistry proxyRegistry_,
@@ -79,7 +114,7 @@ contract DopamintPass is ERC721Checkpointable, IDopamintPass {
         uint256 dropDelay_,
         uint256 whitelistSize_,
         uint256 maxSupply_
-    ) ERC721Checkpointable(NAME, SYMBOL, maxSupply_) {
+    ) ERC721Votable(NAME, SYMBOL, maxSupply_) {
 		owner = msg.sender;
         minter = minter_;
         proxyRegistry = proxyRegistry_;
@@ -89,23 +124,36 @@ contract DopamintPass is ERC721Checkpointable, IDopamintPass {
         setWhitelistSize(whitelistSize_);
     }
 
-    /// @notice Mints a DopamintPass to the minter.
-    function mint() public override onlyMinter returns (uint256) {
+    /// @inheritdoc IDopamintPass
+    function mint() external onlyMinter returns (uint256) {
         if (_id >= dropEndIndex) {
             revert DropMaxCapacity();
         }
         return _mint(minter, _id++);
     }
 
-    /// @notice Creates a new drop.
-    /// @param whitelist A merkle root of the drop's whitelist.
-    /// @param provenanceHash A provenance hash for the drop collection.
-    function createDrop(bytes32 whitelist,  bytes32 provenanceHash) public onlyOwner {
+    /// @inheritdoc IDopamintPass
+    function claim(bytes32[] calldata proof, uint256 id) external {
+        bytes32 whitelist = dropWhitelist[dropId(id)];
+        bytes32 leaf = keccak256(abi.encodePacked(msg.sender, id));
+
+        if (!_verify(whitelist, proof, leaf)) {
+            revert ProofInvalid();
+        }
+
+        _mint(msg.sender, id);
+    }
+
+    /// @inheritdoc IDopamintPass
+    function createDrop(bytes32 whitelist,  bytes32 provenanceHash)
+        external 
+        onlyOwner 
+    {
         if (_id < dropEndIndex) {
-            revert OngoingDrop();
+            revert DropOngoing();
         }
         if (block.timestamp < dropEndTime) {
-            revert InsufficientTimePassed();
+            revert DropTooEarly();
         }
         if (_id + dropSize > maxSupply) {
             revert DropMaxCapacity();
@@ -116,109 +164,141 @@ contract DopamintPass is ERC721Checkpointable, IDopamintPass {
 
         _id += whitelistSize;
         dropEndIndex = startIndex + dropSize;
-        dropEndTime = block.timestamp + dropDelay;
-
         _dropEndIndices.push(dropEndIndex);
-        _dropProvenanceHashes[dropNumber] = provenanceHash;
-        _dropWhitelists[dropNumber] = whitelist;
 
-        emit DropCreated(dropNumber, startIndex, dropSize, whitelistSize, whitelist, provenanceHash);
+        dropEndTime = block.timestamp + dropDelay;
+        dropProvenanceHash[dropNumber] = provenanceHash;
+        dropWhitelist[dropNumber] = whitelist;
+
+        emit DropCreated(
+            dropNumber,
+            startIndex,
+            dropSize,
+            whitelistSize,
+            whitelist,
+            provenanceHash
+        );
     }
 
-    /// @notice Set the minter of the contract
-    function setMinter(address newMinter) external override onlyOwner {
-        emit NewMinter(minter, newMinter);
+    /// @inheritdoc IDopamintPass
+    /// @dev This function only reverts for non-existent drops. The drop id will
+    ///  still be returned for an unminted pass belonging to a created drop.
+    function dropId(uint256 id) public view returns (uint256) {
+        for (uint256 i = 0; i < _dropEndIndices.length; i++) {
+            if (id  < _dropEndIndices[i]) {
+                return i;
+            }
+        }
+        revert DropNonExistent();
+    }
+	
+    /// @inheritdoc IDopamintPass
+    function contractURI() public view returns (string memory)  {
+        return string(abi.encodePacked(baseUri, "metadata"));
+    }
+
+    /// @inheritdoc ERC721
+    /// @dev Before drop completion, the token URI for pass of id `id` defaults
+    ///  to {baseUri}/{id}. Once the drop completes, it is replaced by an IPFS / 
+    ///  Arweave URI, and `tokenURI()` will resolve to {dropURI[dropId]}/{id}.
+    ///  This function reverts if the queried pass of id `id` does not exist.
+    function tokenURI(uint256 id) 
+        public 
+        view 
+        virtual 
+        override(ERC721) 
+        returns (string memory) 
+    {
+        if (ownerOf[id] == address(0)) {
+            revert TokenNonExistent();
+        }
+
+        string memory dropURI  = dropURI[dropId(id)];
+		if (bytes(dropURI).length == 0) {
+			dropURI = baseUri;
+		}
+		return string(abi.encodePacked(dropURI, _toString(id)));
+    }
+
+
+    /// @dev Ensures OS proxy is whitelisted for operating on behalf of owners.
+    /// @inheritdoc ERC721
+    function isApprovedForAll(address owner, address operator) 
+    public 
+    view 
+        override
+        returns (bool) 
+    {
+        return 
+            proxyRegistry.proxies(owner) == operator || 
+            _operatorApprovals[owner][operator];
+    }
+
+    /// @inheritdoc IDopamintPass
+    function setMinter(address newMinter) public onlyOwner {
+        emit MinterChanged(minter, newMinter);
         minter = newMinter;
     }
-    
-    /// @param newDropDelay The drops delay, in seconds.
+
+    /// @inheritdoc IDopamintPass
+    function setOwner(address newOwner) public onlyOwner {
+        emit OwnerChanged(owner, newOwner);
+        owner = newOwner;
+    }
+
+    /// @inheritdoc IDopamintPass
+	function setBaseURI(string calldata newBaseURI) public onlyOwner {
+        baseUri = newBaseURI;
+        emit BaseURISet(newBaseURI);
+	}
+
+    /// @inheritdoc IDopamintPass
+	function setDropURI(uint256 dropId, string calldata dropUri)
+        public 
+        onlyOwner 
+    {
+        uint256 numDrops = _dropEndIndices.length;
+        if (dropId >= numDrops) {
+            revert DropNonExistent();
+        }
+        dropURI[dropId] = dropUri;
+        emit DropURISet(dropId, dropUri);
+	}
+
+    /// @inheritdoc IDopamintPass
     function setDropDelay(uint256 newDropDelay) public override onlyOwner {
         if (newDropDelay < MIN_DROP_DELAY || newDropDelay > MAX_DROP_DELAY) {
-            revert InvalidDropDelay();
+            revert DropDelayInvalid();
         }
         dropDelay = newDropDelay;
         emit DropDelaySet(dropDelay);
     }
 
-    /// @notice Sets a new drop size `newDropSize`.
-    /// @param newDropSize The number of NFTs to mint for the next drop.
+    /// @inheritdoc IDopamintPass
     function setDropSize(uint256 newDropSize) public onlyOwner {
         if (newDropSize < MIN_DROP_SIZE || newDropSize > MAX_DROP_SIZE) {
-            revert InvalidDropSize();
+            revert DropSizeInvalid();
         }
         dropSize = newDropSize;
         emit DropSizeSet(dropSize);
     }
 
-    /// @notice Sets a new whitelist size `newWhitelistSize`.
-    /// @param newWhitelistSize The number of NFTs to whitelist for the next drop.
+    /// @inheritdoc IDopamintPass
     function setWhitelistSize(uint256 newWhitelistSize) public onlyOwner {
-        if (newWhitelistSize > MAX_WHITELIST_SIZE || newWhitelistSize > dropSize) {
-            revert InvalidWhitelistSize();
+        if (newWhitelistSize > MAX_WL_SIZE || newWhitelistSize > dropSize) {
+            revert DropWhitelistOverCapacity();
         }
         whitelistSize = newWhitelistSize;
         emit WhitelistSizeSet(whitelistSize);
     }
 
-    /// @notice Return the drop number of the DopamintPass with id `tokenId`.
-    /// @param tokenId Identifier of the DopamintPass being queried.
-    function getDropId(uint256 tokenId) public view returns (uint256) {
-        if (ownerOf[tokenId] == address(0)) {
-            revert NonExistentNFT();
-        }
-
-        for (uint256 i = 0; i < _dropEndIndices.length; i++) {
-            if (tokenId < _dropEndIndices[i]) {
-                return i;
-            }
-        }
-    }
-	
-    /// @notice Sets the base URI.
-    /// @param newBaseURI The base URI to set.
-	function setBaseURI(string calldata newBaseURI) public onlyOwner {
-        baseURI = newBaseURI;
-        emit BaseURISet(newBaseURI);
-	}
-
-    /// @notice Sets the IPFS URI `dropURI` for drop `dropId`.
-    /// @param dropId The drop identifier to set.
-	/// @param dropURI The drop URI to permanently set.
-	function setDropURI(uint256 dropId, string calldata dropURI) public onlyOwner {
-        uint256 numDrops = _dropEndIndices.length;
-        if (dropId >= numDrops) {
-            revert NonExistentDrop();
-        }
-        _dropURIs[dropId] = dropURI;
-        emit DropURISet(dropId, dropURI);
-	}
-
-
-    /// @notice Checks if `operator` is an authorized operator for `owner`.
-    /// @dev Ensures OS proxy is whitelisted for operating on behalf of owners.
-    function isApprovedForAll(address owner, address operator) public view override(IERC721, ERC721) returns (bool) {
-        // Whitelist OpenSea proxy contract for easy trading.
-        if (proxyRegistry.proxies(owner) == operator) {
-            return true;
-        }
-        return super.isApprovedForAll(owner, operator);
-    }
-
-    /// @notice Claim `tokenId` for minting by presenting merkle proof `proof`.
-    /// @param proof Merkle proof associated with the claim.
-    /// @param tokenId Identifier of NFT being claimed.
-    function claim(bytes32[] calldata proof, uint256 tokenId) external {
-        bytes32 whitelist = _dropWhitelists[getDropId(tokenId)];
-        bytes32 leaf = keccak256(abi.encodePacked(msg.sender, tokenId));
-
-        if (!_verify(whitelist, proof, leaf)) {
-            revert InvalidProof();
-        }
-
-        _mint(msg.sender, tokenId);
-    }
-
-    /// @notice Verifies `leaf` is part of merkle tree rooted at `merkleRoot`.
+    /// @dev Checks whether `leaf` is part of merkle tree rooted at `merkleRoot`
+    ///  using proof `proof`. Merkle tree generation and proof construction is
+    ///  done using the following JS library: github.com/miguelmota/merkletreejs
+    /// @param merkleRoot The hexlified merkle root as a bytes32 data type.
+    /// @param proof      The abi-encoded proof formatted as a bytes32 array.
+    /// @param leaf       The leaf node being checked (uses keccak-256 hashing).
+    /// @return True if `leaf` is in `merkleRoot`-rooted tree, false otherwise.
     function _verify(
         bytes32 merkleRoot,
         bytes32[] memory proof,
@@ -226,42 +306,19 @@ contract DopamintPass is ERC721Checkpointable, IDopamintPass {
     ) private view returns (bool) 
     {
         bytes32 hash = leaf;
-
-        unchecked {
-            for (uint256 i = 0; i < proof.length; i++) {
-                bytes32 proofElement = proof[i];
-                if (hash <= proofElement) {
-                    hash = keccak256(abi.encodePacked(hash, proofElement));
-                } else {
-                    hash = keccak256(abi.encodePacked(proofElement, hash));
-                }
+        for (uint256 i = 0; i < proof.length; i++) {
+            bytes32 proofElement = proof[i];
+            if (hash <= proofElement) {
+                hash = keccak256(abi.encodePacked(hash, proofElement));
+            } else {
+                hash = keccak256(abi.encodePacked(proofElement, hash));
             }
-            return hash == merkleRoot;
         }
+        return hash == merkleRoot;
     }
 
-
-    /// @notice Retrieves the token metadata URI for NFT of id `tokenId`.
-    /// @dev Before drop finalization, the token URI for an NFT is equivalent to
-    ///  {baseURI}/{id}, and once a drop is finalized, it may be replaced by an
-    ///  IPFS link whose contents equate to the initially set provenance hash.
-    /// @param tokenId The identifier of the NFT being queried.
-    function tokenURI(uint256 tokenId) public view virtual override returns (string memory) {
-        if (ownerOf[tokenId] == address(0)) {
-            revert NonExistentNFT();
-        }
-
-        string memory dropURI  = _dropURIs[getDropId(tokenId)];
-		if (bytes(dropURI).length == 0) {
-			dropURI = baseURI;
-		}
-		return string(abi.encodePacked(dropURI, _toString(tokenId)));
-    }
-
-
+    /// @dev Converts a uint256 into a string.
 	 function _toString(uint256 value) internal pure returns (string memory) {
-        // https://github.com/oraclize/ethereum-api/blob/b42146b063c7d6ee1358846c198246239e9360e8/oraclizeAPI_0.4.25.sol
-
         if (value == 0) {
             return "0";
         }
@@ -279,6 +336,4 @@ contract DopamintPass is ERC721Checkpointable, IDopamintPass {
         }
         return string(buffer);
     }
-
 }
-

@@ -9,7 +9,7 @@ import "./Hevm.sol";
 /// @title Extended testing framework
 contract Test is DSTest {
 
-    error ArrayMismatch();
+    error ArityMismatch();
 
     Hevm constant vm = Hevm(HEVM_ADDRESS);
 
@@ -19,7 +19,7 @@ contract Test is DSTest {
 
     function assertEq(uint256[] memory  a, uint256[] memory b) internal {
         if (a.length != b.length) {
-            revert ArrayMismatch();
+            revert ArityMismatch();
         }
         for (uint256 i = 0; i < a.length; i++) {
             if (a[i] != b[i]) {
@@ -31,7 +31,7 @@ contract Test is DSTest {
 
     function assertEq(bytes[] memory  a, bytes[] memory b) internal {
         if (a.length != b.length) {
-            revert ArrayMismatch();
+            revert ArityMismatch();
         }
         for (uint256 i = 0; i < a.length; i++) {
             assertEq0(a[i], b[i]);
@@ -40,7 +40,7 @@ contract Test is DSTest {
 
     function assertEq(string[] memory a, string[] memory b) internal {
         if (a.length != b.length) {
-            revert ArrayMismatch();
+            revert ArityMismatch();
         }
         for (uint256 i = 0; i < a.length; i++) {
             assertEq(a[i], b[i]);
@@ -49,7 +49,7 @@ contract Test is DSTest {
 
     function assertEq(address[] memory a, address[] memory b) internal {
         if (a.length != b.length) {
-            revert ArrayMismatch();
+            revert ArityMismatch();
         }
         for (uint256 i = 0; i < a.length; i++) {
             assertEq(a[i], b[i]);

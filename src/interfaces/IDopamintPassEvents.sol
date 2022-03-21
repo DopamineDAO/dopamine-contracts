@@ -1,19 +1,60 @@
+// SPDX-License-Identifier: BSD-3-Clause
+pragma solidity ^0.8.9;
+
+////////////////////////////////////////////////////////////////////////////////
+///				 ░▒█▀▀▄░█▀▀█░▒█▀▀█░█▀▀▄░▒█▀▄▀█░▄█░░▒█▄░▒█░▒█▀▀▀              ///
+///              ░▒█░▒█░█▄▀█░▒█▄▄█▒█▄▄█░▒█▒█▒█░░█▒░▒█▒█▒█░▒█▀▀▀              ///
+///              ░▒█▄▄█░█▄▄█░▒█░░░▒█░▒█░▒█░░▒█░▄█▄░▒█░░▀█░▒█▄▄▄              ///
+////////////////////////////////////////////////////////////////////////////////
+ 
+/// @title Dopamine DAO ERC-721 membership pass  events interface
 interface IDopamintPassEvents {
 
-	event BaseURISet(string baseURI);
+    /// @notice Emits when the Dopamine pass base URI is set to `baseUri`.
+    /// @param baseUri The base URI of the Dopamine pass contract, as a string.
+	event BaseURISet(string baseUri);
 
-    event DropCreated(uint256 indexed dropId, uint256 startIndex, uint256 dropSize, uint256 whitelistSize, bytes32 whitelist, bytes32 provenanceHash);
+    /// @notice Emits when a new drop is created by the Dopamine pass owner.
+    /// @param dropId         The id of the newly created drop.
+    /// @param startIndex     The id of the first passincluded in the drop.
+    /// @param dropSize       The number of passes to distribute in the drop.
+    /// @param whitelistSize  The number of whitelisted passes in the drop.
+    /// @param whitelist      A merkle root of the included address-pass pairs.
+    /// @param provenanceHash SHA-256 hash of combined image hashes in the drop.
+    event DropCreated(
+        uint256 indexed dropId,
+        uint256 startIndex,
+        uint256 dropSize,
+        uint256 whitelistSize,
+        bytes32 whitelist,
+        bytes32 provenanceHash
+    );
 
+    /// @notice Emits when a new drop delay `dropDelay` is set.
+    /// @param dropDelay The new drop delay to set, in seconds.
     event DropDelaySet(uint256 dropDelay);
 
+    /// @notice Emits when a new drop size `dropSize` is set.
+    /// @param dropSize The new drop size, in number of passes to distribute.
     event DropSizeSet(uint256 dropSize);
 
-	event DropURISet(uint256 indexed dropId, string URI);
+    /// @notice Emits when the drop of id `dropId` has its URI set to `dropUr1`.
+    /// @param dropId  The id of the drop whose URI was set.
+    /// @param dropUri The metadata URI of the drop, as a string.
+	event DropURISet(uint256 indexed dropId, string dropUri);
 
+    /// @notice Emits when a new whitelist size `whitelistSize` is set.
+    /// @param whitelistSize The number of passes to whitelist for drops.
     event WhitelistSizeSet(uint256 whitelistSize);
 
-    event MinterLocked();
+    /// @notice Emits when minter is changed from `oldMinter` to `newMinter`.
+    /// @param oldMinter The address of the previous minter.
+    /// @param newMinter The address of the new minter.
+    event MinterChanged(address indexed oldMinter, address indexed newMinter);
 
-    event NewMinter(address oldMinter, address newMinter);
+    /// @notice Emits when owner is changed from `oldOwner` to `newOwner`.
+    /// @param oldOwner The address of the previous owner.
+    /// @param newOwner The address of the new owner.
+    event OwnerChanged(address indexed oldOwner, address indexed newOwner);
 
 }

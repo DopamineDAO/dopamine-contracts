@@ -1,64 +1,34 @@
 // SPDX-License-Identifier: GPL-3.0
 pragma solidity ^0.8.9;
 
-import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
-import { IERC20 } from '@openzeppelin/contracts/token/ERC20/IERC20.sol';
+////////////////////////////////////////////////////////////////////////////////
+///				 ░▒█▀▀▄░█▀▀█░▒█▀▀█░█▀▀▄░▒█▀▄▀█░▄█░░▒█▄░▒█░▒█▀▀▀              ///
+///              ░▒█░▒█░█▄▀█░▒█▄▄█▒█▄▄█░▒█▒█▒█░░█▒░▒█▒█▒█░▒█▀▀▀              ///
+///              ░▒█▄▄█░█▄▄█░▒█░░░▒█░▒█░▒█░░▒█░▄█▄░▒█░░▀█░▒█▄▄▄              ///
+////////////////////////////////////////////////////////////////////////////////
 
+/// This file is under the copyright license: Copyright 2021 Compound Labs, Inc.
+/// 
+/// DoapmineAuctionHouse is a modification of Nouns DAO's NounsAuctionHouse.sol:
+/// https://github.com/nounsDAO/nouns-monorepo/blob/master/packages/nouns-contracts/contracts/NounsAuctionHouse.sol
+///
+/// Copyright licensing is under the GPL-3.0 license, as the above contract
+/// is a rework of Zora's Auction House
+/// 
+/// The following major changes were made from the original Nouns DAO contract:
+/// - Proxy was changed from a modified Governor Bravo Delegator to a UUPS Proxy
+/// - Only 1 proposal may be operated at a time (as opposed to 1 per proposer)
+/// - Proposal thresholds use fixed number floors (n NFTs), BPS-based ceilings
+/// - Voter receipts were removed in favor of event-based off-chain storage
+/// - Most `Proposal` struct fields were changed to uint32 for tighter packing
+/// - Global proposal id uses a uint32 instead of a uint256
+/// - Bakes in EIP-712 data structures as immutables for more efficient caching
+import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
+
+import '../errors.sol';
 import './DopamineAuctionHouseStorage.sol';
 import { IDopamineAuctionHouse } from '../interfaces/IDopamineAuctionHouse.sol';
 import { IDopamineAuctionHouseToken } from '../interfaces/IDopamineAuctionHouseToken.sol';
-import { IWETH } from '../interfaces/IWETH.sol';
-
-/// @notice Function callable only by the admin.
-error AdminOnly();
-
-/// @notice Auctions contract already initialized.
-error AlreadyInitialized();
-
-/// @notice Auction has already been settled.
-error AlreadySettled();
-
-/// @notice Bid placed was too low (see `reservePrice` and `MIN_BID_DIFF`).
-error BidTooLow();
-
-/// @notice The auction has expired.
-error ExpiredAuction();
-
-/// @notice Auction has yet to complete.
-error IncompleteAuction();
-
-/// @notice Auction duration set is invalid.
-error InvalidDuration();
-
-/// @notice Reserve price set is invalid.
-error InvalidReservePrice();
-
-/// @notice Time buffer set is invalid.
-error InvalidTimeBuffer();
-
-/// @notice Treasury split is invalid, must be in range [0, 100].
-error InvalidTreasurySplit();
-
-/// @notice The NFT specified is not up for auction.
-error NotUpForAuction();
-
-/// @notice Function callable only by the pending owner.
-error PendingAdminOnly();
-
-/// @notice Reentrancy vulnerability.
-error Reentrant();
-
-/// @notice Operation cannot be performed as auction is paused.
-error PausedAuction();
-
-/// @notice Upgrade requires either admin or vetoer privileges.
-error UnauthorizedUpgrade();
-
-/// @notice Auction has not yet started.
-error UncommencedAuction();
-
-/// @notice Operation cannot be performed as auction is unpaused.
-error UnpausedAuction();
 
 contract DopamineAuctionHouse is UUPSUpgradeable, DopamineAuctionHouseStorageV1, IDopamineAuctionHouse {
 
@@ -71,7 +41,7 @@ contract DopamineAuctionHouse is UUPSUpgradeable, DopamineAuctionHouseStorageV1,
     uint256 public constant MIN_RESERVE_PRICE = 1 wei;
     uint256 public constant MAX_RESERVE_PRICE = 99 ether;
 
-    uint256 public constant MIN_DURATION = 1 hours;
+    uint256 public constant MIN_DURATION = 10 minutes;
     uint256 public constant MAX_DURATION = 1 weeks;
 
     uint256 private constant _UNLOCKED = 1;
@@ -86,21 +56,21 @@ contract DopamineAuctionHouse is UUPSUpgradeable, DopamineAuctionHouseStorageV1,
 
     modifier whenNotPaused() {
         if (_paused != _UNLOCKED) {
-            revert PausedAuction();
+            revert AuctionMustBePaused();
         }
         _;
     }
 
     modifier whenPaused() {
         if (_paused != _LOCKED) {
-            revert UnpausedAuction();
+            revert AuctionMustBeUnpaused();
         }
         _;
     }
 
-    modifier nonReentrant() {
+    modifier nonFunctionReentrant() {
         if (_locked != _UNLOCKED) {
-            revert Reentrant();
+            revert FunctionReentrant();
         }
         _locked = _LOCKED;
         _;
@@ -125,7 +95,7 @@ contract DopamineAuctionHouse is UUPSUpgradeable, DopamineAuctionHouseStorageV1,
         uint256 duration_
     ) onlyProxy external {
         if (address(token) != address(0)) {
-            revert AlreadyInitialized();
+            revert ContractAlreadyInitialized();
         }
 
         _paused = _UNLOCKED;
@@ -145,32 +115,32 @@ contract DopamineAuctionHouse is UUPSUpgradeable, DopamineAuctionHouseStorageV1,
     }
 
     /// @notice Settle the ongoing auction and create a new one.
-    function settleCurrentAndCreateNewAuction() external override nonReentrant whenNotPaused {
+    function settleCurrentAndCreateNewAuction() external override nonFunctionReentrant whenNotPaused {
         _settleAuction();
         _createAuction();
     }
 
     /// @notice Settle the ongoing auction.
-    function settleAuction() external override whenPaused nonReentrant {
+    function settleAuction() external override whenPaused nonFunctionReentrant {
         _settleAuction();
     }
 
     /// @notice Place a bid for the current NFT being auctioned.
     /// @param tokenId The identifier of the NFT currently being auctioned.
-    function createBid(uint256 tokenId) external payable override nonReentrant {
+    function createBid(uint256 tokenId) external payable override nonFunctionReentrant {
         Auction memory _auction = auction;
 
         if (block.timestamp > _auction.endTime) {
-            revert ExpiredAuction();
+            revert AuctionExpired();
         }
         if (_auction.tokenId != tokenId) {
-            revert NotUpForAuction();
+            revert AuctionBidTokenInvalid();
         }
         if (
             msg.value < reservePrice || 
             msg.value < _auction.amount + ((_auction.amount * MIN_BID_DIFF) / 100)
         ) {
-            revert BidTooLow();
+            revert AuctionBidTooLow();
         }
 
         address payable lastBidder = _auction.bidder;
@@ -211,7 +181,7 @@ contract DopamineAuctionHouse is UUPSUpgradeable, DopamineAuctionHouseStorageV1,
     /// @param newPendingAdmin The address of the new pending admin.
     function setPendingAdmin(address newPendingAdmin) public override onlyAdmin {
         pendingAdmin = newPendingAdmin;
-        emit NewPendingAdmin(pendingAdmin);
+        emit PendingAdminSet(pendingAdmin);
     }
 
     /// @notice Convert the current `pendingAdmin` to the new `admin`.
@@ -220,7 +190,7 @@ contract DopamineAuctionHouse is UUPSUpgradeable, DopamineAuctionHouseStorageV1,
             revert PendingAdminOnly();
         }
 
-		emit NewAdmin(admin, pendingAdmin);
+		emit AdminChanged(admin, pendingAdmin);
 		admin = pendingAdmin;
         pendingAdmin = address(0);
 	}
@@ -230,7 +200,7 @@ contract DopamineAuctionHouse is UUPSUpgradeable, DopamineAuctionHouseStorageV1,
     /// @param newDuration New auction duration to set, in seconds.
     function setDuration(uint256 newDuration) public override onlyAdmin {
         if (newDuration < MIN_DURATION || newDuration > MAX_DURATION) {
-            revert InvalidDuration();
+            revert AuctionDurationInvalid();
         }
         duration = newDuration;
         emit AuctionDurationSet(duration);
@@ -241,7 +211,7 @@ contract DopamineAuctionHouse is UUPSUpgradeable, DopamineAuctionHouseStorageV1,
     /// @param newTreasurySplit The new treasury split to set, in percentage.
     function setTreasurySplit(uint256 newTreasurySplit) public override onlyAdmin {
         if (newTreasurySplit > 100) {
-            revert InvalidTreasurySplit();
+            revert AuctionTreasurySplitInvalid();
         }
         treasurySplit = newTreasurySplit;
         emit AuctionTreasurySplitSet(treasurySplit);
@@ -252,7 +222,7 @@ contract DopamineAuctionHouse is UUPSUpgradeable, DopamineAuctionHouseStorageV1,
     /// @param newTimeBuffer The time buffer to set, in seconds since epoch.
     function setTimeBuffer(uint256 newTimeBuffer) public override onlyAdmin {
         if (newTimeBuffer < MIN_TIME_BUFFER || newTimeBuffer > MAX_TIME_BUFFER) {
-            revert InvalidTimeBuffer();
+            revert AuctionTimeBufferInvalid();
         }
         timeBuffer = newTimeBuffer;
         emit AuctionTimeBufferSet(timeBuffer);
@@ -263,7 +233,7 @@ contract DopamineAuctionHouse is UUPSUpgradeable, DopamineAuctionHouseStorageV1,
     /// @param newReservePrice The new reserve price to set, in wei.
     function setReservePrice(uint256 newReservePrice) public override onlyAdmin {
         if (newReservePrice < MIN_RESERVE_PRICE || newReservePrice > MAX_RESERVE_PRICE) {
-            revert InvalidReservePrice();
+            revert AuctionReservePriceInvalid();
         }
         reservePrice = newReservePrice;
         emit AuctionReservePriceSet(reservePrice);
@@ -301,13 +271,13 @@ contract DopamineAuctionHouse is UUPSUpgradeable, DopamineAuctionHouseStorageV1,
         Auction memory _auction = auction;
 
         if (_auction.startTime == 0) {
-            revert UncommencedAuction();
+            revert AuctionNotYetStarted();
         }
         if (_auction.settled) {
-            revert AlreadySettled();
+            revert AuctionAlreadySettled();
         }
         if (block.timestamp < _auction.endTime) {
-            revert IncompleteAuction();
+            revert AuctionOngoing();
         }
 
         auction.settled = true;
@@ -351,7 +321,7 @@ contract DopamineAuctionHouse is UUPSUpgradeable, DopamineAuctionHouseStorageV1,
     /// @notice Performs authorization check for UUPS upgrades.
     function _authorizeUpgrade(address) internal view override {
         if (msg.sender != admin) {
-            revert UnauthorizedUpgrade();
+            revert UpgradeUnauthorized();
         }
     }
 }

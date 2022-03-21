@@ -33,7 +33,7 @@ var Contract;
     });
 }));
 (0, config_1.task)("deploy-testing", "Deploy Rarity Society contracts to Ropsten")
-    .addParam("verify", "whether to verify on Etherscan", false, config_1.types.boolean)
+    .addParam("verify", "whether to verify on Etherscan", true, config_1.types.boolean)
     .setAction((args, { run }) => __awaiter(void 0, void 0, void 0, function* () {
     yield run("deploy", {
         chainid: 3,
@@ -42,7 +42,7 @@ var Contract;
     });
 }));
 (0, config_1.task)("deploy-staging", "Deploy Rarity Society contracts to Rinkeby")
-    .addParam("verify", "whether to verify on Etherscan", false, config_1.types.boolean)
+    .addParam("verify", "whether to verify on Etherscan", true, config_1.types.boolean)
     .setAction((args, { run }) => __awaiter(void 0, void 0, void 0, function* () {
     yield run("deploy", {
         chainid: 4,
@@ -58,19 +58,21 @@ var Contract;
 (0, config_1.task)("deploy", "Deploys Dopamine contracts")
     .addParam("chainid", "expected network chain ID", undefined, config_1.types.int)
     .addParam("registry", "OpenSea proxy registry address", undefined, config_1.types.string)
-    .addOptionalParam("verify", "whether to verify on Etherscan", false, config_1.types.boolean)
+    .addOptionalParam("verify", "whether to verify on Etherscan", true, config_1.types.boolean)
     .addOptionalParam("minter", "Rarity Society token minter", undefined, config_1.types.string)
     .addOptionalParam("vetoer", "Rarity Society DAO veto address", undefined, config_1.types.string)
     .addOptionalParam("timelockDelay", "timelock delay (seconds)", 60 * 60 * 24 * 2, config_1.types.int)
     .addOptionalParam("votingPeriod", "proposal voting period (# of blocks)", 32000, config_1.types.int)
     .addOptionalParam("votingDelay", "proposal voting delay (# of blocks)", 13000, config_1.types.int)
     .addOptionalParam("proposalThreshold", "proposal threshold (# of NFTs)", 1, config_1.types.int)
+    .addOptionalParam("whitelistSize", "number of slots to reserve for whitelist minting", 10, config_1.types.int)
+    .addOptionalParam("maxSupply", "total number of NFTs to reserve for minting", 9999, config_1.types.int)
     .addOptionalParam("treasurySplit", "% of auction revenue directed to Dopamine DAO", 50, config_1.types.int)
     .addOptionalParam("dropSize", "# of DopamintPasses to distribute for a given drop", 99, config_1.types.int)
     .addOptionalParam("dropDelay", "time in seconds to wait between drops", 60 * 60 * 24 * 33, config_1.types.int)
     .addOptionalParam("timeBuffer", "time in seconds to add for auction extensions", 60 * 10, config_1.types.int)
     .addOptionalParam("reservePrice", "starting reserve price for auctions", 1, config_1.types.int)
-    .addOptionalParam("duration", "how long each auction should last", 60 * 60 * 4, config_1.types.int)
+    .addOptionalParam("duration", "how long each auction should last", 60 * 10, config_1.types.int)
     .addOptionalParam("quorumVotesBPS", "proposal quorum votes (basis points)", 1000, config_1.types.int)
     .setAction((args, { ethers, run }) => __awaiter(void 0, void 0, void 0, function* () {
     const gasPrice = yield ethers.provider.getGasPrice();
@@ -109,10 +111,10 @@ var Contract;
             nonce: nonce + Contract.DopamineAuctionHouseProxy,
         }),
         args.registry,
-        deployer.address,
         args.dropSize,
         args.dropDelay,
-        ethers.utils.formatBytes32String("Test")
+        args.whitelistSize,
+        args.maxSupply
     ];
     const dopamintPass = yield deployContract(Contract[Contract.DopamintPass], dopamintPassArgs, currNonce++);
     // 2. Deploy auction house.
@@ -171,15 +173,18 @@ var Contract;
                 address: dopamintPass,
                 args: dopamintPassArgs,
             },
+            dopamineAuctionHouse: {
+                address: dopamineAuctionHouse,
+                args: [],
+            },
+            timelock: {
+                address: timelock,
+                args: timelockArgs,
+            },
             dopamineDAO: {
                 address: dopamineDAO,
                 args: dopamineDAOArgs,
-                path: "contracts/governance/DopamineDAO.sol:DopamineDAO",
-            },
-            dopamineDAOProxy: {
-                address: dopamineDAOProxy,
-                args: dopamineDAOProxyArgs,
-            },
+            }
         };
         for (const contract in toVerify) {
             console.log(`\nVerifying contract ${contract}:`);
