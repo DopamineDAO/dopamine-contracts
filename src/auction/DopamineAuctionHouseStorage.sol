@@ -6,7 +6,7 @@ import { IDopamineAuctionHouseToken } from '../interfaces/IDopamineAuctionHouseT
 
 contract DopamineAuctionHouseStorageV1 {
 
-    // The Nouns ERC721 token contract.
+    // The DopamintPass ERC721 token contract.
     IDopamineAuctionHouseToken public token;
 
     // The address of the pending admin of the auction house contract.
