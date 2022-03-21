@@ -3,7 +3,7 @@ import { task, types } from "hardhat/config";
 task('propose', 'Create a governance proposal')
 	.addOptionalParam(
 		'address',
-		'The Rarity Society DAO proxy address',
+		'The Dopamine DAO proxy address',
 		'0xd3f50dFeCa7CC48E394C0863a4B8559447573608',
 		types.string,
 	)

@@ -12,7 +12,7 @@ contract MockERC721Checkpointable is ERC721Checkpointable {
 
     uint256 EXPIRY = 10**9;
 
-    string public constant NAME = 'Rarity Society';
+    string public constant NAME = 'Dopamine';
     string public constant SYMBOL = 'RARITY';
 
     mapping(address => uint256) private signers;

@@ -21,7 +21,7 @@ interface VerifyParams {
 	path?: string;
 }
 
-task("deploy-local", "Deploy Rarity Society contracts locally").setAction(
+task("deploy-local", "Deploy Dopamine contracts locally").setAction(
   async (args, { run }) => {
     await run("deploy", {
       chainid: 31337,
@@ -30,7 +30,7 @@ task("deploy-local", "Deploy Rarity Society contracts locally").setAction(
   }
 );
 
-task("deploy-testing", "Deploy Rarity Society contracts to Ropsten")
+task("deploy-testing", "Deploy Dopamine contracts to Ropsten")
   .addParam("verify", "whether to verify on Etherscan", false, types.boolean)
   .setAction(async (args, { run }) => {
     await run("deploy", {
@@ -40,7 +40,7 @@ task("deploy-testing", "Deploy Rarity Society contracts to Ropsten")
     });
   });
 
-task("deploy-staging", "Deploy Rarity Society contracts to Rinkeby")
+task("deploy-staging", "Deploy Dopamine contracts to Rinkeby")
   .addParam("verify", "whether to verify on Etherscan", false, types.boolean)
 	.setAction(
 		async (args, { run }) => {
@@ -52,7 +52,7 @@ task("deploy-staging", "Deploy Rarity Society contracts to Rinkeby")
 
 task(
   "deploy-prod",
-  "Deploy Rarity Society contracts to Ethereum Mainnet"
+  "Deploy Dopamine contracts to Ethereum Mainnet"
 ).setAction(async (args, { run }) => {
   await run("deploy", {
     chainid: 1,
@@ -76,13 +76,13 @@ task("deploy", "Deploys Dopamine contracts")
   )
   .addOptionalParam(
     "minter",
-    "Rarity Society token minter",
+    "Dopamine token minter",
     undefined,
     types.string
   )
   .addOptionalParam(
     "vetoer",
-    "Rarity Society DAO veto address",
+    "Dopamine DAO veto address",
     undefined,
     types.string
   )
@@ -164,7 +164,7 @@ task("deploy", "Deploys Dopamine contracts")
     }
 
     console.log(
-      `Deploying Rarity Society contracts to chain ${network.chainId}`
+      `Deploying Dopamine contracts to chain ${network.chainId}`
     );
 
     const [deployer] = await ethers.getSigners();

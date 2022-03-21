@@ -67,7 +67,7 @@ contract Test is DSTest {
         bytes32 domainSeparator = keccak256(
             abi.encode(
                 keccak256("EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)"),
-                keccak256(bytes("Rarity Society DAO")),
+                keccak256(bytes("Dopamine DAO")),
                 keccak256(bytes("1")),
                 block.chainid,
                 verifyingContract

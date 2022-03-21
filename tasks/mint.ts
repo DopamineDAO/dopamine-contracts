@@ -1,6 +1,6 @@
 import { task, types } from "hardhat/config";
 
-task('mint', 'Mint a Rarity Society NFT')
+task('mint', 'Mint a Dopamine NFT')
 	.addOptionalParam(
 		'address',
 		'RaritySocietyToken address',
