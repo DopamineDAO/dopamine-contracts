@@ -16,5 +16,3 @@ Dopamine DAO contracts are currently divided into four components: Governance, E
 ### License
 
 [GPL-3.0](./LICENSE.md) © Dopamine Inc.
-* DopamineAuctionHouse.sol - English Auctions contract with emissions schedule
-* DopamintPass.sol - ERC721 using ERC721Checkpointable for voting with drop emissions integration
