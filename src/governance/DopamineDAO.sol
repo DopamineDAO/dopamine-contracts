@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: BSD-3-Clause
-pragma solidity ^0.8.9;
+pragma solidity ^0.8.13;
 
 ////////////////////////////////////////////////////////////////////////////////
 ///				 ░▒█▀▀▄░█▀▀█░▒█▀▀█░█▀▀▄░▒█▀▄▀█░▄█░░▒█▄░▒█░▒█▀▀▀              ///
@@ -366,6 +366,11 @@ contract DopamineDAO is UUPSUpgradeable, DopamineDAOStorage, IDopamineDAO {
 		setVotingDelay(votingDelay_);
 		setQuorumThresholdBPS(quorumThresholdBPS_);
 		setProposalThreshold(proposalThreshold_);
+	}
+
+	/// @inheritdoc IDopamineDAO
+	function quorumThreshold() external view returns (uint256) {
+           return max(1, bps2Uint(quorumThresholdBPS, token.totalSupply()));
 	}
 
     /// @inheritdoc IDopamineDAO

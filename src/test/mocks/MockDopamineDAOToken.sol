@@ -2,7 +2,7 @@
 
 /// @title The Dopamine DAO ERC-721 token
 
-pragma solidity ^0.8.9;
+pragma solidity ^0.8.13;
 
 import { ERC721Votable } from '../../erc721/ERC721Votable.sol';
 import { ERC721 } from '../../erc721/ERC721.sol';

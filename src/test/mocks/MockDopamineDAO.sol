@@ -2,7 +2,7 @@
 
 /// @title The Dopamine DAO Mock
 
-pragma solidity ^0.8.9;
+pragma solidity ^0.8.13;
 
 import '../../interfaces/IDopamineDAOToken.sol';
 import { DopamineDAO } from '../../governance/DopamineDAO.sol';

@@ -2,7 +2,7 @@
 
 // @title Contract mock for OpenSea's Proxy Registry.
 
-pragma solidity ^0.8.9;
+pragma solidity ^0.8.13;
 
 import { IProxyRegistry } from '../../interfaces/IProxyRegistry.sol';
 import { MockProxy } from './MockProxy.sol';
