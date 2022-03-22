@@ -96,7 +96,7 @@ contract ERC721Test is Test {
 
         // Approvals fail when invoked by the unauthorized address.
         vm.prank(OPERATOR);
-        vm.expectRevert(UnauthorizedSender.selector);
+        vm.expectRevert(SenderUnauthorized.selector);
         token.approve(OPERATOR, NFT);
 
         // Approvals succeed when executed by the authorized operator.
@@ -139,11 +139,11 @@ contract ERC721Test is Test {
 
     function testMint() public {
         // Reverts when minting to the zero-address
-        vm.expectRevert(ZeroAddressReceiver.selector);
+        vm.expectRevert(ReceiverInvalid.selector);
         token.mint(address(0), NFT);
 
         // Reverts when minting an already minted NFT.
-        vm.expectRevert(DuplicateMint.selector);
+        vm.expectRevert(TokenAlreadyMinted.selector);
         token.mint(FROM, NFT);
 
         uint256 prevSupply = token.totalSupply();
@@ -171,7 +171,7 @@ contract ERC721Test is Test {
 
     function testBurn() public {
         // Reverts when burned NFT does not exist.
-        vm.expectRevert(NonExistentNFT.selector);
+        vm.expectRevert(TokenNonExistent.selector);
         token.burn(NFT_1);
         uint256 prevSupply = token.totalSupply();
 
@@ -209,7 +209,7 @@ contract ERC721Test is Test {
   	function _testSafeTransferFailure(function(address, address, uint256) external fn) internal {
         // Should throw when receiver magic value is invalid.
         MockERC721Receiver invalidReceiver = new MockERC721Receiver(0xDEADBEEF, false);
-        vm.expectRevert(InvalidReceiver.selector);
+        vm.expectRevert(SafeTransferUnsupported.selector);
         fn(FROM, address(invalidReceiver), NFT);
 
         // Should throw when receiver function throws.
@@ -254,14 +254,14 @@ contract ERC721Test is Test {
     }
 
     function _testTransferFailure(function(address, address, uint256) external fn) internal {
-        vm.expectRevert(ZeroAddressReceiver.selector);
+        vm.expectRevert(ReceiverInvalid.selector);
         fn(FROM, address(0), NFT);
 
-        vm.expectRevert(InvalidOwner.selector);
+        vm.expectRevert(OwnerInvalid.selector);
         fn(TO, TO, NFT);
 
         vm.prank(TO);
-        vm.expectRevert(UnauthorizedSender.selector);
+        vm.expectRevert(SenderUnauthorized.selector);
         fn(FROM, TO, NFT);
     }
 

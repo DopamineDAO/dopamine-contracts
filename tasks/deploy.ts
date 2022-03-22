@@ -31,7 +31,7 @@ task("deploy-local", "Deploy Rarity Society contracts locally").setAction(
 );
 
 task("deploy-testing", "Deploy Rarity Society contracts to Ropsten")
-  .addParam("verify", "whether to verify on Etherscan", false, types.boolean)
+  .addParam("verify", "whether to verify on Etherscan", true, types.boolean)
   .setAction(async (args, { run }) => {
     await run("deploy", {
       chainid: 3,
@@ -40,12 +40,12 @@ task("deploy-testing", "Deploy Rarity Society contracts to Ropsten")
     });
   });
 
-task("deploy-staging", "Deploy Rarity Society contracts to Rinkeby")
-  .addParam("verify", "whether to verify on Etherscan", false, types.boolean)
+task("deploy-staging", "Deploy Rarity Society contracts to Goerli")
+  .addParam("verify", "whether to verify on Etherscan", true, types.boolean)
 	.setAction(
 		async (args, { run }) => {
 			await run("deploy", {
-				chainid: 4,
+				chainid: 5,
 				registry: "0xf57b2c51ded3a29e6891aba85459d600256cf317",
 		});
 	});
@@ -71,7 +71,7 @@ task("deploy", "Deploys Dopamine contracts")
   .addOptionalParam(
     "verify",
     "whether to verify on Etherscan",
-    false,
+    true,
     types.boolean
   )
   .addOptionalParam(
@@ -110,6 +110,18 @@ task("deploy", "Deploys Dopamine contracts")
     1,
     types.int
   )
+  .addOptionalParam(
+    "whitelistSize",
+    "number of slots to reserve for whitelist minting",
+    10,
+    types.int
+  )
+  .addOptionalParam(
+    "maxSupply",
+    "total number of NFTs to reserve for minting",
+    9999,
+    types.int
+  )
 	.addOptionalParam(
 		"treasurySplit",
 		"% of auction revenue directed to Dopamine DAO",
@@ -143,7 +155,7 @@ task("deploy", "Deploys Dopamine contracts")
 	.addOptionalParam(
 		"duration",
 		"how long each auction should last",
-		60 * 60 * 4,
+		60 * 10,
 		types.int
 	)
   .addOptionalParam(
@@ -212,10 +224,10 @@ task("deploy", "Deploys Dopamine contracts")
         nonce: nonce + Contract.DopamineAuctionHouseProxy,
       }),
       args.registry,
-      deployer.address,
 			args.dropSize,
 			args.dropDelay,
-			ethers.utils.formatBytes32String("Test")
+			args.whitelistSize,
+			args.maxSupply
     ];
     const dopamintPass = await deployContract(
       Contract[Contract.DopamintPass],
@@ -304,15 +316,18 @@ task("deploy", "Deploys Dopamine contracts")
           address: dopamintPass,
           args: dopamintPassArgs,
         },
+				dopamineAuctionHouse: {
+					address: dopamineAuctionHouse,
+					args: [],
+				},
+				timelock: {
+					address: timelock,
+					args: timelockArgs,
+				},
         dopamineDAO: {
           address: dopamineDAO,
           args: dopamineDAOArgs,
-					path: "contracts/governance/DopamineDAO.sol:DopamineDAO",
-        },
-        dopamineDAOProxy: {
-          address: dopamineDAOProxy,
-          args: dopamineDAOProxyArgs,
-        },
+        }
       };
       for (const contract in toVerify) {
 				console.log(`\nVerifying contract ${contract}:`)
@@ -344,7 +359,6 @@ task("deploy", "Deploys Dopamine contracts")
 							break
 						}
 						console.log(`Error verifying contract ${contract}: ${msg}`, msg);
-						return;
 					}
 				}
       }

@@ -28,9 +28,6 @@ const config: HardhatUserConfig = {
         enabled: true,
         runs: 10_000,
       },
-			remappings: [
-				"ds-test/=lib/ds-test/contracts/",
-			],
     },
   },
   typechain: {
@@ -41,8 +38,8 @@ const config: HardhatUserConfig = {
       url: `https://ropsten.infura.io/v3/${process.env.PROJECT_ID}`,
       accounts: [process.env.PRIVATE_KEY!].filter(Boolean),
     },
-    rinkeby: {
-      url: `https://eth-rinkeby.alchemyapi.io/v2/${process.env.API_KEY}`,
+    goerli: {
+      url: `https://eth-goerli.alchemyapi.io/v2/${process.env.API_KEY}`,
       accounts: [process.env.PRIVATE_KEY!].filter(Boolean),
     },
   },

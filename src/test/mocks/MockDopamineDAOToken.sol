@@ -4,17 +4,17 @@
 
 pragma solidity ^0.8.9;
 
-import { ERC721Checkpointable } from '../../erc721/ERC721Checkpointable.sol';
+import { ERC721Votable } from '../../erc721/ERC721Votable.sol';
 import { ERC721 } from '../../erc721/ERC721.sol';
 
-contract MockDopamineDAOToken is ERC721Checkpointable {
+contract MockDopamineDAOToken is ERC721Votable {
 
     address public minter;
 
     string private constant NAME = 'Dopamine';
     string private constant SYMBOL = 'DOPE';
 
-    constructor(address minter_, uint256 maxSupply_) ERC721Checkpointable(NAME, SYMBOL, maxSupply_) {
+    constructor(address minter_, uint256 maxSupply_) ERC721Votable(NAME, SYMBOL, maxSupply_) {
         minter = minter_;
     }
 

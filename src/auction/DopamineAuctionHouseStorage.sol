@@ -1,46 +1,56 @@
 // SPDX-License-Identifier: GPL-3.0
 pragma solidity ^0.8.9;
 
-import '../interfaces/IDopamineAuctionHouse.sol';
-import { IDopamineAuctionHouseToken } from '../interfaces/IDopamineAuctionHouseToken.sol';
+////////////////////////////////////////////////////////////////////////////////
+///				 ░▒█▀▀▄░█▀▀█░▒█▀▀█░█▀▀▄░▒█▀▄▀█░▄█░░▒█▄░▒█░▒█▀▀▀              ///
+///              ░▒█░▒█░█▄▀█░▒█▄▄█▒█▄▄█░▒█▒█▒█░░█▒░▒█▒█▒█░▒█▀▀▀              ///
+///              ░▒█▄▄█░█▄▄█░▒█░░░▒█░▒█░▒█░░▒█░▄█▄░▒█░░▀█░▒█▄▄▄              ///
+////////////////////////////////////////////////////////////////////////////////
 
-contract DopamineAuctionHouseStorageV1 {
+import { IDopamineAuctionHouse } from "../interfaces/IDopamineAuctionHouse.sol";
+import { IDopamineAuctionHouseToken } from "../interfaces/IDopamineAuctionHouseToken.sol";
 
-    // The Nouns ERC721 token contract.
-    IDopamineAuctionHouseToken public token;
+/// @title Dopamine Auction House Storage Contract
+/// @dev Upgrades involving new storage variables should utilize a new contract
+///  inheriting the prior storage contract. This would look like the following:
+/// `contract DopamineAuctionHouseStorageV1 is DopamineAuctionHouseStorage {}`   
+/// `contract DopamineAuctionHouseStorageV2 is DopamineAuctionHouseStorageV1 {}`   
+contract DopamineAuctionHouseStorage {
 
-    // The address of the pending admin of the auction house contract.
+    /// @notice Address of temporary admin that will become admin once accepted.
     address public pendingAdmin;
 
-    // The address of the admin of the auction house contract.
+    /// @notice The address administering auctions and thus token emissions.
     address public admin;
 
-    // The minimum amount of time left in an auction after a new bid is created
+    /// @notice The time window in seconds to extend bids that are placed within
+    ///  `timeBuffer` seconds from the auction's end time.
     uint256 public timeBuffer;
 
-    // The minimum price accepted in an auction
+    /// @notice The English auction starting reserve price.
     uint256 public reservePrice;
 
-    // The percentage of auction proceeds to direct to the treasury
+    /// @notice The percentage of auction revenue directed to the DAO treasury.
     uint256 public treasurySplit;
 
-    // The duration of a single auction (seconds)
-    uint256 public duration;
+    /// @notice The initial duration in seconds to allot for a single auction.
+    uint256 public auctionDuration;
 
-    // The active auction
-    IDopamineAuctionHouse.Auction public auction;
-
-    // DAO treasury address.
+    /// @notice The address of the DAO treasury.
     address payable public dao;
 
-    // Team multisig address
+    /// @notice The Dopamine reserve address.
     address payable public reserve;
 
-    // Marker preventing reentrancy.
+    /// @notice The Dopamine Auction House ERC-721 token.
+    IDopamineAuctionHouseToken public token;
+
+    /// @notice The ongoing auction.
+    IDopamineAuctionHouse.Auction public auction;
+
+    /// @dev A uint marker for preventing reentrancy (locked = 1, unlocked = 2).
     uint256 internal _locked;
 
-    // Indicates whether or not auction is paused.
-    uint256 internal _paused;
+    /// @dev A boolean indicating whether or not the auction is curently paused.
+    uint256 internal _suspended;
 }
-
-

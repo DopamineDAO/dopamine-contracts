@@ -38,7 +38,7 @@ contract MockDopamineDAO is DopamineDAO {
     }
 
     // Votes using an EIP-712-signed message hash from `msg.sender`.
-    function mockCastVoteBySig(uint8 support) public {
+    function mockCastVoteBySig(uint256 proposalId, uint8 support) public {
         uint256 pk = signers[msg.sender];
         if (pk == 0) {
             revert UnsupportedSigner();
@@ -56,7 +56,7 @@ contract MockDopamineDAO is DopamineDAO {
             abi.encodePacked("\x19\x01", _DOMAIN_SEPARATOR, structHash)
         );
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(pk, hash);
-        this.castVoteBySig(msg.sender, support, v, r, s);
+        this.castVoteBySig(proposalId, msg.sender, support, v, r, s);
     }
 
 }

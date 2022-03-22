@@ -16,9 +16,12 @@ import {Test} from "./utils/test.sol";
 /// @title ERC721 Test Suites
 contract DopamineDAOTest is Test, IDopamineDAOEvents {
 
+    // Only event emitted not in IDopamineDAOEvents 
+    event AdminChanged(address oldAdmin, address newAdmin);
+
     /// @notice Proposal function calldata.
-    string constant SIGNATURE = "setDelay(uint256)";
-    bytes constant CALLDATA = abi.encodeWithSignature("setDelay(uint256)", uint256(TIMELOCK_DELAY + 1));
+    string constant SIGNATURE = "setTimelockDelay(uint256)";
+    bytes constant CALLDATA = abi.encodeWithSignature("setTimelockDelay(uint256)", uint256(TIMELOCK_DELAY + 1));
     address[] TARGETS = new address[](1);
     uint256[] VALUES = new uint256[](1);
     bytes[] CALLDATAS = new bytes[](1);
@@ -114,7 +117,7 @@ contract DopamineDAOTest is Test, IDopamineDAOEvents {
         assertEq(address(dao.pendingAdmin()), address(0));
 
         // Reverts when trying to initialize more than once.
-        vm.expectRevert(AlreadyInitialized.selector);
+        vm.expectRevert(ContractAlreadyInitialized.selector);
         dao.initialize(
             address(timelock),
             address(token),
@@ -126,7 +129,7 @@ contract DopamineDAOTest is Test, IDopamineDAOEvents {
         );
 
         // Reverts when setting invalid voting period.
-        uint32 invalidParam = dao.MIN_VOTING_PERIOD() - 1;
+        uint256 invalidParam = dao.MIN_VOTING_PERIOD() - 1;
         bytes memory data = abi.encodeWithSelector(
             daoImpl.initialize.selector,
             address(timelock),
@@ -137,7 +140,7 @@ contract DopamineDAOTest is Test, IDopamineDAOEvents {
             PROPOSAL_THRESHOLD,
             QUORUM_THRESHOLD_BPS
         );
-        vm.expectRevert(InvalidVotingPeriod.selector);
+        vm.expectRevert(ProposalVotingPeriodInvalid.selector);
 		ERC1967Proxy proxy = new ERC1967Proxy(address(daoImpl), data);
 
         // Reverts when setting invalid voting delay.
@@ -152,11 +155,11 @@ contract DopamineDAOTest is Test, IDopamineDAOEvents {
             PROPOSAL_THRESHOLD,
             QUORUM_THRESHOLD_BPS
         );
-        vm.expectRevert(InvalidVotingDelay.selector);
+        vm.expectRevert(ProposalVotingDelayInvalid.selector);
 		proxy = new ERC1967Proxy(address(daoImpl), data);
 
         // Reverts when setting invalid proposal threshold.
-        invalidParam = dao.MIN_PROPOSAL_THRESHOLD() - 1;
+        uint256 invalidParam256 = dao.MIN_PROPOSAL_THRESHOLD() - 1;
         data = abi.encodeWithSelector(
             daoImpl.initialize.selector,
             address(timelock),
@@ -164,10 +167,10 @@ contract DopamineDAOTest is Test, IDopamineDAOEvents {
             VETOER,
             VOTING_PERIOD,
             VOTING_DELAY,
-            invalidParam,
+            invalidParam256,
             QUORUM_THRESHOLD_BPS
         );
-        vm.expectRevert(InvalidProposalThreshold.selector);
+        vm.expectRevert(ProposalThresholdInvalid.selector);
 		proxy = new ERC1967Proxy(address(daoImpl), data);
 
         /// Reverts when setting invalid quorum threshold bips.
@@ -182,20 +185,20 @@ contract DopamineDAOTest is Test, IDopamineDAOEvents {
             PROPOSAL_THRESHOLD,
             invalidParam
         );
-        vm.expectRevert(InvalidQuorumThreshold.selector);
+        vm.expectRevert(ProposalQuorumThresholdInvalid.selector);
 		proxy = new ERC1967Proxy(address(daoImpl), data);
     }
 
     /// @notice Test `setVotingPeriod` functionality.
     function testSetVotingPeriod() public {
         // Reverts when voting period is too small.
-        uint32 minPeriod = dao.MIN_VOTING_PERIOD();
-        vm.expectRevert(InvalidVotingPeriod.selector);
+        uint256 minPeriod = dao.MIN_VOTING_PERIOD();
+        vm.expectRevert(ProposalVotingPeriodInvalid.selector);
         dao.setVotingPeriod(minPeriod - 1);
 
         // Reverts when voting period is too large.
-        uint32 maxPeriod = dao.MAX_VOTING_PERIOD();
-        vm.expectRevert(InvalidVotingPeriod.selector);
+        uint256 maxPeriod = dao.MAX_VOTING_PERIOD();
+        vm.expectRevert(ProposalVotingPeriodInvalid.selector);
         dao.setVotingPeriod(maxPeriod + 1);
 
         // Emits expected `VotingPeriodSet` event.
@@ -216,13 +219,13 @@ contract DopamineDAOTest is Test, IDopamineDAOEvents {
     /// @notice Test `setVotingDelay` functionality.
     function testSetVotingDelay() public {
         // Reverts when voting delay too small.
-        uint32 minDelay = dao.MIN_VOTING_DELAY();
-        vm.expectRevert(InvalidVotingDelay.selector);
+        uint256 minDelay = dao.MIN_VOTING_DELAY();
+        vm.expectRevert(ProposalVotingDelayInvalid.selector);
         dao.setVotingDelay(minDelay - 1);
 
         // Reverts when voting delay too large.
-        uint32 maxDelay = dao.MAX_VOTING_DELAY();
-        vm.expectRevert(InvalidVotingDelay.selector);
+        uint256 maxDelay = dao.MAX_VOTING_DELAY();
+        vm.expectRevert(ProposalVotingDelayInvalid.selector);
         dao.setVotingDelay(maxDelay + 1);
 
         // Emits the expected `VotingDelaySet` event.
@@ -243,13 +246,13 @@ contract DopamineDAOTest is Test, IDopamineDAOEvents {
     /// @notice Test `setProposalThreshold` functionality.
     function testSetProposalThreshold() public {
         // Reverts when proposal threshold too low.
-        uint32 minProposalThreshold = dao.MIN_PROPOSAL_THRESHOLD();
-        vm.expectRevert(InvalidProposalThreshold.selector);
+        uint256 minProposalThreshold = dao.MIN_PROPOSAL_THRESHOLD();
+        vm.expectRevert(ProposalThresholdInvalid.selector);
         dao.setProposalThreshold(minProposalThreshold - 1);
 
         // Reverts when proposal threshold too high.
-        uint32 maxProposalThreshold = dao.MAX_PROPOSAL_THRESHOLD();
-        vm.expectRevert(InvalidProposalThreshold.selector);
+        uint256 maxProposalThreshold = dao.maxProposalThreshold();
+        vm.expectRevert(ProposalThresholdInvalid.selector);
         dao.setProposalThreshold(maxProposalThreshold + 1);
 
         // When token supply is 0, min & max proposal threshold is 1.
@@ -258,7 +261,7 @@ contract DopamineDAOTest is Test, IDopamineDAOEvents {
 
         // When DAO token supply is 19, proposal threshold still capped at 1.
         token.batchMint(19);
-        vm.expectRevert(InvalidProposalThreshold.selector);
+        vm.expectRevert(ProposalThresholdInvalid.selector);
         dao.setProposalThreshold(minProposalThreshold + 1);
 
         // At DAO token supply of 20, proposal threshold no longer capped at 1.
@@ -283,13 +286,13 @@ contract DopamineDAOTest is Test, IDopamineDAOEvents {
     /// @notice Test `setQuorumThresholdBPS` functionality.
     function testSetQuorumThresholdBPS() public {
         // Reverts when quorum threshold bips is too low.
-        uint32 minQuorumThresholdBPS = dao.MIN_QUORUM_THRESHOLD_BPS();
-        vm.expectRevert(InvalidQuorumThreshold.selector);
+        uint256 minQuorumThresholdBPS = dao.MIN_QUORUM_THRESHOLD_BPS();
+        vm.expectRevert(ProposalQuorumThresholdInvalid.selector);
         dao.setQuorumThresholdBPS(minQuorumThresholdBPS - 1);
 
         // Reverts when quorum threshold bips is too high.
-        uint32 maxQuorumThresholdBPS = dao.MAX_QUORUM_THRESHOLD_BPS();
-        vm.expectRevert(InvalidQuorumThreshold.selector);
+        uint256 maxQuorumThresholdBPS = dao.MAX_QUORUM_THRESHOLD_BPS();
+        vm.expectRevert(ProposalQuorumThresholdInvalid.selector);
         dao.setQuorumThresholdBPS(maxQuorumThresholdBPS + 1);
 
         // Emits the expected `QuorumThresholdBPSSet` event.
@@ -311,9 +314,9 @@ contract DopamineDAOTest is Test, IDopamineDAOEvents {
         // When unset, pending admin should be the zero address.
         assertEq(dao.pendingAdmin(), address(0));
 
-        // Emits the expected `NewPendingAdmin` event.
+        // Emits the expected `PendingAdminSet` event.
         vm.expectEmit(true, true, true, true);
-        emit NewPendingAdmin(FROM);
+        emit PendingAdminSet(FROM);
         dao.setPendingAdmin(FROM);
 
         // Properly assigns pending admin.
@@ -332,10 +335,10 @@ contract DopamineDAOTest is Test, IDopamineDAOEvents {
         vm.expectRevert(PendingAdminOnly.selector);
         dao.acceptAdmin(); // Still called by current admin, hence fails..
 
-        // Emits the expected `NewAdmin` event when executed by pending admin.
+        // Emits the expected `AdminChanged` event when executed by pending admin.
         vm.startPrank(FROM);
         vm.expectEmit(true, true, true, true);
-        emit NewAdmin(ADMIN, FROM);
+        emit AdminChanged(ADMIN, FROM);
         dao.acceptAdmin();
 
         // Properly assigns admin and clears pending admin.
@@ -350,10 +353,10 @@ contract DopamineDAOTest is Test, IDopamineDAOEvents {
         vm.expectRevert(VetoerOnly.selector);
         dao.setVetoer(FROM);
 
-        // Emits the expected `NewVetoer` event when executed by the vetoer.
+        // Emits the expected `VetoerChanged` event when executed by the vetoer.
         vm.startPrank(VETOER);
         vm.expectEmit(true, true, true, true);
-        emit NewVetoer(FROM);
+        emit VetoerChanged(VETOER, FROM);
         dao.setVetoer(FROM);
 
         // Properly assigns vetoer.
@@ -363,7 +366,7 @@ contract DopamineDAOTest is Test, IDopamineDAOEvents {
     /// @notice Test `propose` functionality.
     function testPropose() public {
         // Reverts when proposing with 0 tokens allocated.
-        vm.expectRevert(InsufficientVotingPower.selector);
+        vm.expectRevert(VotingPowerInsufficient.selector);
         dao.propose(TARGETS, VALUES, SIGNATURES, CALLDATAS, "");
 
         // Grant 19 gov tokens to `FROM`, 1 gov token to `FROM`.
@@ -371,13 +374,13 @@ contract DopamineDAOTest is Test, IDopamineDAOEvents {
         token.transferFrom(ADMIN, FROM, 0); // Transfer 1 gov token to `FROM`.
 
         // Set proposal threshold to max relative to total supply.
-        uint32 maxProposalThreshold = dao.MAX_PROPOSAL_THRESHOLD();
+        uint256 maxProposalThreshold = dao.maxProposalThreshold();
         assertEq(maxProposalThreshold, 2); // 10% of 20 = 2.
         dao.setProposalThreshold(maxProposalThreshold);
 
         // Reverts when proposing under proposal threshold.
         vm.startPrank(FROM); // Threshold is 2, but `FROM` only has 1.
-        vm.expectRevert(InsufficientVotingPower.selector);
+        vm.expectRevert(VotingPowerInsufficient.selector);
         dao.propose(TARGETS, VALUES, SIGNATURES, CALLDATAS, "");
 
         // Transfer 1 more token to `FROM` to meet proposal threshold of 2.
@@ -401,7 +404,7 @@ contract DopamineDAOTest is Test, IDopamineDAOEvents {
         dao.propose(TARGETS, VALUES, SIGNATURES, calldatas, "");
         
         // Reverts when an invalid number of actions are provided (0).
-        vm.expectRevert(InvalidActionCount.selector);
+        vm.expectRevert(ProposalActionCountInvalid.selector);
         dao.propose(targets, values, signatures, calldatas, "");
 
         // Emits the expected `ProposalCreated` event.
@@ -415,14 +418,12 @@ contract DopamineDAOTest is Test, IDopamineDAOEvents {
             CALLDATAS,
             uint32(BLOCK_PROPOSAL + VOTING_DELAY),
             uint32(BLOCK_PROPOSAL + VOTING_DELAY + VOTING_PERIOD),
-            3, // Quorum threshold = 15% of 20.
             ""
         );
         dao.propose(TARGETS, VALUES, SIGNATURES, CALLDATAS, "");
 
         // Properly assigns all proposal attributes.
         IDopamineDAO.Proposal memory proposal = dao.getProposal();
-        assertEq(proposal.id, 1);
         assertEq(proposal.proposer, FROM);
         assertEq(proposal.quorumThreshold, 3);
         assertEq(proposal.eta, 0);
@@ -434,14 +435,14 @@ contract DopamineDAOTest is Test, IDopamineDAOEvents {
         assertTrue(!proposal.vetoed);
         assertTrue(!proposal.canceled);
         assertTrue(!proposal.executed);
-        (address[] memory t, uint256[] memory v, string[] memory s, bytes[] memory c) = dao.getActions();
+        (address[] memory t, uint256[] memory v, string[] memory s, bytes[] memory c) = dao.actions();
         assertEq(t, TARGETS);
         assertEq(v, VALUES);
         assertEq(s, SIGNATURES);
         assertEq(c, CALLDATAS);
 
         // Reverts when propsing while an unsettled proposal exists.
-        vm.expectRevert(UnsettledProposal.selector);
+        vm.expectRevert(ProposalUnsettled.selector);
         dao.propose(TARGETS, VALUES, SIGNATURES, CALLDATAS, "");
     }
 
@@ -485,18 +486,18 @@ contract DopamineDAOTest is Test, IDopamineDAOEvents {
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(PK_FROM, hash);
 
         // Works otherwise.
-        dao.castVoteBySig(FROM, 0, v, r, s);
+        dao.castVoteBySig(1, FROM, 0, v, r, s);
     }
 
     /// @notice Tests internal voting behavior.
-    function _testVoteBehavior(function(uint8) external fn) proposalCreated internal {
+    function _testVoteBehavior(function(uint256, uint8) external fn) proposalCreated internal {
         // Transfer 2 gov voting tokens to `FROM`.
         token.transferFrom(ADMIN, FROM, 0);
         token.transferFrom(ADMIN, FROM, 1);
 
         // Throws when voting for inactive proposal.
-        vm.expectRevert(InactiveProposal.selector);
-        fn(0);
+        vm.expectRevert(ProposalInactive.selector);
+        fn(1, 0);
 
         // These 2 transfers should have no effect on `FROM` 1st proposal voting
         // weight, because weights are based on time of `BLOCK_PROPOSAL`.
@@ -508,45 +509,35 @@ contract DopamineDAOTest is Test, IDopamineDAOEvents {
 
         // Throws while proposal is still pending.
         vm.roll(BLOCK_PROPOSAL + VOTING_DELAY - 1);
-        vm.expectRevert(InactiveProposal.selector);
-        fn(0);
+        vm.expectRevert(ProposalInactive.selector);
+        fn(1, 0);
 
         vm.roll(BLOCK_PROPOSAL + VOTING_DELAY); // Ensures proposal active.
 
         // Throws when vote type is not valid.
-        vm.expectRevert(InvalidVote.selector);
-        fn(3);
+        vm.expectRevert(VoteInvalid.selector);
+        fn(1, 3);
 
         // Emits `VoteCast` event with parameters.
         vm.expectEmit(true, true, true, true);
-		emit VoteCast(FROM, 1, 0, 2);
-        fn(0);
+		emit VoteCast(FROM, 1, 0, 2, "");
+        fn(1, 0);
         vm.startPrank(ADMIN);
         vm.expectEmit(true, true, true, true);
-		emit VoteCast(ADMIN, 1, 2, 18);
-        fn(2);
-
-        // Ensure all voting receipts are as expected.
-        (uint32 idFrom, uint8 supportFrom, uint32 votesFrom) = dao.receipts(FROM);
-        assertEq(idFrom, 1);
-        assertEq(supportFrom, 0);
-        assertEq(votesFrom, 2);
-        (uint32 idAdmin, uint8 supportAdmin, uint32 votesAdmin) = dao.receipts(ADMIN);
-        assertEq(idAdmin, 1);
-        assertEq(supportAdmin, 2);
-        assertEq(votesAdmin, 18);
+		emit VoteCast(ADMIN, 1, 2, 18, "");
+        fn(1, 2);
 
         // Move to last block where voting is still considered active.
         vm.roll(BLOCK_PROPOSAL + VOTING_DELAY + VOTING_PERIOD);
 
         // Throws if voting on the same proposal.
-        vm.expectRevert(AlreadyVoted.selector);
-        fn(0);
+        vm.expectRevert(VoteAlreadyCast.selector);
+        fn(1, 0);
 
         // Throws when proposal voting period is closed.
         vm.roll(BLOCK_PROPOSAL + VOTING_DELAY + VOTING_PERIOD + 1);
-        vm.expectRevert(InactiveProposal.selector);
-        fn(0);
+        vm.expectRevert(ProposalInactive.selector);
+        fn(1, 0);
     }
 
     /// @notice Tests expected behavior during pending proposal phase.
@@ -559,7 +550,7 @@ contract DopamineDAOTest is Test, IDopamineDAOEvents {
         assertEq(uint256(dao.state()), uint256(IDopamineDAO.ProposalState.Pending));
 
         // Ensure new proposals cannot be made while pending.
-        vm.expectRevert(UnsettledProposal.selector);
+        vm.expectRevert(ProposalUnsettled.selector);
         dao.propose(TARGETS, VALUES, SIGNATURES, CALLDATAS, "");
     }
 
@@ -576,7 +567,7 @@ contract DopamineDAOTest is Test, IDopamineDAOEvents {
         assertEq(uint256(dao.state()), uint256(IDopamineDAO.ProposalState.Active));
 
         // Ensure new proposals cannot be made while active.
-        vm.expectRevert(UnsettledProposal.selector);
+        vm.expectRevert(ProposalUnsettled.selector);
         dao.propose(TARGETS, VALUES, SIGNATURES, CALLDATAS, "");
     }
 
@@ -596,7 +587,7 @@ contract DopamineDAOTest is Test, IDopamineDAOEvents {
 
         // Vote in support of proposal as `FROM` and hit vote quorum threshold.
         vm.startPrank(FROM);
-        dao.castVote(1);
+        dao.castVote(1, 1);
 
         // Move past voting phase.
         vm.roll(BLOCK_PROPOSAL + VOTING_DELAY + VOTING_PERIOD + 1);
@@ -605,7 +596,7 @@ contract DopamineDAOTest is Test, IDopamineDAOEvents {
         assertEq(uint256(dao.state()), uint256(IDopamineDAO.ProposalState.Succeeded));
 
         // Ensure new proposals cannot be made while in state of successful.
-        vm.expectRevert(UnsettledProposal.selector);
+        vm.expectRevert(ProposalUnsettled.selector);
         dao.propose(TARGETS, VALUES, SIGNATURES, CALLDATAS, "");
     }
 
@@ -624,20 +615,19 @@ contract DopamineDAOTest is Test, IDopamineDAOEvents {
     /// @notice Test expected behavior during queued proposal phase.
     function testLifecycleStateQueued() proposalCreated public {
         // Unsuccessful proposals should not be queueable.
-        vm.expectRevert(UnpassedProposal.selector);
-        dao.queue();
+        vm.expectRevert(ProposalUnpassed.selector);
+        dao.queue(1);
 
         // Ensure proposal is successful.
         vm.roll(BLOCK_PROPOSAL + VOTING_DELAY + VOTING_PERIOD);
-        dao.castVote(1);
+        dao.castVote(1, 1);
         vm.roll(BLOCK_QUEUE);
         vm.warp(TIMELOCK_TIMESTAMP);
-
 
         // Emits `ProposalQueued` event when `queue` is called successfully.
         vm.expectEmit(true, true, true, true);
 		emit ProposalQueued(1, TIMELOCK_TIMESTAMP + TIMELOCK_DELAY);
-        dao.queue();
+        dao.queue(1);
 
         // Assert state is now queued.
         assertEq(uint256(dao.state()), uint256(IDopamineDAO.ProposalState.Queued));
@@ -648,66 +638,66 @@ contract DopamineDAOTest is Test, IDopamineDAOEvents {
 
 
         // Ensure new proposals cannot be made while queued.
-        vm.expectRevert(UnsettledProposal.selector);
+        vm.expectRevert(ProposalUnsettled.selector);
         dao.propose(TARGETS, VALUES, SIGNATURES, CALLDATAS, "");
 
         // Submit another proposal with duplicate transactions.
-        dao.cancel();
+        dao.cancel(1);
         TARGETS.push(address(timelock));
         VALUES.push(0);
         SIGNATURES.push(SIGNATURE);
         CALLDATAS.push(CALLDATA);
         dao.propose(TARGETS, VALUES, SIGNATURES, CALLDATAS, "");
         vm.roll(BLOCK_QUEUE + VOTING_DELAY + VOTING_PERIOD);
-        dao.castVote(1);
+        dao.castVote(2, 1);
         vm.roll(BLOCK_QUEUE + VOTING_DELAY + VOTING_PERIOD + 1);
 
         // Expect revert due to duplicate transaction.
-        vm.expectRevert(DuplicateTransaction.selector);
-        dao.queue();
+        vm.expectRevert(TransactionAlreadyQueued.selector);
+        dao.queue(2);
     }
 
     /// @notice Test expected behavior during execution proposal phase.
     function testLifecycleStateExecuted() proposalCreated public {
         // Unqueued proposals cannot be executed.
-        vm.expectRevert(UnqueuedProposal.selector);
-        dao.execute();
+        vm.expectRevert(ProposalNotYetQueued.selector);
+        dao.execute(1);
 
         // Ensure proposal is successful.
         vm.roll(BLOCK_PROPOSAL + VOTING_DELAY + VOTING_PERIOD);
-        dao.castVote(1);
+        dao.castVote(1, 1);
         vm.roll(BLOCK_QUEUE);
         vm.warp(TIMELOCK_TIMESTAMP);
-        dao.queue();
+        dao.queue(1);
 
         // Reverts if executed before timelock delay passed.
-        vm.expectRevert(PrematureTx.selector);
-        dao.execute();
+        vm.expectRevert(TransactionPremature.selector);
+        dao.execute(1);
 
         vm.warp(TIMELOCK_TIMESTAMP + TIMELOCK_DELAY); // Fast-forward to eta.
 
         // Check tx has not yet executed.
-        assertEq(timelock.delay(), TIMELOCK_DELAY);
+        assertEq(timelock.timelockDelay(), TIMELOCK_DELAY);
 
         // Check expected `ProposalExecuted` event emitted.
         vm.expectEmit(true, true, true, true);
         emit ProposalExecuted(1);
-        dao.execute();
+        dao.execute(1);
 
         // Assert state is now executed.
         assertEq(uint256(dao.state()), uint256(IDopamineDAO.ProposalState.Executed));
 
         // Verify transaction did in fact execute (`setDelay`).
-        assertEq(timelock.delay(), TIMELOCK_DELAY + 1);
+        assertEq(timelock.timelockDelay(), TIMELOCK_DELAY + 1);
 
         // Proposal cannot be canceled.
-        vm.expectRevert(AlreadySettled.selector);
-        dao.cancel();
+        vm.expectRevert(ProposalAlreadySettled.selector);
+        dao.cancel(1);
 
         // Proposal also cannot be vetoed.
         vm.startPrank(VETOER);
-        vm.expectRevert(AlreadySettled.selector);
-        dao.cancel();
+        vm.expectRevert(ProposalAlreadySettled.selector);
+        dao.cancel(1);
 
         // New proposals can now be made.
         vm.startPrank(ADMIN);
@@ -718,27 +708,27 @@ contract DopamineDAOTest is Test, IDopamineDAOEvents {
     function testLifecycleStateCanceled() proposalCreated public {
         // Move to block at which proposal queued.
         vm.roll(BLOCK_PROPOSAL + VOTING_DELAY + VOTING_PERIOD);
-        dao.castVote(1);
+        dao.castVote(1, 1);
         vm.roll(BLOCK_QUEUE);
-        dao.queue();
+        dao.queue(1);
 
         // Reverts if not canceled by the proposer.
         vm.startPrank(FROM);
         vm.expectRevert(ProposerOnly.selector);
-        dao.cancel();
+        dao.cancel(1);
 
         // Successfully cancels proposal and emits `ProposalCanceled` event.
         vm.startPrank(ADMIN);
         vm.expectEmit(true, true, true, true);
         emit ProposalCanceled(1);
-        dao.cancel();
+        dao.cancel(1);
 
         // Assert state is now canceled.
         assertEq(uint256(dao.state()), uint256(IDopamineDAO.ProposalState.Canceled));
 
         // Execution of the proposal will now fail.
-        vm.expectRevert(UnqueuedProposal.selector);
-        dao.execute();
+        vm.expectRevert(ProposalNotYetQueued.selector);
+        dao.execute(1);
 
         // New proposals can now be made.
         dao.propose(TARGETS, VALUES, SIGNATURES, CALLDATAS, "");
@@ -748,9 +738,9 @@ contract DopamineDAOTest is Test, IDopamineDAOEvents {
     function testLifecycleStateVetoed() proposalCreated public {
         // Move to block at which proposal queued.
         vm.roll(BLOCK_PROPOSAL + VOTING_DELAY + VOTING_PERIOD);
-        dao.castVote(1);
+        dao.castVote(1, 1);
         vm.roll(BLOCK_QUEUE);
-        dao.queue();
+        dao.queue(1);
 
         // Reverts if not vetoed by vetoer.
         vm.startPrank(FROM);
@@ -767,8 +757,8 @@ contract DopamineDAOTest is Test, IDopamineDAOEvents {
         assertEq(uint256(dao.state()), uint256(IDopamineDAO.ProposalState.Vetoed));
 
         // Execution of the proposal will now fail.
-        vm.expectRevert(UnqueuedProposal.selector);
-        dao.execute();
+        vm.expectRevert(ProposalNotYetQueued.selector);
+        dao.execute(1);
 
         // Revoke veto power by setting vetoer to zero address.
         dao.setVetoer(address(0));
@@ -786,12 +776,12 @@ contract DopamineDAOTest is Test, IDopamineDAOEvents {
     function testLifecycleStateExpired() proposalCreated public {
         // Move to block at which proposal queued.
         vm.roll(BLOCK_PROPOSAL + VOTING_DELAY + VOTING_PERIOD);
-        dao.castVote(1);
+        dao.castVote(1, 1);
         vm.roll(BLOCK_QUEUE);
         vm.warp(TIMELOCK_TIMESTAMP);
 
         // Queue transaction.
-        dao.queue();
+        dao.queue(1);
 
         // Move to earliest time at which transaction is considered stale.
         vm.warp(TIMELOCK_TIMESTAMP + TIMELOCK_DELAY + timelock.GRACE_PERIOD() + 1); // Fast-forward to eta.
@@ -800,8 +790,8 @@ contract DopamineDAOTest is Test, IDopamineDAOEvents {
         assertEq(uint256(dao.state()), uint256(IDopamineDAO.ProposalState.Expired));
 
         // Execution should no longer work.
-        vm.expectRevert(UnqueuedProposal.selector);
-        dao.execute();
+        vm.expectRevert(ProposalNotYetQueued.selector);
+        dao.execute(1);
 
         // New proposals can now be made.
         dao.propose(TARGETS, VALUES, SIGNATURES, CALLDATAS, "");
@@ -819,7 +809,7 @@ contract DopamineDAOTest is Test, IDopamineDAOEvents {
 
         // Upgrades should not work if called by unauthorized upgrader.
         vm.startPrank(FROM);
-        vm.expectRevert(UnauthorizedUpgrade.selector);
+        vm.expectRevert(UpgradeUnauthorized.selector);
         dao.upgradeTo(address(upgradedImpl));
 
         // On upgrade, mechanics should work.

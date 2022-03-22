@@ -21,7 +21,7 @@ task('merkle', 'Create a merkle distribution')
 			{ sortPairs: true }
 		);
 		const merkleRoot = merkleTree.getHexRoot();
-		console.log(merkleRoot);
+		process.stdout.write(merkleRoot);
 	});
 
 task('merkleproof', 'Get merkle proof')
@@ -55,7 +55,7 @@ task('merkleproof', 'Get merkle proof')
 		)
 
 		const encodedProof = utils.defaultAbiCoder.encode(["bytes32[]"], [proof]);
-		console.log(encodedProof);
+		process.stdout.write(encodedProof);
 	});
 
 function merkleHash(address: string, id: string): Buffer {

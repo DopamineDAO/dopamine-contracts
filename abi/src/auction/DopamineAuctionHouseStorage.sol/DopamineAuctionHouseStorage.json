@@ -1,8 +1,8 @@
 [
   "function admin() view returns (address)",
   "function auction() view returns (uint256 tokenId, uint256 amount, uint256 startTime, uint256 endTime, address bidder, bool settled)",
+  "function auctionDuration() view returns (uint256)",
   "function dao() view returns (address)",
-  "function duration() view returns (uint256)",
   "function pendingAdmin() view returns (address)",
   "function reserve() view returns (address)",
   "function reservePrice() view returns (uint256)",
