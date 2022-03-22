@@ -41,11 +41,11 @@ var Contract;
         verify: args.verify,
     });
 }));
-(0, config_1.task)("deploy-staging", "Deploy Rarity Society contracts to Rinkeby")
+(0, config_1.task)("deploy-staging", "Deploy Rarity Society contracts to Goerli")
     .addParam("verify", "whether to verify on Etherscan", true, config_1.types.boolean)
     .setAction((args, { run }) => __awaiter(void 0, void 0, void 0, function* () {
     yield run("deploy", {
-        chainid: 4,
+        chainid: 5,
         registry: "0xf57b2c51ded3a29e6891aba85459d600256cf317",
     });
 }));
@@ -219,7 +219,6 @@ var Contract;
                         break;
                     }
                     console.log(`Error verifying contract ${contract}: ${msg}`, msg);
-                    return;
                 }
             }
         }

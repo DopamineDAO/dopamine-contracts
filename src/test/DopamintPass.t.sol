@@ -13,7 +13,7 @@ import "./utils/console.sol";
 contract DopamintPassTest is Test, IDopamintPassEvents {
 
     /// @notice Addresses used for testing.
-    address constant OWNER = address(1337);
+    address constant ADMIN = address(1337);
     address constant FROM = address(99);
     address constant TO = address(69);
     address constant OPERATOR = address(420);
@@ -59,9 +59,9 @@ contract DopamintPassTest is Test, IDopamintPassEvents {
         r.registerProxy(); // Register OS delegate on behalf of `TO`.
         PROXY_REGISTRY = IProxyRegistry(address(r));
 
-        vm.startPrank(OWNER);
+        vm.startPrank(ADMIN);
 
-        token = new DopamintPass(OWNER, PROXY_REGISTRY, DROP_SIZE, DROP_DELAY, WHITELIST_SIZE, MAX_SUPPLY);
+        token = new DopamintPass(ADMIN, PROXY_REGISTRY, DROP_SIZE, DROP_DELAY, WHITELIST_SIZE, MAX_SUPPLY);
 
         // 3 inputs for CLI args
         inputs = new string[](3 + WHITELISTED.length);
@@ -92,7 +92,7 @@ contract DopamintPassTest is Test, IDopamintPassEvents {
     }
 
     function testConstructor() public {
-        assertEq(token.minter(), OWNER);
+        assertEq(token.minter(), ADMIN);
         assertEq(address(token.proxyRegistry()), address(PROXY_REGISTRY));
         assertEq(token.dropSize(), DROP_SIZE);
         assertEq(token.dropDelay(), DROP_DELAY);
@@ -103,12 +103,12 @@ contract DopamintPassTest is Test, IDopamintPassEvents {
         // Reverts when setting invalid drop size.
         uint256 minDropSize = token.MIN_DROP_SIZE();
         vm.expectRevert(DropSizeInvalid.selector);
-        new DopamintPass(OWNER, IProxyRegistry(PROXY_REGISTRY), minDropSize - 1, DROP_DELAY, WHITELIST_SIZE, MAX_SUPPLY);
+        new DopamintPass(ADMIN, IProxyRegistry(PROXY_REGISTRY), minDropSize - 1, DROP_DELAY, WHITELIST_SIZE, MAX_SUPPLY);
         
         // Reverts when setting invalid drop delay.
         uint256 maxDropDelay = token.MAX_DROP_DELAY();
         vm.expectRevert(DropDelayInvalid.selector);
-        new DopamintPass(OWNER, IProxyRegistry(PROXY_REGISTRY), DROP_SIZE, maxDropDelay + 1, WHITELIST_SIZE, MAX_SUPPLY);
+        new DopamintPass(ADMIN, IProxyRegistry(PROXY_REGISTRY), DROP_SIZE, maxDropDelay + 1, WHITELIST_SIZE, MAX_SUPPLY);
 
     }
 
@@ -170,7 +170,7 @@ contract DopamintPassTest is Test, IDopamintPassEvents {
 
     function testSetMinter() public {
         vm.expectEmit(true, true, true, true);
-        emit MinterChanged(OWNER, TO);
+        emit MinterChanged(ADMIN, TO);
         token.setMinter(TO);
         assertEq(token.minter(), TO);
     }

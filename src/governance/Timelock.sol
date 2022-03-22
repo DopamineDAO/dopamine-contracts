@@ -23,7 +23,7 @@ pragma solidity ^0.8.9;
 /// - An explicit check was added to ensure that the abi-encoded signature in
 ///   `executeTransaction` matches the function selector provded in calldata.
  
-import '../errors.sol';
+import "../errors.sol";
 import {ITimelock} from "../interfaces/ITimelock.sol";
 
 /// @title Timelock Contract & Dopamine DAO Treasury

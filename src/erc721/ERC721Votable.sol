@@ -21,11 +21,11 @@ pragma solidity ^0.8.9;
 /// - `Checkpoint` struct was modified to pack 4 checkpoints per storage slot
 /// - Signing was modularized to abstract away EIP-712 details (see ERC721.sol)
 
-import '../errors.sol';
+import "../errors.sol";
 import {IERC721Votable} from "../interfaces/IERC721Votable.sol";
 import {ERC721} from "./ERC721.sol";
 
-/// @title Dopamine DAO ERC-721 voting contract
+/// @title Dopamine DAO ERC-721 Voting Contract
 /// @notice This voting contract allows any ERC-721 NFT with a maximum supply of
 ///  under `type(uint32).max` which inherits the contract to be integrated into
 ///  a Governor Bravo governance framework. In Dopamine's case, this contract is

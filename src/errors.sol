@@ -42,7 +42,7 @@ error DropWhitelistOverCapacity();
 error AuctionAlreadySettled();
 
 /// @notice The NFT specified in the auction bid is invalid.
-error AuctionBidTokenInvalid();
+error AuctionBidInvalid();
 
 /// @notice Bid placed was too low (see `reservePrice` and `MIN_BID_DIFF`).
 error AuctionBidTooLow();
@@ -53,14 +53,11 @@ error AuctionDurationInvalid();
 /// @notice The auction has expired.
 error AuctionExpired();
 
-/// @notice Operation cannot be performed as auction is paused.
-error AuctionMustBePaused();
+/// @notice Operation cannot be performed as auction is not suspended.
+error AuctionNotSuspended();
 
-/// @notice Operation cannot be performed as auction is unpaused.
-error AuctionMustBeUnpaused();
-
-/// @notice Auction has not yet started.
-error AuctionNotYetStarted();
+/// @notice Operation cannot be performed as auction is already suspended.
+error AuctionAlreadySuspended();
 
 /// @notice Auction has yet to complete.
 error AuctionOngoing();

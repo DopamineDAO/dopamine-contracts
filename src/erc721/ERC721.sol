@@ -206,9 +206,8 @@ contract ERC721 is IERC721, IERC721Metadata {
     }
 
     /// @notice Returns the metadata URI associated with the NFT of id `id`.
-    /// @param id The id of the NFT being queried.
     /// @return A string URI pointing to metadata of the queried NFT.
-    function tokenURI(uint256 id) public view virtual returns (string memory) {
+    function tokenURI(uint256) public view virtual returns (string memory) {
         return "";
     }
 

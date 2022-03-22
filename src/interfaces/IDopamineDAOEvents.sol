@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-3.0
 pragma solidity ^0.8.9;
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -6,7 +7,7 @@ pragma solidity ^0.8.9;
 ///              ░▒█▄▄█░█▄▄█░▒█░░░▒█░▒█░▒█░░▒█░▄█▄░▒█░░▀█░▒█▄▄▄              ///
 ////////////////////////////////////////////////////////////////////////////////
  
-/// @title Dopamine DAO events interface
+/// @title Dopamine DAO Events Interface
 interface IDopamineDAOEvents {
 
     /// @notice Emits when a new proposal is created.

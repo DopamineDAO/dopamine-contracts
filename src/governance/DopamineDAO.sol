@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: GPL-3.0
+// SPDX-License-Identifier: BSD-3-Clause
 pragma solidity ^0.8.9;
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -25,7 +25,7 @@ pragma solidity ^0.8.9;
 /// - Bakes in EIP-712 data structures as immutables for more efficient caching
 import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 
-import '../errors.sol';
+import "../errors.sol";
 import {IDopamineDAOToken} from "../interfaces/IDopamineDAOToken.sol";
 import {ITimelock} from "../interfaces/ITimelock.sol";
 import {IDopamineDAO} from "../interfaces/IDopamineDAO.sol";
@@ -38,6 +38,8 @@ import {DopamineDAOStorage} from "./DopamineDAOStorage.sol";
 ///  Governor Bravo, governance token holders may make proposals and vote for 
 ///  them based on their delegated voting weights. In the Dopamine DAO model,
 ///  governance tokens are ERC-721s  with a capped supply (Dopamine passes).
+/// @dev It is intended for the admin to be configured as the  Timelock, and the
+///  vetoer to initially be configured as the team multi-sig (revoked later).
 contract DopamineDAO is UUPSUpgradeable, DopamineDAOStorage, IDopamineDAO {
 
     /// @notice The lowest settable threshold for proposals, in number of NFTs.
@@ -78,7 +80,7 @@ contract DopamineDAO is UUPSUpgradeable, DopamineDAOStorage, IDopamineDAO {
     bytes4 private constant _ERC165_INTERFACE_ID = 0x01ffc9a7;
     bytes4 private constant _RARITY_SOCIETY_DAO_INTERFACE_ID = 0x8a5da15c;
 
-    /// @notice Modifier to restrict calls to admin only.
+    /// @notice This modifier restrict calls to only the admin.
 	modifier onlyAdmin() {
         if (msg.sender != admin) {
             revert AdminOnly();

@@ -7,11 +7,11 @@ pragma solidity ^0.8.9;
 ///              ░▒█▄▄█░█▄▄█░▒█░░░▒█░▒█░▒█░░▒█░▄█▄░▒█░░▀█░▒█▄▄▄              ///
 ////////////////////////////////////////////////////////////////////////////////
 
-import '../interfaces/ITimelock.sol';
-import '../interfaces/IDopamineDAOToken.sol';
-import '../interfaces/IDopamineDAO.sol';
+import { ITimelock } from "../interfaces/ITimelock.sol";
+import { IDopamineDAOToken } from "../interfaces/IDopamineDAOToken.sol";
+import { IDopamineDAO } from "../interfaces/IDopamineDAO.sol";
 
-/// @title Dopamine DAO Storage contract
+/// @title Dopamine DAO Storage Contract
 /// @dev Upgrades involving new storage variables should utilize a new contract
 ///  inheriting the prior storage contract. This would look like the following:
 ///  `contract DopamineDAOStorageV1 is DopamineDAOStorage { ... }`   (upgrade 1)

@@ -1,0 +1,11 @@
+[
+  "event DelegateChanged(address indexed delegator, address indexed fromDelegate, address indexed toDelegate)",
+  "event DelegateVotesChanged(address indexed delegate, uint256 oldVotes, uint256 newVotes)",
+  "function checkpoints(address voter, uint256 index) returns (uint32 fromBlock, uint32 votes)",
+  "function currentVotes(address voter) view returns (uint32)",
+  "function delegate(address delegatee)",
+  "function delegateBySig(address delegator, address delegatee, uint256 expiry, uint8 v, bytes32 r, bytes32 s)",
+  "function delegates(address delegator) view returns (address)",
+  "function priorVotes(address voter, uint256 blockNumber) view returns (uint32)",
+  "function totalCheckpoints(address voter) view returns (uint256)"
+]

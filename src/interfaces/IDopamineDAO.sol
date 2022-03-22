@@ -7,7 +7,7 @@ pragma solidity ^0.8.9;
 ///              ░▒█▄▄█░█▄▄█░▒█░░░▒█░▒█░▒█░░▒█░▄█▄░▒█░░▀█░▒█▄▄▄              ///
 ////////////////////////////////////////////////////////////////////////////////
  
-import "./IDopamineDAOEvents.sol";
+import {IDopamineDAOEvents} from "./IDopamineDAOEvents.sol";
 
 /// @title Dopamine DAO Implementation Interface
 interface IDopamineDAO is IDopamineDAOEvents {

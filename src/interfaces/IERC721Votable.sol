@@ -9,7 +9,7 @@ pragma solidity ^0.8.9;
 
 import "./IERC721VotableEvents.sol";
 
-/// @title Dopamine DAO ERC-721 voting contract interface
+/// @title Dopamine DAO ERC-721 Voting Contract Interface
 interface IERC721Votable is IERC721VotableEvents {
 
 	/// @notice Checkpoints hold the vote balance of addresses at given blocks.

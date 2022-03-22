@@ -7,7 +7,7 @@ pragma solidity ^0.8.9;
 ///              ░▒█▄▄█░█▄▄█░▒█░░░▒█░▒█░▒█░░▒█░▄█▄░▒█░░▀█░▒█▄▄▄              ///
 ////////////////////////////////////////////////////////////////////////////////
  
-/// @title Dopamine DAO ERC-721 voting contract events interface
+/// @title Dopamine DAO ERC-721 Voting Contract Events Interface
 interface IERC721VotableEvents {
 
     /// @notice Emits when address `delegator` has its delegate address changed

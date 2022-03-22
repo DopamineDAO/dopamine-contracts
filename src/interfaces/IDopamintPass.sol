@@ -27,7 +27,7 @@ interface IDopamintPass is IDopamintPassEvents {
     function claim(bytes32[] calldata proof, uint256 id) external;
 
     /// @notice Creates a new Dopamine pass drop.
-    /// @dev This function is only callable by the owner address, and reverts if
+    /// @dev This function is only callable by the admin address, and reverts if
     ///  an ongoing drop exists, call is too early, or maximum capacity reached.
     /// @param whitelist A merkle root whose tree is comprised of whitelisted 
     ///  addresses and their assigned pass ids. This assignment is permanent.
@@ -35,8 +35,8 @@ interface IDopamintPass is IDopamintPassEvents {
     ///  hash of the concatenation of all SHA-256 image hashes of the drop.
     function createDrop(bytes32 whitelist, bytes32 provenanceHash) external;
 
-    /// @notice Gets the owner address, which controls drop settings & creation.
-    function owner() external view returns (address);
+    /// @notice Gets the admin address, which controls drop settings & creation.
+    function admin() external view returns (address);
 
     /// @notice Gets the minter address, which controls Dopamine pass emissions.
     function minter() external view returns (address);
@@ -82,40 +82,40 @@ interface IDopamintPass is IDopamintPassEvents {
 
     /// @notice Sets the minter address to `newMinter`.
     /// @param newMinter The address of the new minter.
-    /// @dev This function is only callable by the owner address.
+    /// @dev This function is only callable by the admin address.
     function setMinter(address newMinter) external;
 
-    /// @notice Sets the owner address to `newOwner`.
-    /// @param newOwner The address of the new owner.
-    /// @dev This function is only callable by the owner address.
-    function setOwner(address newOwner) external;
+    /// @notice Sets the admin address to `newAdmin`.
+    /// @param newAdmin The address of the new admin.
+    /// @dev This function is only callable by the admin address.
+    function setAdmin(address newAdmin) external;
 
     /// @notice Sets the base URI to `newBaseURI`.
     /// @param newBaseURI The new base metadata URI to set for the collection.
-    /// @dev This function is only callable by the owner address.
+    /// @dev This function is only callable by the admin address.
 	function setBaseURI(string calldata newBaseURI) external;
 
     /// @notice Sets the final metadata URI for drop `dropId` to `dropURI`.
-    /// @dev This function is only callable by the owner address, and reverts
+    /// @dev This function is only callable by the admin address, and reverts
     ///  if the specified drop `dropId` does not exist.
-    /// @param dropId  The id of the drop whose final metadata URI is being set.
+    /// @param id      The id of the drop whose final metadata URI is being set.
 	/// @param dropURI The finalized IPFS / Arweave metadata URI.
-    function setDropURI(uint256 dropId, string calldata dropURI) external;
+    function setDropURI(uint256 id, string calldata dropURI) external;
 
     /// @notice Sets the drop delay `dropDelay` to `newDropDelay`.
-    /// @dev This function is only callable by the owner address, and reverts if
+    /// @dev This function is only callable by the admin address, and reverts if
     ///  the drop delay is too small or too large.
     /// @param newDropDelay The new drop delay to set, in seconds.
     function setDropDelay(uint256 newDropDelay) external;
 
     /// @notice Sets the drop size to `newDropSize`.
-    /// @dev This function is only callable by the owner address, and reverts if
+    /// @dev This function is only callable by the admin address, and reverts if
     ///  the specified drop size is too small or too large.
     /// @param newDropSize The new drop size to set, in terms of pass units.
     function setDropSize(uint256 newDropSize) external;
 
     /// @notice Sets the drop whitelist size to `newWhitelistSize`.
-    /// @dev This function is only callable by the owner address, and reverts if
+    /// @dev This function is only callable by the admin address, and reverts if
     ///  the whitelist size is too large or greater than the existing drop size.
     /// @param newWhitelistSize The new drop whitelist size to set.
     function setWhitelistSize(uint256 newWhitelistSize) external;

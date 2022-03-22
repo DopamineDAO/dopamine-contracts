@@ -13,12 +13,14 @@ import { IProxyRegistry } from "./interfaces/IProxyRegistry.sol";
 import { ERC721 } from "./erc721/ERC721.sol";
 import { ERC721Votable } from "./erc721/ERC721Votable.sol";
 
-/// @title Dopamine DAO ERC-721 membership pass
+/// @title Dopamine DAO ERC-721 Membership Pass
 /// @notice DopamintPass holders are first-class members of the Dopamine DAO.
 ///  The passes are minted through drops of varying sizes and durations, and
 ///  each drop features a separate set of NFT metadata. These parameters are 
-///  configurable by the owner address, with emissions controlled by the minter
+///  configurable by the admin address, with emissions controlled by the minter
 ///  address. A drop is "completed" once all non-whitelisted passes are minted.
+/// @dev It is intended for the admin to be the team multi-sig, with the minter
+///  being the Dopamine DAO Auction House address (minter controls emissions).
 contract DopamintPass is ERC721Votable, IDopamintPass {
 
     /// @notice The name of the Dopamine membership pass.
@@ -43,7 +45,7 @@ contract DopamintPass is ERC721Votable, IDopamintPass {
     uint256 public constant MAX_DROP_DELAY = 24 weeks;
 
     /// @notice The address administering drop creation, sizing, and scheduling.
-    address public owner;
+    address public admin;
 
     /// @notice The address responsible for controlling pass emissions.
     address public minter;
@@ -93,10 +95,10 @@ contract DopamintPass is ERC721Votable, IDopamintPass {
         _;
     }
 
-    /// @notice Restricts a function call to address `owner`.
-    modifier onlyOwner() {
-        if (msg.sender != owner) {
-            revert OwnerOnly();
+    /// @notice Restricts a function call to address `admin`.
+    modifier onlyAdmin() {
+        if (msg.sender != admin) {
+            revert AdminOnly();
         }
         _;
     }
@@ -106,7 +108,7 @@ contract DopamintPass is ERC721Votable, IDopamintPass {
     /// @param proxyRegistry_ The OS proxy registry address.
     /// @param dropSize_      The number of passes to issue for each drop.
     /// @param dropDelay_     The minimum delay to wait between drop creations.
-    /// @dev `owner` is intended to eventually switch to the Dopamine DAO proxy.
+    /// @dev `admin` is intended to eventually switch to the Dopamine DAO proxy.
     constructor(
         address minter_,
         IProxyRegistry proxyRegistry_,
@@ -115,7 +117,7 @@ contract DopamintPass is ERC721Votable, IDopamintPass {
         uint256 whitelistSize_,
         uint256 maxSupply_
     ) ERC721Votable(NAME, SYMBOL, maxSupply_) {
-		owner = msg.sender;
+		admin = msg.sender;
         minter = minter_;
         proxyRegistry = proxyRegistry_;
 
@@ -147,7 +149,7 @@ contract DopamintPass is ERC721Votable, IDopamintPass {
     /// @inheritdoc IDopamintPass
     function createDrop(bytes32 whitelist,  bytes32 provenanceHash)
         external 
-        onlyOwner 
+        onlyAdmin 
     {
         if (_id < dropEndIndex) {
             revert DropOngoing();
@@ -202,6 +204,7 @@ contract DopamintPass is ERC721Votable, IDopamintPass {
     ///  to {baseUri}/{id}. Once the drop completes, it is replaced by an IPFS / 
     ///  Arweave URI, and `tokenURI()` will resolve to {dropURI[dropId]}/{id}.
     ///  This function reverts if the queried pass of id `id` does not exist.
+    /// @param id The id of the NFT being queried.
     function tokenURI(uint256 id) 
         public 
         view 
@@ -213,11 +216,11 @@ contract DopamintPass is ERC721Votable, IDopamintPass {
             revert TokenNonExistent();
         }
 
-        string memory dropURI  = dropURI[dropId(id)];
-		if (bytes(dropURI).length == 0) {
-			dropURI = baseUri;
+        string memory uri = dropURI[dropId(id)];
+		if (bytes(uri).length == 0) {
+			uri = baseUri;
 		}
-		return string(abi.encodePacked(dropURI, _toString(id)));
+		return string(abi.encodePacked(uri, _toString(id)));
     }
 
 
@@ -235,38 +238,38 @@ contract DopamintPass is ERC721Votable, IDopamintPass {
     }
 
     /// @inheritdoc IDopamintPass
-    function setMinter(address newMinter) public onlyOwner {
+    function setMinter(address newMinter) public onlyAdmin {
         emit MinterChanged(minter, newMinter);
         minter = newMinter;
     }
 
     /// @inheritdoc IDopamintPass
-    function setOwner(address newOwner) public onlyOwner {
-        emit OwnerChanged(owner, newOwner);
-        owner = newOwner;
+    function setAdmin(address newAdmin) public onlyAdmin {
+        emit AdminChanged(admin, newAdmin);
+        admin = newAdmin;
     }
 
     /// @inheritdoc IDopamintPass
-	function setBaseURI(string calldata newBaseURI) public onlyOwner {
+	function setBaseURI(string calldata newBaseURI) public onlyAdmin {
         baseUri = newBaseURI;
         emit BaseURISet(newBaseURI);
 	}
 
     /// @inheritdoc IDopamintPass
-	function setDropURI(uint256 dropId, string calldata dropUri)
+	function setDropURI(uint256 id, string calldata dropUri)
         public 
-        onlyOwner 
+        onlyAdmin 
     {
         uint256 numDrops = _dropEndIndices.length;
-        if (dropId >= numDrops) {
+        if (id >= numDrops) {
             revert DropNonExistent();
         }
-        dropURI[dropId] = dropUri;
-        emit DropURISet(dropId, dropUri);
+        dropURI[id] = dropUri;
+        emit DropURISet(id, dropUri);
 	}
 
     /// @inheritdoc IDopamintPass
-    function setDropDelay(uint256 newDropDelay) public override onlyOwner {
+    function setDropDelay(uint256 newDropDelay) public override onlyAdmin {
         if (newDropDelay < MIN_DROP_DELAY || newDropDelay > MAX_DROP_DELAY) {
             revert DropDelayInvalid();
         }
@@ -275,7 +278,7 @@ contract DopamintPass is ERC721Votable, IDopamintPass {
     }
 
     /// @inheritdoc IDopamintPass
-    function setDropSize(uint256 newDropSize) public onlyOwner {
+    function setDropSize(uint256 newDropSize) public onlyAdmin {
         if (newDropSize < MIN_DROP_SIZE || newDropSize > MAX_DROP_SIZE) {
             revert DropSizeInvalid();
         }
@@ -284,7 +287,7 @@ contract DopamintPass is ERC721Votable, IDopamintPass {
     }
 
     /// @inheritdoc IDopamintPass
-    function setWhitelistSize(uint256 newWhitelistSize) public onlyOwner {
+    function setWhitelistSize(uint256 newWhitelistSize) public onlyAdmin {
         if (newWhitelistSize > MAX_WL_SIZE || newWhitelistSize > dropSize) {
             revert DropWhitelistOverCapacity();
         }
@@ -303,7 +306,7 @@ contract DopamintPass is ERC721Votable, IDopamintPass {
         bytes32 merkleRoot,
         bytes32[] memory proof,
         bytes32 leaf
-    ) private view returns (bool) 
+    ) private pure returns (bool) 
     {
         bytes32 hash = leaf;
         for (uint256 i = 0; i < proof.length; i++) {

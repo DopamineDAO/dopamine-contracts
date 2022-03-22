@@ -40,12 +40,12 @@ task("deploy-testing", "Deploy Rarity Society contracts to Ropsten")
     });
   });
 
-task("deploy-staging", "Deploy Rarity Society contracts to Rinkeby")
+task("deploy-staging", "Deploy Rarity Society contracts to Goerli")
   .addParam("verify", "whether to verify on Etherscan", true, types.boolean)
 	.setAction(
 		async (args, { run }) => {
 			await run("deploy", {
-				chainid: 4,
+				chainid: 5,
 				registry: "0xf57b2c51ded3a29e6891aba85459d600256cf317",
 		});
 	});
@@ -359,7 +359,6 @@ task("deploy", "Deploys Dopamine contracts")
 							break
 						}
 						console.log(`Error verifying contract ${contract}: ${msg}`, msg);
-						return;
 					}
 				}
       }
