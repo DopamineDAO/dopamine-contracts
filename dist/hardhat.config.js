@@ -21,7 +21,7 @@ dotenv_1.default.config();
 // Go to https://hardhat.org/config/ to learn more
 const config = {
     solidity: {
-        version: "0.8.9",
+        version: "0.8.13",
         settings: {
             optimizer: {
                 enabled: true,
@@ -33,8 +33,8 @@ const config = {
         outDir: "typechain",
     },
     networks: {
-        ropsten: {
-            url: `https://ropsten.infura.io/v3/${process.env.PROJECT_ID}`,
+        rinkeby: {
+            url: `https://eth-rinkeby.alchemyapi.io/v2/${process.env.API_KEY}`,
             accounts: [process.env.PRIVATE_KEY].filter(Boolean),
         },
         goerli: {

@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0
-pragma solidity ^0.8.9;
+pragma solidity ^0.8.13;
 
 ////////////////////////////////////////////////////////////////////////////////
 ///				 ░▒█▀▀▄░█▀▀█░▒█▀▀█░█▀▀▄░▒█▀▄▀█░▄█░░▒█▄░▒█░▒█▀▀▀              ///
@@ -159,6 +159,10 @@ interface IDopamineDAO is IDopamineDAOEvents {
         bytes32 r,
         bytes32 s
     ) external;
+
+	/// @notice Retrieves the current quorum threshold, in number of NFTs.
+	/// @return The number of Dopamine DAO NFTs needed for a proposal to pass.
+	function quorumThreshold() external view returns (uint256);
 
     /// @notice Retrieves the maximum allowed proposal threshold in NFT units.
     /// @dev This function ensures proposal threshold is non-zero in the case

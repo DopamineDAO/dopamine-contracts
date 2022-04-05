@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: BSD-3-Clause
-pragma solidity ^0.8.9;
+pragma solidity ^0.8.13;
 
 ////////////////////////////////////////////////////////////////////////////////
 ///				 ░▒█▀▀▄░█▀▀█░▒█▀▀█░█▀▀▄░▒█▀▄▀█░▄█░░▒█▄░▒█░▒█▀▀▀              ///
@@ -368,6 +368,11 @@ contract DopamineDAO is UUPSUpgradeable, DopamineDAOStorage, IDopamineDAO {
 		setProposalThreshold(proposalThreshold_);
 	}
 
+	/// @inheritdoc IDopamineDAO
+	function quorumThreshold() external view returns (uint256) {
+           return max(1, bps2Uint(quorumThresholdBPS, token.totalSupply()));
+	}
+
     /// @inheritdoc IDopamineDAO
 	function maxProposalThreshold() public view returns (uint256) {
 		return max(
@@ -600,7 +605,7 @@ contract DopamineDAO is UUPSUpgradeable, DopamineDAOStorage, IDopamineDAO {
 
 	/// @notice Returns an EIP-712 encoding of structured data `structHash`.
     /// @param structHash The structured data to be encoded and signed.
-    /// @return A bytestring suitable for signing in accordance to EIP-712.
+    /// @return A byte string suitable for signing in accordance to EIP-712.
     function _hashTypedData(bytes32 structHash) 
         internal 
         view 

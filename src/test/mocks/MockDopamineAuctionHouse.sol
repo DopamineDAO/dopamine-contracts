@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0
-pragma solidity ^0.8.9;
+pragma solidity ^0.8.13;
 
 import { DopamineAuctionHouse } from '../../auction/DopamineAuctionHouse.sol';
 import { IDopamineAuctionHouseToken } from '../../interfaces/IDopamineAuctionHouseToken.sol';

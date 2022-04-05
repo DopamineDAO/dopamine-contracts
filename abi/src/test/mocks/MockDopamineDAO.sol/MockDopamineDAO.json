@@ -44,6 +44,7 @@
   "function propose(address[] targets, uint256[] values, string[] signatures, bytes[] calldatas, string description) returns (uint256)",
   "function proxiableUUID() view returns (bytes32)",
   "function queue(uint256 id)",
+  "function quorumThreshold() view returns (uint256)",
   "function quorumThresholdBPS() view returns (uint256)",
   "function setPendingAdmin(address newPendingAdmin)",
   "function setProposalThreshold(uint256 newProposalThreshold)",

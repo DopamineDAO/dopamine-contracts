@@ -1,13 +1,21 @@
 // SPDX-License-Identifier: GPL-3.0
 pragma solidity >=0.8.0;
 
+import "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
+
 import "../interfaces/IDopamintPass.sol";
 import "../interfaces/IProxyRegistry.sol";
+import "./mocks/MockDopamineAuctionHouse.sol";
+import "../auction/DopamineAuctionHouse.sol";
+import "../interfaces/IDopamineAuctionHouse.sol";
 import "../DopamintPass.sol";
 import "./mocks/MockProxyRegistry.sol";
 
 import "./utils/test.sol";
 import "./utils/console.sol";
+
+contract MockContractUnpayable { }
+contract MockContractPayable { receive() external payable {} }
 
 /// @title Dopamint Pass Test Suites
 contract DopamintPassTest is Test, IDopamintPassEvents {
@@ -17,9 +25,18 @@ contract DopamintPassTest is Test, IDopamintPassEvents {
     address constant FROM = address(99);
     address constant TO = address(69);
     address constant OPERATOR = address(420);
+    address constant RESERVE = address(123);
+    address constant DAO = address(9);
 
+    /// @notice Default auction house parameters.
+    uint256 constant TREASURY_SPLIT = 30; // 50%
+    uint256 constant TIME_BUFFER = 10 minutes;
+    uint256 constant RESERVE_PRICE = 1 ether;
+
+    uint256 constant AUCTION_DURATION = 60 * 60 * 12; // 12 hours
     IProxyRegistry PROXY_REGISTRY;
     DopamintPass token;
+    DopamineAuctionHouse ah;
 
     /// @notice Block settings for testing.
     uint256 constant BLOCK_TIMESTAMP = 9999;
@@ -62,6 +79,21 @@ contract DopamintPassTest is Test, IDopamintPassEvents {
         vm.startPrank(ADMIN);
 
         token = new DopamintPass(ADMIN, PROXY_REGISTRY, DROP_SIZE, DROP_DELAY, WHITELIST_SIZE, MAX_SUPPLY);
+
+        DopamineAuctionHouse ahImpl = new DopamineAuctionHouse();
+        address proxyAddr = getContractAddress(address(ADMIN), 0x02); 
+        bytes memory data = abi.encodeWithSelector(
+            ahImpl.initialize.selector,
+            address(token),
+            RESERVE,
+            DAO,
+            TREASURY_SPLIT,
+            TIME_BUFFER,
+            RESERVE_PRICE,
+            AUCTION_DURATION
+        );
+		ERC1967Proxy proxy = new ERC1967Proxy(address(ahImpl), data);
+        ah = DopamineAuctionHouse(address(proxy));
 
         // 3 inputs for CLI args
         inputs = new string[](3 + WHITELISTED.length);
@@ -314,6 +346,13 @@ contract DopamintPassTest is Test, IDopamintPassEvents {
         vm.startPrank(W2);
         token.claim(proof, 2);
         assertEq(token.ownerOf(2), W2);
+    }
+
+    function testAuctions() public {
+        token.setMinter(address(ah));
+        token.createDrop(bytes32(0), PROVENANCE_HASH);
+
+        ah.resumeNewAuctions();
     }
 
 	/// Returns input tom erkle encoder in format `{ADDRESS}:{TOKEN_ID}`.

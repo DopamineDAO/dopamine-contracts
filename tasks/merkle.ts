@@ -54,6 +54,7 @@ task('merkleproof', 'Get merkle proof')
 			merkleHash(address, id)
 		)
 
+		console.log(proof);
 		const encodedProof = utils.defaultAbiCoder.encode(["bytes32[]"], [proof]);
 		process.stdout.write(encodedProof);
 	});
