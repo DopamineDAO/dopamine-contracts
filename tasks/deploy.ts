@@ -30,11 +30,11 @@ task("deploy-local", "Deploy Rarity Society contracts locally").setAction(
   }
 );
 
-task("deploy-testing", "Deploy Rarity Society contracts to Ropsten")
+task("deploy-testing", "Deploy Rarity Society contracts to Rinkeby")
   .addParam("verify", "whether to verify on Etherscan", true, types.boolean)
   .setAction(async (args, { run }) => {
     await run("deploy", {
-      chainid: 3,
+      chainid: 4,
       registry: "0xf57b2c51ded3a29e6891aba85459d600256cf317",
       verify: args.verify,
     });
@@ -47,6 +47,7 @@ task("deploy-staging", "Deploy Rarity Society contracts to Goerli")
 			await run("deploy", {
 				chainid: 5,
 				registry: "0xf57b2c51ded3a29e6891aba85459d600256cf317",
+				verify: args.verify,
 		});
 	});
 
@@ -320,6 +321,11 @@ task("deploy", "Deploys Dopamine contracts")
 					address: dopamineAuctionHouse,
 					args: [],
 				},
+				dopamineAuctionHouseProxy: {
+					address: dopamineAuctionHouseProxy,
+					args: dopamineAuctionHouseProxyArgs,
+					path: "src/auction/DopamineAuctionHouseProxy.sol:DopamineAuctionHouseProxy",
+				},
 				timelock: {
 					address: timelock,
 					args: timelockArgs,
@@ -327,7 +333,12 @@ task("deploy", "Deploys Dopamine contracts")
         dopamineDAO: {
           address: dopamineDAO,
           args: dopamineDAOArgs,
-        }
+        },
+				dopamineDAOProxy: {
+					address: dopamineDAOProxy,
+					args: dopamineDAOProxyArgs,
+					path: "src/governance/DopamineDAOProxy.sol:DopamineDAOProxy",
+				}
       };
       for (const contract in toVerify) {
 				console.log(`\nVerifying contract ${contract}:`)

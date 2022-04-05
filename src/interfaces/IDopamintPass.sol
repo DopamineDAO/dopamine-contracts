@@ -51,6 +51,7 @@ interface IDopamintPass is IDopamintPassEvents {
     function dropEndTime() external view returns (uint256);
 
     /// @notice Gets the current number of passes to be distributed each drop.
+    /// @dev This includes the number of passes whitelisted for the drop.
     function dropSize() external view returns (uint256);
 
     /// @notice Gets the number of passes allocated for whitelisting each drop.

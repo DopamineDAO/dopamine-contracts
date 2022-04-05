@@ -32,6 +32,7 @@ const ethers_1 = require("ethers");
     const address = input.split(':')[0];
     const id = input.split(':')[1];
     const proof = merkleTree.getHexProof(merkleHash(address, id));
+    console.log(proof);
     const encodedProof = ethers_1.utils.defaultAbiCoder.encode(["bytes32[]"], [proof]);
     process.stdout.write(encodedProof);
 }));

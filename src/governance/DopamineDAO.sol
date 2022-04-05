@@ -605,7 +605,7 @@ contract DopamineDAO is UUPSUpgradeable, DopamineDAOStorage, IDopamineDAO {
 
 	/// @notice Returns an EIP-712 encoding of structured data `structHash`.
     /// @param structHash The structured data to be encoded and signed.
-    /// @return A bytestring suitable for signing in accordance to EIP-712.
+    /// @return A byte string suitable for signing in accordance to EIP-712.
     function _hashTypedData(bytes32 structHash) 
         internal 
         view 
