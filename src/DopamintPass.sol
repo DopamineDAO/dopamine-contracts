@@ -23,12 +23,6 @@ import { ERC721Votable } from "./erc721/ERC721Votable.sol";
 ///  being the Dopamine DAO Auction House address (minter controls emissions).
 contract DopamintPass is ERC721Votable, IDopamintPass {
 
-    /// @notice The name of the Dopamine membership pass.
-    string public constant NAME = "DopamintPass";
-
-    /// @notice The abbreviated name of the Dopamine membership pass.
-    string public constant SYMBOL = "DOPE";
-
     /// @notice The maximum number of passes that may be whitelisted per drop.
     uint256 public constant MAX_WL_SIZE = 99;
 
@@ -116,7 +110,7 @@ contract DopamintPass is ERC721Votable, IDopamintPass {
         uint256 dropDelay_,
         uint256 whitelistSize_,
         uint256 maxSupply_
-    ) ERC721Votable(NAME, SYMBOL, maxSupply_) {
+    ) ERC721Votable("DopamintPass", "DOPE", maxSupply_) {
 		admin = msg.sender;
         minter = minter_;
         proxyRegistry = proxyRegistry_;
@@ -195,7 +189,7 @@ contract DopamintPass is ERC721Votable, IDopamintPass {
     }
 	
     /// @inheritdoc IDopamintPass
-    function contractURI() public view returns (string memory)  {
+    function contractURI() external view returns (string memory)  {
         return string(abi.encodePacked(baseUri, "metadata"));
     }
 
@@ -238,26 +232,26 @@ contract DopamintPass is ERC721Votable, IDopamintPass {
     }
 
     /// @inheritdoc IDopamintPass
-    function setMinter(address newMinter) public onlyAdmin {
+    function setMinter(address newMinter) external onlyAdmin {
         emit MinterChanged(minter, newMinter);
         minter = newMinter;
     }
 
     /// @inheritdoc IDopamintPass
-    function setAdmin(address newAdmin) public onlyAdmin {
+    function setAdmin(address newAdmin) external onlyAdmin {
         emit AdminChanged(admin, newAdmin);
         admin = newAdmin;
     }
 
     /// @inheritdoc IDopamintPass
-	function setBaseURI(string calldata newBaseURI) public onlyAdmin {
+	function setBaseURI(string calldata newBaseURI) external onlyAdmin {
         baseUri = newBaseURI;
         emit BaseURISet(newBaseURI);
 	}
 
     /// @inheritdoc IDopamintPass
 	function setDropURI(uint256 id, string calldata dropUri)
-        public 
+        external 
         onlyAdmin 
     {
         uint256 numDrops = _dropEndIndices.length;
@@ -279,7 +273,11 @@ contract DopamintPass is ERC721Votable, IDopamintPass {
 
     /// @inheritdoc IDopamintPass
     function setDropSize(uint256 newDropSize) public onlyAdmin {
-        if (newDropSize < MIN_DROP_SIZE || newDropSize > MAX_DROP_SIZE) {
+        if (
+            newDropSize < whitelistSize ||
+            newDropSize < MIN_DROP_SIZE || 
+            newDropSize > MAX_DROP_SIZE
+        ) {
             revert DropSizeInvalid();
         }
         dropSize = newDropSize;

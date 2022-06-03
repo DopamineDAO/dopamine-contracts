@@ -113,6 +113,8 @@ contract DopamineAuctionHouse is UUPSUpgradeable, DopamineAuctionHouseStorage, I
         _locked = _FALSE;
 
         admin = msg.sender;
+		emit AdminChanged(address(0), admin);
+
         token = IDopamineAuctionHouseToken(token_);
         dao = dao_;
         reserve = reserve_;

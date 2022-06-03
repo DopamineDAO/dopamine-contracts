@@ -89,7 +89,7 @@ contract ERC721Votable is ERC721, IERC721Votable {
     }
 
     /// @inheritdoc IERC721Votable
-    function totalCheckpoints(address voter) public view returns (uint256) {
+    function totalCheckpoints(address voter) external view returns (uint256) {
         return checkpoints[voter].length;
     }
 
@@ -102,7 +102,7 @@ contract ERC721Votable is ERC721, IERC721Votable {
 
     /// @inheritdoc IERC721Votable
     function priorVotes(address voter, uint256 blockNumber) 
-        public 
+        external 
         view 
         returns (uint32) 
     {

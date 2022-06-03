@@ -48,7 +48,13 @@ contract TimelockTest is Test, ITimelockEvents {
         vm.expectRevert(TimelockDelayInvalid.selector);
         timelock = new Timelock(ADMIN, 99999999999);
 
+        // Emits expected `AdminChanged` and `TimelockDelaySet` events.
+        vm.expectEmit(true, true, true, true);
+        emit AdminChanged(address(0), ADMIN);
+        vm.expectEmit(true, true, true, true);
+        emit TimelockDelaySet(DELAY);
         timelock = new Timelock(ADMIN, DELAY);
+
         assertEq(timelock.timelockDelay(), DELAY);
         assertEq(timelock.admin(), ADMIN);
         assertEq(timelock.pendingAdmin(), address(0));

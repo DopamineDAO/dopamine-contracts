@@ -116,7 +116,7 @@ contract DopamineDAO is UUPSUpgradeable, DopamineDAOStorage, IDopamineDAO {
         string[] memory signatures,
         bytes[] memory calldatas,
         string memory description
-    ) public returns (uint256) {
+    ) external returns (uint256) {
         if (
             token.priorVotes(msg.sender, block.number - 1) < proposalThreshold) 
         {
@@ -184,7 +184,7 @@ contract DopamineDAO is UUPSUpgradeable, DopamineDAOStorage, IDopamineDAO {
     }
 
     /// @inheritdoc IDopamineDAO
-    function queue(uint256 id) public {
+    function queue(uint256 id) external {
         if (id != proposalId) {
             revert ProposalInactive();
         }
@@ -207,7 +207,7 @@ contract DopamineDAO is UUPSUpgradeable, DopamineDAOStorage, IDopamineDAO {
     }
 
     /// @inheritdoc IDopamineDAO
-    function execute(uint256 id) public {
+    function execute(uint256 id) external {
         if (id != proposalId) {
             revert ProposalInactive();
         }
@@ -230,7 +230,7 @@ contract DopamineDAO is UUPSUpgradeable, DopamineDAOStorage, IDopamineDAO {
     }
 
     /// @inheritdoc IDopamineDAO
-    function cancel(uint256 id) public {
+    function cancel(uint256 id) external {
         if (id != proposalId) {
             revert ProposalInactive();
         }
@@ -314,7 +314,7 @@ contract DopamineDAO is UUPSUpgradeable, DopamineDAOStorage, IDopamineDAO {
 		uint8 v,
 		bytes32 r,
 		bytes32 s
-	) public override {
+	) external override {
 		address signatory = ecrecover(
 			_hashTypedData(
                 keccak256(abi.encode(VOTE_TYPEHASH, voter, id, support))
@@ -358,7 +358,10 @@ contract DopamineDAO is UUPSUpgradeable, DopamineDAOStorage, IDopamineDAO {
         }
 
         admin = msg.sender;
+        emit AdminChanged(address(0), admin);
 		vetoer = vetoer_;
+        emit VetoerChanged(address(0), vetoer);
+
         token = IDopamineDAOToken(token_);
 		timelock = ITimelock(timelock_);
 
@@ -489,7 +492,7 @@ contract DopamineDAO is UUPSUpgradeable, DopamineDAOStorage, IDopamineDAO {
 	}
 
     /// @inheritdoc IDopamineDAO
-    function setVetoer(address newVetoer) public {
+    function setVetoer(address newVetoer) external {
         if (msg.sender != vetoer) {
             revert VetoerOnly();
         }

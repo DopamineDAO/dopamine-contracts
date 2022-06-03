@@ -18,8 +18,6 @@
   "function MAX_WL_SIZE() view returns (uint256)",
   "function MIN_DROP_DELAY() view returns (uint256)",
   "function MIN_DROP_SIZE() view returns (uint256)",
-  "function NAME() view returns (string)",
-  "function SYMBOL() view returns (string)",
   "function admin() view returns (address)",
   "function approve(address approved, uint256 id)",
   "function balanceOf(address) view returns (uint256)",

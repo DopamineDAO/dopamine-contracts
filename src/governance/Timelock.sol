@@ -66,7 +66,6 @@ contract Timelock is ITimelock {
     /// @param timelockDelay_ Time in seconds for which executions remain queued.
     /// @dev For integration with the DAO, `admin_` should be the DAO address.
     constructor(address admin_, uint256 timelockDelay_) {
-        admin = admin_;
         if (
             timelockDelay_ < MIN_TIMELOCK_DELAY || 
             timelockDelay_ > MAX_TIMELOCK_DELAY
@@ -74,6 +73,8 @@ contract Timelock is ITimelock {
         {
             revert TimelockDelayInvalid();
         }
+        admin = admin_;
+		emit AdminChanged(address(0), admin_);
         timelockDelay = timelockDelay_;
         emit TimelockDelaySet(timelockDelay);
     }
