@@ -93,14 +93,19 @@ contract ERC721Test is Test {
         emit Approval(FROM, OPERATOR, NFT);
         token.approve(OPERATOR, NFT);
         assertEq(token.getApproved(NFT), OPERATOR);
+        vm.stopPrank();
 
         // Approvals fail when invoked by the unauthorized address.
         vm.prank(OPERATOR);
         vm.expectRevert(SenderUnauthorized.selector);
         token.approve(OPERATOR, NFT);
+        vm.stopPrank();
 
         // Approvals succeed when executed by the authorized operator.
+        vm.startPrank(FROM);
         token.setApprovalForAll(OPERATOR, true);
+        vm.stopPrank();
+
         vm.prank(OPERATOR);
         vm.expectEmit(true, true, true, true);
         emit Approval(FROM, OPERATOR, NFT);
@@ -111,6 +116,7 @@ contract ERC721Test is Test {
     function testIsApprovedForAll() public {
         assertTrue(!token.isApprovedForAll(FROM, OPERATOR));
 
+        vm.stopPrank();
         vm.startPrank(FROM);
         token.setApprovalForAll(OPERATOR, true);
         assertTrue(token.isApprovedForAll(FROM, OPERATOR));
@@ -202,8 +208,13 @@ contract ERC721Test is Test {
         bytes memory data
     ) internal {
         // Transferring to a contract
+        vm.stopPrank();
+        vm.startPrank(FROM);
         _testSafeTransferFailure(fn);
+        vm.stopPrank();
+        vm.startPrank(FROM);
         _testSafeTransferSuccess(fn, data);
+        vm.stopPrank();
     }
 
   	function _testSafeTransferFailure(function(address, address, uint256) external fn) internal {
@@ -230,27 +241,38 @@ contract ERC721Test is Test {
         vm.expectEmit(true, true, true, true);
         emit ERC721Received(FROM, FROM, NFT, data);
         fn(FROM, address(validReceiver), NFT);
+        vm.stopPrank();
 
         assertEq(token.ownerOf(NFT), address(validReceiver));
     }
 
     function _testTransferBehavior(function(address, address, uint256) external fn) internal {
         // Test transfer failure conditions.
+        vm.stopPrank();
+        vm.startPrank(FROM);
         _testTransferFailure(fn); 
         
         // Test normal transfers invoked via owner.
         _testTransferSuccess(token.transferFrom, FROM, TO);
 
         // Test transfers to self.
+        vm.stopPrank();
         _testTransferSuccess(token.transferFrom, FROM, FROM);
 
+        vm.stopPrank();
+        vm.startPrank(FROM);
         // Test transfers through an approved address.
         token.approve(OPERATOR, NFT);
+        vm.stopPrank();
         _testTransferSuccess(token.transferFrom, OPERATOR, TO);
 
+        vm.stopPrank();
+        vm.startPrank(FROM);
         // Test transfers through an authorized operator.
         token.setApprovalForAll(OPERATOR, true);
+        vm.stopPrank();
         _testTransferSuccess(token.transferFrom, OPERATOR, TO);
+        vm.stopPrank();
     }
 
     function _testTransferFailure(function(address, address, uint256) external fn) internal {
@@ -260,9 +282,11 @@ contract ERC721Test is Test {
         vm.expectRevert(OwnerInvalid.selector);
         fn(TO, TO, NFT);
 
-        vm.prank(TO);
+        vm.stopPrank();
+        vm.startPrank(TO);
         vm.expectRevert(SenderUnauthorized.selector);
         fn(FROM, TO, NFT);
+        vm.stopPrank();
     }
 
     /// @dev Test successful transfer of `NFT` from `FROM` to `to`,
@@ -276,7 +300,7 @@ contract ERC721Test is Test {
     {
         vm.expectEmit(true, true, true, true);
         emit Transfer(FROM, to, NFT);
-        vm.prank(sender);
+        vm.startPrank(sender);
         token.transferFrom(FROM, to, NFT);
 
         if (to != FROM) {
@@ -288,6 +312,7 @@ contract ERC721Test is Test {
 
         assertEq(token.getApproved(NFT), address(0)); // Clear approvals
         assertEq(token.ownerOf(NFT), to);
+        vm.stopPrank();
     }
 
 }

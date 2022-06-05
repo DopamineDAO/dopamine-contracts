@@ -15,6 +15,7 @@
   "function name() view returns (string)",
   "function nonces(address) view returns (uint256)",
   "function ownerOf(uint256) view returns (address)",
+  "function royaltyInfo(uint256 id, uint256 salePrice) view returns (address, uint256)",
   "function safeTransferFrom(address from, address to, uint256 id)",
   "function safeTransferFrom(address from, address to, uint256 id, bytes data)",
   "function setApprovalForAll(address operator, bool approved)",

@@ -54,6 +54,7 @@ contract ERC721VotableTest is Test {
         vm.roll(BLOCK_START);
         token.mint(FROM, NFT);
         vm.roll(BLOCK_START + 1);
+        vm.stopPrank();
         vm.startPrank(FROM);
     }
 
@@ -61,6 +62,7 @@ contract ERC721VotableTest is Test {
         FROM = vm.addr(PK_FROM);
         TO = vm.addr(PK_TO);
         OPERATOR = vm.addr(PK_OPERATOR);
+        vm.stopPrank();
         vm.startPrank(FROM);
 
         token = new MockERC721Votable(MAX_SUPPLY);
@@ -166,6 +168,7 @@ contract ERC721VotableTest is Test {
     }
 
     function _testDelegateBehavior(function(address) external fn) internal {
+        vm.stopPrank();
         _testDelegateZeroBalance(fn);
         _testDelegateToSelf(fn);
         _testDelegateToValidAddress(fn);
@@ -309,12 +312,14 @@ contract ERC721VotableTest is Test {
     }
 
     function _testTransferWithReceiverDelegate(function(address) external fn) public reset {
+        vm.stopPrank();
         vm.startPrank(TO);
         vm.expectEmit(true, true, true, true);
         emit DelegateChanged(TO, TO, OPERATOR);
         fn(OPERATOR);
 
         vm.roll(BLOCK_START + 2);
+        vm.stopPrank();
         vm.startPrank(FROM);
         vm.expectEmit(true, true, true, true);
         emit DelegateVotesChanged(FROM, 1, 0);
@@ -374,6 +379,7 @@ contract ERC721VotableTest is Test {
 
         vm.roll(BLOCK_START + 4);
 
+        vm.stopPrank();
         vm.startPrank(TO);
         vm.expectEmit(true, true, true, true);
         emit DelegateChanged(TO, TO, OPERATOR);
@@ -384,6 +390,7 @@ contract ERC721VotableTest is Test {
         fn(OPERATOR);
 
         vm.roll(BLOCK_START + 5);
+        vm.stopPrank();
         vm.startPrank(OPERATOR);
         vm.expectEmit(true, true, true, true);
         emit DelegateVotesChanged(OPERATOR, 2, 1);

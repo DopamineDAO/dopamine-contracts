@@ -2,7 +2,7 @@
 pragma solidity ^0.8.13;
 
 ////////////////////////////////////////////////////////////////////////////////
-///				 ░▒█▀▀▄░█▀▀█░▒█▀▀█░█▀▀▄░▒█▀▄▀█░▄█░░▒█▄░▒█░▒█▀▀▀              ///
+///              ░▒█▀▀▄░█▀▀█░▒█▀▀█░█▀▀▄░▒█▀▄▀█░▄█░░▒█▄░▒█░▒█▀▀▀              ///
 ///              ░▒█░▒█░█▄▀█░▒█▄▄█▒█▄▄█░▒█▒█▒█░░█▒░▒█▒█▒█░▒█▀▀▀              ///
 ///              ░▒█▄▄█░█▄▄█░▒█░░░▒█░▒█░▒█░░▒█░▄█▄░▒█░░▀█░▒█▄▄▄              ///
 ////////////////////////////////////////////////////////////////////////////////
@@ -10,13 +10,13 @@ pragma solidity ^0.8.13;
 // This file is a shared repository of all errors used in Dopamine's contracts.
 
 ////////////////////////////////////////////////////////////////////////////////
-///                               DopamintPass                               /// 
+///                               DopaminePass                               ///
 ////////////////////////////////////////////////////////////////////////////////
 
 /// @notice Configured drop delay is invalid.
 error DropDelayInvalid();
 
-/// @notice DopamintPass drop hit allocated capacity.
+/// @notice DopaminePass drop hit allocated capacity.
 error DropMaxCapacity();
 
 /// @notice No such drop exists.
@@ -71,7 +71,7 @@ error AuctionTimeBufferInvalid();
 /// @notice Treasury split is invalid, must be in range [0, 100].
 error AuctionTreasurySplitInvalid();
 
-//////////////////////////////////////////////////////////////////////////////// 
+////////////////////////////////////////////////////////////////////////////////
 ///                              Miscellaneous                               ///
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -135,7 +135,7 @@ error TokenNonExistent();
 ////////////////////////////////////////////////////////////////////////////////
 ///                              Administrative                              ///
 ////////////////////////////////////////////////////////////////////////////////
- 
+
 /// @notice Function callable only by the admin.
 error AdminOnly();
 
@@ -150,7 +150,7 @@ error PendingAdminOnly();
 
 ////////////////////////////////////////////////////////////////////////////////
 ///                                Governance                                ///
-//////////////////////////////////////////////////////////////////////////////// 
+////////////////////////////////////////////////////////////////////////////////
 
 /// @notice Invalid number of actions proposed.
 error ProposalActionCountInvalid();
@@ -201,7 +201,7 @@ error VoteInvalid();
 error VotingPowerInsufficient();
 
 ////////////////////////////////////////////////////////////////////////////////
-///                                 Timelock                                 /// 
+///                                 Timelock                                 ///
 ////////////////////////////////////////////////////////////////////////////////
 
 /// @notice Invalid set timelock delay.
@@ -226,8 +226,15 @@ error TransactionReverted();
 error TransactionStale();
 
 ////////////////////////////////////////////////////////////////////////////////
-///                             Merkle Whitelist                             /// 
+///                             Merkle Whitelist                             ///
 ////////////////////////////////////////////////////////////////////////////////
 
 /// @notice Proof for claim is invalid.
 error ProofInvalid();
+
+////////////////////////////////////////////////////////////////////////////////
+///                                Royalties                                 ///
+////////////////////////////////////////////////////////////////////////////////
+
+/// @notice Royalties are set too high.
+error RoyaltiesTooHigh();

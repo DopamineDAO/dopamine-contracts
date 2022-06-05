@@ -75,6 +75,7 @@ contract TimelockTest is Test, ITimelockEvents {
         vm.expectRevert(TimelockOnly.selector);
         timelock.setTimelockDelay(DELAY);
 
+        vm.stopPrank();
         vm.startPrank(address(timelock));
 
         // Reverts when delay too small.
@@ -100,6 +101,7 @@ contract TimelockTest is Test, ITimelockEvents {
         vm.expectRevert(TimelockOnly.selector);
         timelock.setPendingAdmin(FROM);
 
+        vm.stopPrank();
         vm.startPrank(address(timelock));
 
         // Emits the expected `PendingAdminSet` event.
@@ -112,12 +114,14 @@ contract TimelockTest is Test, ITimelockEvents {
 
     function testAcceptAdmin() public {
         // Reverts when caller is not the pending admin.
+        vm.stopPrank();
         vm.startPrank(address(timelock));
         timelock.setPendingAdmin(FROM);
         vm.expectRevert(PendingAdminOnly.selector);
         timelock.acceptAdmin();
 
         // Emits the expected `AdminChanged` event when executed by pending admin.
+        vm.stopPrank();
         vm.startPrank(FROM);
         vm.expectEmit(true, true, true, true);
         emit AdminChanged(ADMIN, FROM);
@@ -133,6 +137,7 @@ contract TimelockTest is Test, ITimelockEvents {
         vm.expectRevert(AdminOnly.selector);
         timelock.queueTransaction(address(timelock), 0, SIGNATURE, CALLDATA, BLOCK_TIMESTAMP + DELAY);
 
+        vm.stopPrank();
         vm.startPrank(ADMIN);
         
         // Reverts when the ETA is too soon.
@@ -154,6 +159,7 @@ contract TimelockTest is Test, ITimelockEvents {
         vm.expectRevert(AdminOnly.selector);
         timelock.cancelTransaction(address(timelock), 0, SIGNATURE, CALLDATA, BLOCK_TIMESTAMP + DELAY);
 
+        vm.stopPrank();
         vm.startPrank(ADMIN);
         timelock.queueTransaction(address(timelock), 0, SIGNATURE, CALLDATA, BLOCK_TIMESTAMP + DELAY);
         assertTrue(timelock.queuedTransactions(txHash));
@@ -171,6 +177,7 @@ contract TimelockTest is Test, ITimelockEvents {
         vm.expectRevert(AdminOnly.selector);
         timelock.executeTransaction(address(timelock), 0, SIGNATURE, CALLDATA, BLOCK_TIMESTAMP + DELAY);
 
+        vm.stopPrank();
         vm.startPrank(ADMIN);
         /// Queue two transactions, one which succeeds and one which reverts.
         timelock.queueTransaction(address(timelock), 0, SIGNATURE, CALLDATA, BLOCK_TIMESTAMP + DELAY);

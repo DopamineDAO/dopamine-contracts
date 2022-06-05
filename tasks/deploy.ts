@@ -21,7 +21,7 @@ interface VerifyParams {
 	path?: string;
 }
 
-task("deploy-local", "Deploy Rarity Society contracts locally").setAction(
+task("deploy-local", "Deploy Dopamine contracts locally").setAction(
   async (args, { run }) => {
     await run("deploy", {
       chainid: 31337,
@@ -30,7 +30,7 @@ task("deploy-local", "Deploy Rarity Society contracts locally").setAction(
   }
 );
 
-task("deploy-testing", "Deploy Rarity Society contracts to Rinkeby")
+task("deploy-rinkeby", "Deploy Rarity Society contracts to Rinkeby")
   .addParam("verify", "whether to verify on Etherscan", true, types.boolean)
   .setAction(async (args, { run }) => {
     await run("deploy", {
@@ -40,7 +40,7 @@ task("deploy-testing", "Deploy Rarity Society contracts to Rinkeby")
     });
   });
 
-task("deploy-staging", "Deploy Rarity Society contracts to Goerli")
+task("deploy-goerli", "Deploy Rarity Society contracts to Goerli")
   .addParam("verify", "whether to verify on Etherscan", true, types.boolean)
 	.setAction(
 		async (args, { run }) => {
@@ -53,7 +53,7 @@ task("deploy-staging", "Deploy Rarity Society contracts to Goerli")
 
 task(
   "deploy-prod",
-  "Deploy Rarity Society contracts to Ethereum Mainnet"
+  "Deploy Dopamine contracts to Ethereum Mainnet"
 ).setAction(async (args, { run }) => {
   await run("deploy", {
     chainid: 1,

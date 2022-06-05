@@ -14,6 +14,8 @@ require("hardhat-abi-exporter");
 require("./tasks/config");
 require("./tasks/merkle");
 require("./tasks/deploy");
+require("./tasks/deploy-honoraries");
+require("./tasks/mint-honorary");
 require("./tasks/propose");
 require("./tasks/mint");
 dotenv_1.default.config();
@@ -33,12 +35,16 @@ const config = {
         outDir: "typechain",
     },
     networks: {
-        rinkeby: {
-            url: `https://eth-rinkeby.alchemyapi.io/v2/${process.env.API_KEY}`,
+        mainnet: {
+            url: `https://eth-mainnet.alchemyapi.io/v2/${process.env.MAINNET_API_KEY}`,
             accounts: [process.env.PRIVATE_KEY].filter(Boolean),
         },
         goerli: {
-            url: `https://eth-goerli.alchemyapi.io/v2/${process.env.API_KEY}`,
+            url: `https://eth-goerli.alchemyapi.io/v2/${process.env.GOERLI_API_KEY}`,
+            accounts: [process.env.PRIVATE_KEY].filter(Boolean),
+        },
+        rinkeby: {
+            url: `https://eth-rinkeby.alchemyapi.io/v2/${process.env.RINKEBY_API_KEY}`,
             accounts: [process.env.PRIVATE_KEY].filter(Boolean),
         },
     },

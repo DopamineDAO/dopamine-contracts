@@ -26,13 +26,13 @@ var Contract;
     Contract[Contract["DopamineDAO"] = 4] = "DopamineDAO";
     Contract[Contract["DopamineDAOProxy"] = 5] = "DopamineDAOProxy";
 })(Contract || (Contract = {}));
-(0, config_1.task)("deploy-local", "Deploy Rarity Society contracts locally").setAction((args, { run }) => __awaiter(void 0, void 0, void 0, function* () {
+(0, config_1.task)("deploy-local", "Deploy Dopamine contracts locally").setAction((args, { run }) => __awaiter(void 0, void 0, void 0, function* () {
     yield run("deploy", {
         chainid: 31337,
         registry: "0xa5409ec958c83c3f309868babaca7c86dcb077c1",
     });
 }));
-(0, config_1.task)("deploy-testing", "Deploy Rarity Society contracts to Rinkeby")
+(0, config_1.task)("deploy-rinkeby", "Deploy Rarity Society contracts to Rinkeby")
     .addParam("verify", "whether to verify on Etherscan", true, config_1.types.boolean)
     .setAction((args, { run }) => __awaiter(void 0, void 0, void 0, function* () {
     yield run("deploy", {
@@ -41,7 +41,7 @@ var Contract;
         verify: args.verify,
     });
 }));
-(0, config_1.task)("deploy-staging", "Deploy Rarity Society contracts to Goerli")
+(0, config_1.task)("deploy-goerli", "Deploy Rarity Society contracts to Goerli")
     .addParam("verify", "whether to verify on Etherscan", true, config_1.types.boolean)
     .setAction((args, { run }) => __awaiter(void 0, void 0, void 0, function* () {
     yield run("deploy", {
@@ -50,7 +50,7 @@ var Contract;
         verify: args.verify,
     });
 }));
-(0, config_1.task)("deploy-prod", "Deploy Rarity Society contracts to Ethereum Mainnet").setAction((args, { run }) => __awaiter(void 0, void 0, void 0, function* () {
+(0, config_1.task)("deploy-prod", "Deploy Dopamine contracts to Ethereum Mainnet").setAction((args, { run }) => __awaiter(void 0, void 0, void 0, function* () {
     yield run("deploy", {
         chainid: 1,
         registry: "0xa5409ec958c83c3f309868babaca7c86dcb077c1",
