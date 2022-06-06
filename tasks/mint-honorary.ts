@@ -1,6 +1,6 @@
 import { task, types } from "hardhat/config";
 
-task("mint-rinkeby", "Deploy Rarity Society contracts to Rinkeby")
+task("mint-h-staging", "Mint using the staging Honorary Pass Contract")
   .addParam("account", "account address")
   .setAction(async (args, { run }) => {
     await run("mint-h", {
@@ -10,7 +10,17 @@ task("mint-rinkeby", "Deploy Rarity Society contracts to Rinkeby")
     });
   });
 
-task( "mint-prod", "Deploy Dopamine contracts to Ethereum Mainnet")
+task("mint-h-dev", "Mint using the dev Honorary Pass Contract")
+  .addParam("account", "account address")
+  .setAction(async (args, { run }) => {
+    await run("mint-h", {
+			address: "0x49fe81f974d5d80c32bb47d46ce8b918e773f00e",
+      chainid: 4,
+			account: args.account,
+    });
+  });
+
+task( "mint-h-prod", "Deploy Dopamine contracts to Ethereum Mainnet")
   .addParam("account", "account address")
 	.setAction(async (args, { run }) => {
   await run("mint-h", {

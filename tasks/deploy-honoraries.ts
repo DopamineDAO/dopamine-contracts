@@ -21,7 +21,7 @@ task("deploy-h-rinkeby", "Deploy Dopamine contracts to Rinkeby")
       chainid: 4,
 			registry: "0x1e525eeaf261ca41b809884cbde9dd9e1619573a",
 			royalties: 750,
-			reserve: "0x69BABE250214d876BeEEA087945F0B53F691D519",
+			reserve: "0x69BABEc995611574eEb683e8801974795F2c4ccd",
       verify: args.verify,
     });
   });
@@ -103,6 +103,27 @@ task("deploy-h", "Deploys Dopamine contracts")
     const nonce = await deployer.getTransactionCount();
     let currNonce = nonce;
 
+    const deployContract = async function (
+      contract: string,
+      args: (string | number)[],
+      currNonce: number
+    ): Promise<string> {
+      console.log(`\nDeploying contract ${contract}:`);
+
+      const contractFactory = await ethers.getContractFactory(contract);
+
+      const gas = await contractFactory.signer.estimateGas(
+        contractFactory.getDeployTransaction(...args, { gasPrice })
+      );
+      const cost = ethers.utils.formatUnits(gas.mul(gasPrice), "ether");
+      console.log(`Estimated deployment cost for ${contract}: ${cost}ETH`);
+
+			const deployedContract = await contractFactory.deploy(...args);
+			await deployedContract.deployed();
+
+      console.log(`Contract ${contract} deployed to ${deployedContract.address}`);
+      return deployedContract.address;
+    };
 
     // Deploy Honorary Dopamine Pass
     const dopamineHonoraryPassArgs: Args = [
@@ -110,11 +131,16 @@ task("deploy-h", "Deploys Dopamine contracts")
 			args.reserve,
 			args.royalties,
     ];
+    const dopamineHonoraryPass = await deployContract(
+      Contract[Contract.DopamineHonoraryPass],
+      dopamineHonoraryPassArgs,
+			currNonce++
+    );
 
     if (args.verify) {
       const toVerify: Record<string, VerifyParams> = {
         dopamineHonoraryPass: {
-          address: "0x82875e179e5610c6A12C15531a6E6f5d4266185e",
+          address: dopamineHonoraryPass,
           args: dopamineHonoraryPassArgs,
         },
       };

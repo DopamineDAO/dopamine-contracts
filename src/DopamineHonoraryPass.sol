@@ -24,7 +24,7 @@ contract DopamineHonoraryPass is ERC721h, IDopamineHonoraryPass {
 
     /// @notice The URI each pass initially points to for metadata resolution.
     /// @dev Before drop completion, `tokenURI()` resolves to "{baseURI}/{id}".
-    string public baseURI = "https://staging-api.dopamine.xyz/honoraries/";
+    string public baseURI = "https://api.dopamine.xyz/honoraries/";
 
     /// @notice The permanent URI passes will point to on collection finality.
     /// @dev Post drop completion, `tokenURI()` resolves to "{storageURI}/{id}".
