@@ -16,7 +16,7 @@ pragma solidity ^0.8.13;
 /// @notice Configured drop delay is invalid.
 error DropDelayInvalid();
 
-/// @notice DopamineTab drop hit allocated capacity.
+/// @notice Drop hit allocated capacity.
 error DropMaxCapacity();
 
 /// @notice No such drop exists.
@@ -28,11 +28,11 @@ error DropOngoing();
 /// @notice Configured drop size is invalid.
 error DropSizeInvalid();
 
-/// @notice Insufficient time passed since last drop was created.
+/// @notice Insufficient time passed since the last drop was created.
 error DropTooEarly();
 
-/// @notice Configured whitelist size is too large.
-error DropWhitelistOverCapacity();
+/// @notice Configured allowlist size is too large.
+error DropAllowlistOverCapacity();
 
 ////////////////////////////////////////////////////////////////////////////////
 ///                          Dopamine Auction House                          ///
@@ -44,7 +44,7 @@ error AuctionAlreadySettled();
 /// @notice The NFT specified in the auction bid is invalid.
 error AuctionBidInvalid();
 
-/// @notice Bid placed was too low (see `reservePrice` and `MIN_BID_DIFF`).
+/// @notice Bid placed was too low.
 error AuctionBidTooLow();
 
 /// @notice Auction duration set is invalid.
@@ -53,7 +53,7 @@ error AuctionDurationInvalid();
 /// @notice The auction has expired.
 error AuctionExpired();
 
-/// @notice Operation cannot be performed as auction is not suspended.
+/// @notice Operation cannot be performed as auction is not yet suspended.
 error AuctionNotSuspended();
 
 /// @notice Operation cannot be performed as auction is already suspended.
@@ -68,7 +68,7 @@ error AuctionReservePriceInvalid();
 /// @notice Time buffer set is invalid.
 error AuctionTimeBufferInvalid();
 
-/// @notice Treasury split is invalid, must be in range [0, 100].
+/// @notice Treasury split is invalid as it must be in the range [0, 100].
 error AuctionTreasurySplitInvalid();
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -84,7 +84,7 @@ error BlockInvalid();
 /// @notice Reentrancy vulnerability.
 error FunctionReentrant();
 
-/// @notice Number does not fit in 32 bytes.
+/// @notice Number does not fit into 32 bytes.
 error Uint32ConversionInvalid();
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -94,17 +94,17 @@ error Uint32ConversionInvalid();
 /// @notice Contract already initialized.
 error ContractAlreadyInitialized();
 
-/// @notice Upgrade requires either admin or vetoer privileges.
+/// @notice Upgrade is unauthorized.
 error UpgradeUnauthorized();
 
 ////////////////////////////////////////////////////////////////////////////////
 ///                                 EIP-712                                  ///
 ////////////////////////////////////////////////////////////////////////////////
 
-/// @notice Signature has expired and is no longer valid.
+/// @notice Signature has expired.
 error SignatureExpired();
 
-/// @notice Signature invalid.
+/// @notice Signature is invalid.
 error SignatureInvalid();
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -117,7 +117,7 @@ error OwnerInvalid();
 /// @notice Receiving address cannot be the zero address.
 error ReceiverInvalid();
 
-/// @notice Receiving contract does not implement the ERC721 wallet interface.
+/// @notice Receiving contract does not implement the EIP-721 wallet interface.
 error SafeTransferUnsupported();
 
 /// @notice Sender is not NFT owner, approved address, or owner operator.
@@ -170,7 +170,7 @@ error ProposalQuorumThresholdInvalid();
 /// @notice Proposal threshold is invalid.
 error ProposalThresholdInvalid();
 
-/// @notice Proposal has failed to or has yet to be successful.
+/// @notice Proposal has failed to or has yet to pass.
 error ProposalUnpassed();
 
 /// @notice A proposal is currently running and must be settled first.
@@ -191,7 +191,7 @@ error VetoerOnly();
 /// @notice Veto power has been revoked.
 error VetoPowerRevoked();
 
-/// @notice Proposal already voted for.
+/// @notice Proposal vote has already been cast.
 error VoteAlreadyCast();
 
 /// @notice Vote type is not valid.
@@ -233,7 +233,7 @@ error TransactionStale();
 error ProofInvalid();
 
 ////////////////////////////////////////////////////////////////////////////////
-///                                Royalties                                 ///
+///                           EIP-2981 Royalties                             ///
 ////////////////////////////////////////////////////////////////////////////////
 
 /// @notice Royalties are set too high.

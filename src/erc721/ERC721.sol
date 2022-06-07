@@ -16,7 +16,7 @@ import {IERC721Metadata} from "@openzeppelin/contracts/token/ERC721/extensions/I
 import {IERC721Receiver} from "@openzeppelin/contracts/token/ERC721/IERC721Receiver.sol";
 import {IERC2981} from "../interfaces/IERC2981.sol";
 
-import "../errors.sol";
+import "../Errors.sol";
 
 /// @title Dopamine DAO minimal ERC-721 contract with capped supply
 /// @notice This is a minimal ERC-721 implementation that supports the metadata

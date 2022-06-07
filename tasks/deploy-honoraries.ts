@@ -4,7 +4,7 @@ import { task, types } from "hardhat/config";
 
 // Listed in order of deployment. Wrong order results in error.
 enum Contract {
-  DopamineHonoraryPass
+  DopamineHonoraryTab
 }
 
 type Args = (string | number)[];
@@ -125,23 +125,23 @@ task("deploy-h", "Deploys Dopamine contracts")
       return deployedContract.address;
     };
 
-    // Deploy Honorary Dopamine Pass
-    const dopamineHonoraryPassArgs: Args = [
+    // Deploy Honorary Dopamine Tab
+    const dopamineHonoraryTabArgs: Args = [
       args.registry,
 			args.reserve,
 			args.royalties,
     ];
-    const dopamineHonoraryPass = await deployContract(
-      Contract[Contract.DopamineHonoraryPass],
-      dopamineHonoraryPassArgs,
+    const dopamineHonoraryTab = await deployContract(
+      Contract[Contract.DopamineHonoraryTab],
+      dopamineHonoraryTabArgs,
 			currNonce++
     );
 
     if (args.verify) {
       const toVerify: Record<string, VerifyParams> = {
-        dopamineHonoraryPass: {
-          address: dopamineHonoraryPass,
-          args: dopamineHonoraryPassArgs,
+        dopamineHonoraryTab: {
+          address: dopamineHonoraryTab,
+          args: dopamineHonoraryTabArgs,
         },
       };
       for (const contract in toVerify) {

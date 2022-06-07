@@ -21,7 +21,7 @@ pragma solidity ^0.8.13;
 /// - `Checkpoint` struct was modified to pack 4 checkpoints per storage slot
 /// - Signing was modularized to abstract away EIP-712 details (see ERC721.sol)
 
-import "../errors.sol";
+import "../Errors.sol";
 import {IERC721Votable} from "../interfaces/IERC721Votable.sol";
 import {ERC721} from "./ERC721.sol";
 

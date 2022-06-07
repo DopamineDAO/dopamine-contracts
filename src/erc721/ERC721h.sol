@@ -7,32 +7,29 @@ pragma solidity ^0.8.13;
 ///              ░▒█▄▄█░█▄▄█░▒█░░░▒█░▒█░▒█░░▒█░▄█▄░▒█░░▀█░▒█▄▄▄              ///
 ////////////////////////////////////////////////////////////////////////////////
 
-/// Transfer & minting methods derive from ERC721.sol of solmate:
-/// https://github.com/Rari-Capital/solmate/blob/main/src/tokens/ERC721.sol
-/// Credit goes to Transmissions11 (Solmate author) for these gas optimizations.
+/// Transfer & minting methods derive from ERC721.sol of solmate.
 
 import {IERC721} from "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import {IERC721Metadata} from "@openzeppelin/contracts/token/ERC721/extensions/IERC721Metadata.sol";
 import {IERC721Receiver} from "@openzeppelin/contracts/token/ERC721/IERC721Receiver.sol";
 import {IERC2981} from "../interfaces/IERC2981.sol";
 
-import "../errors.sol";
+import "../Errors.sol";
 
-/// @title Dopamine ERC-721 contract built for Dopamine honorary tabs.
+/// @title ERC-721 contract built for Dopamine honorary tabs.
 /// @notice This is a minimal ERC-721 implementation that supports the metadata
-///  extension, total supply tracking, and ERC-2981 royalties support.
+///  extension, total supply tracking, and EIP-2981 royalties.
 /// @dev This ERC-721 implementation is optimized for mints and transfers of
-///  individual tokens (as opposed to bulk). It also includes EIP-712 methods &
-///  data structures to allow for signing processes to be built on top of it.
-contract ERC721h is IERC721, IERC721Metadata, IERC2981 {
+///  individual NFTs, as opposed to mints and transfers of NFT batches.
+contract ERC721H is IERC721, IERC721Metadata, IERC2981 {
 
-    /// @notice The name of the token collection.
+    /// @notice The name of this NFT collection.
     string public name;
 
-    /// @notice The abbreviated name of the token collection.
+    /// @notice The abbreviated name of this NFT collection.
     string public symbol;
 
-    /// @notice The total number of tokens in circulation.
+    /// @notice The total number of NFTs in circulation.
     uint256 public totalSupply;
 
     /// @notice Gets the number of NFTs owned by an address.
@@ -40,7 +37,7 @@ contract ERC721h is IERC721, IERC721Metadata, IERC2981 {
     mapping(address => uint256) public balanceOf;
 
     /// @notice Gets the assigned owner of an address.
-    /// @dev This implementation does not throw for zero-address NFTs.
+    /// @dev This implementation does not throw for NFTs of the zero address.
     mapping(uint256 => address) public ownerOf;
 
     /// @notice Gets the approved address for an NFT.
@@ -68,6 +65,54 @@ contract ERC721h is IERC721, IERC721Metadata, IERC2981 {
     ) {
         name = name_;
         symbol = symbol_;
+    }
+
+    /// @notice Transfers NFT of id `id` from address `from` to address `to`,
+    ///  with safety checks ensuring `to` is capable of receiving the NFT.
+    /// @dev Safety checks are only performed if `to` is a smart contract.
+    /// @param from The existing owner address of the NFT to be transferred.
+    /// @param to The address of the new owner of the NFT to be transferred.
+    /// @param id The id of the NFT being transferred.
+    /// @param data Additional transfer data to pass to the receiving contract.
+    function safeTransferFrom(
+        address from,
+        address to,
+        uint256 id,
+        bytes memory data
+    ) external {
+        transferFrom(from, to, id);
+
+        if (
+            to.code.length != 0 &&
+                IERC721Receiver(to).onERC721Received(msg.sender, from, id, data)
+                !=
+                IERC721Receiver.onERC721Received.selector
+        ) {
+            revert SafeTransferUnsupported();
+        }
+    }
+
+    /// @notice Transfers NFT of id `id` from address `from` to address `to`,
+    ///  with safety checks ensuring `to` is capable of receiving the NFT.
+    /// @dev Safety checks are only performed if `to` is a smart contract.
+    /// @param from The existing owner address of the NFT to be transferred.
+    /// @param to The address of the new owner of the NFT to be transferred.
+    /// @param id The id of the NFT being transferred.
+    function safeTransferFrom(
+        address from,
+        address to,
+        uint256 id
+    ) external {
+        transferFrom(from, to, id);
+
+        if (
+            to.code.length != 0 &&
+                IERC721Receiver(to).onERC721Received(msg.sender, from, id, "")
+                !=
+                IERC721Receiver.onERC721Received.selector
+        ) {
+            revert SafeTransferUnsupported();
+        }
     }
 
     /// @inheritdoc IERC2981
@@ -119,54 +164,6 @@ contract ERC721h is IERC721, IERC721Metadata, IERC2981 {
         emit Transfer(from, to, id);
     }
 
-    /// @notice Transfers NFT of id `id` from address `from` to address `to`,
-    ///  with safety checks ensuring `to` is capable of receiving the NFT.
-    /// @dev Safety checks are only performed if `to` is a smart contract.
-    /// @param from The existing owner address of the NFT to be transferred.
-    /// @param to The address of the new owner of the NFT to be transferred.
-    /// @param id The id of the NFT being transferred.
-    /// @param data Additional transfer data to pass to the receiving contract.
-    function safeTransferFrom(
-        address from,
-        address to,
-        uint256 id,
-        bytes memory data
-    ) public {
-        transferFrom(from, to, id);
-
-        if (
-            to.code.length != 0 &&
-                IERC721Receiver(to).onERC721Received(msg.sender, from, id, data)
-                !=
-                IERC721Receiver.onERC721Received.selector
-        ) {
-            revert SafeTransferUnsupported();
-        }
-    }
-
-    /// @notice Transfers NFT of id `id` from address `from` to address `to`,
-    ///  with safety checks ensuring `to` is capable of receiving the NFT.
-    /// @dev Safety checks are only performed if `to` is a smart contract.
-    /// @param from The existing owner address of the NFT to be transferred.
-    /// @param to The address of the new owner of the NFT to be transferred.
-    /// @param id The id of the NFT being transferred.
-    function safeTransferFrom(
-        address from,
-        address to,
-        uint256 id
-    ) public {
-        transferFrom(from, to, id);
-
-        if (
-            to.code.length != 0 &&
-                IERC721Receiver(to).onERC721Received(msg.sender, from, id, "")
-                !=
-                IERC721Receiver.onERC721Received.selector
-        ) {
-            revert SafeTransferUnsupported();
-        }
-    }
-
     /// @notice Sets approved address of NFT of id `id` to address `approved`.
     /// @param approved The new approved address for the NFT.
     /// @param id The id of the NFT to approve.
@@ -194,21 +191,21 @@ contract ERC721h is IERC721, IERC721Metadata, IERC2981 {
     }
 
     /// @notice Sets the operator for `msg.sender` to `operator`.
-    /// @param operator The operator address that will manage the sender's NFTs
-    /// @param approved Whether the operator is allowed to operate sender's NFTs
+    /// @param operator The operator address that will manage the sender's NFTs.
+    /// @param approved Whether operator is allowed to operate on sender's NFTs.
     function setApprovalForAll(address operator, bool approved) public {
         _operatorApprovals[msg.sender][operator] = approved;
         emit ApprovalForAll(msg.sender, operator, approved);
     }
 
     /// @notice Returns the metadata URI associated with the NFT of id `id`.
-    /// @return A string URI pointing to metadata of the queried NFT.
+    /// @return A string URI pointing to the metadata of the queried NFT.
     function tokenURI(uint256) public view virtual returns (string memory) {
         return "";
     }
 
     /// @notice Checks if interface of identifier `id` is supported.
-    /// @param id The ERC-165 interface identifier.
+    /// @param id The EIP-165 interface identifier.
     /// @return True if interface id `id` is supported, false otherwise.
     function supportsInterface(bytes4 id) public pure virtual returns (bool) {
         return
@@ -236,9 +233,9 @@ contract ERC721h is IERC721, IERC721Metadata, IERC2981 {
         emit Transfer(creator, to, totalSupply);
     }
 
-    /// @notice Sets the royalty information for all NFTs in the collection.
+    /// @notice Sets EIP-2981 royalty information for NFTs in the collection.
     /// @param receiver Address which will receive token royalties.
-    /// @param royalties Royalties amount, in bips.
+    /// @param royalties Amount of royalties to be sent, in bips.
     function _setRoyalties(address receiver, uint96 royalties) internal {
         if (royalties > 10000) {
             revert RoyaltiesTooHigh();

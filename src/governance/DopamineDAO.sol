@@ -25,7 +25,7 @@ pragma solidity ^0.8.13;
 /// - Bakes in EIP-712 data structures as immutables for more efficient caching
 import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 
-import "../errors.sol";
+import "../Errors.sol";
 import {IDopamineDAOToken} from "../interfaces/IDopamineDAOToken.sol";
 import {ITimelock} from "../interfaces/ITimelock.sol";
 import {IDopamineDAO} from "../interfaces/IDopamineDAO.sol";

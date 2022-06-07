@@ -7,9 +7,9 @@ pragma solidity ^0.8.13;
 ///              ░▒█▄▄█░█▄▄█░▒█░░░▒█░▒█░▒█░░▒█░▄█▄░▒█░░▀█░▒█▄▄▄              ///
 ////////////////////////////////////////////////////////////////////////////////
 
-import "./errors.sol";
+import "./Errors.sol";
 import { IDopamineTab } from "./interfaces/IDopamineTab.sol";
-import { IProxyRegistry } from "./interfaces/IProxyRegistry.sol";
+import { IOpenSeaProxyRegistry } from "./interfaces/IOpenSeaProxyRegistry.sol";
 import { ERC721 } from "./erc721/ERC721.sol";
 import { ERC721Votable } from "./erc721/ERC721Votable.sol";
 
@@ -45,7 +45,7 @@ contract DopamineTab is ERC721Votable, IDopamineTab {
     address public minter;
 
     /// @notice The OS registry address - whitelisted for gasless OS approvals.
-    IProxyRegistry public proxyRegistry;
+    IOpenSeaProxyRegistry public proxyRegistry;
 
     /// @notice The URI each tab initially points to for metadata resolution.
     /// @dev Before drop completion, `tokenURI()` resolves to "{baseUri}/{id}".
@@ -105,7 +105,7 @@ contract DopamineTab is ERC721Votable, IDopamineTab {
     /// @dev `admin` is intended to eventually switch to the Dopamine DAO proxy.
     constructor(
         address minter_,
-        IProxyRegistry proxyRegistry_,
+        IOpenSeaProxyRegistry proxyRegistry_,
         uint256 dropSize_,
         uint256 dropDelay_,
         uint256 whitelistSize_,
@@ -287,7 +287,7 @@ contract DopamineTab is ERC721Votable, IDopamineTab {
     /// @inheritdoc IDopamineTab
     function setWhitelistSize(uint256 newWhitelistSize) public onlyAdmin {
         if (newWhitelistSize > MAX_WL_SIZE || newWhitelistSize > dropSize) {
-            revert DropWhitelistOverCapacity();
+            revert DropAllowlistOverCapacity();
         }
         whitelistSize = newWhitelistSize;
         emit WhitelistSizeSet(whitelistSize);

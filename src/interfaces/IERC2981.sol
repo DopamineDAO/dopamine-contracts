@@ -22,8 +22,8 @@ struct RoyaltiesInfo {
 }
 
     /// @notice Returns the address to which royalties are received along with
-    ///  the royalty amount paid to them for a given sale price.
-    /// @param id The id of the NFT to from which royalties are being queried.
+    ///  the royalties amount to be paid to them for a given sale price.
+    /// @param id The id of the NFT being queried for royalties information.
     /// @param salePrice The sale price of the NFT, in some unit of exchange.
     /// @return receiver The address of the royalties receiver.
     /// @return royaltyAmount The royalty payment to be made given `salePrice`.

@@ -29,7 +29,7 @@ pragma solidity ^0.8.13;
 
 import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 
-import '../errors.sol';
+import '../Errors.sol';
 import { DopamineAuctionHouseStorage } from "./DopamineAuctionHouseStorage.sol";
 import { IDopamineAuctionHouse } from "../interfaces/IDopamineAuctionHouse.sol";
 import { IDopamineAuctionHouseToken } from "../interfaces/IDopamineAuctionHouseToken.sol";

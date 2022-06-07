@@ -16,7 +16,7 @@ interface IDopamineHonoraryTab is IDopamineHonoraryTabEvents {
     /// @dev This function is only callable by the owner address.
     function mint(address to) external;
 
-    /// @notice Gets the owner address, which controls minting & royalties.
+    /// @notice Gets the owner address, which controls minting and metadata.
     function owner() external view returns (address);
 
     /// @notice Retrieves a URI describing the overall contract-level metadata.
@@ -38,7 +38,7 @@ interface IDopamineHonoraryTab is IDopamineHonoraryTabEvents {
     /// @dev This function is only callable by the owner address.
     function setStorageURI(string calldata newStorageURI) external;
 
-    /// @notice Sets the royalties for the NFT collection.
+    /// @notice Sets the EIP-2981 royalties for the NFT collection.
     /// @param receiver Address to which royalties will be received.
     /// @param royalties The amount of royalties to receive, in bips.
     /// @dev This function is only callable by the owner address.
