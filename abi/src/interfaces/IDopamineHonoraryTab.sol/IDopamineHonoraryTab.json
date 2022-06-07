@@ -1,0 +1,12 @@
+[
+  "event BaseURISet(string baseURI)",
+  "event OwnerChanged(address indexed oldOwner, address indexed newOwner)",
+  "event StorageURISet(string storageURI)",
+  "function contractURI() view returns (string)",
+  "function mint(address to)",
+  "function owner() view returns (address)",
+  "function setBaseURI(string newBaseURI)",
+  "function setOwner(address newOwner)",
+  "function setRoyalties(address receiver, uint96 royalties)",
+  "function setStorageURI(string newStorageURI)"
+]
