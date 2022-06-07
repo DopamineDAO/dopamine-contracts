@@ -1,27 +1,35 @@
 import { task, types } from "hardhat/config";
+import * as readline from 'readline';
+import { stdin as input, stdout as output } from 'node:process';
+const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
 
 task("mint-h-staging", "Mint using the staging Honorary Pass Contract")
   .addParam("account", "account address")
+  .addParam("id", "nft id")
   .setAction(async (args, { run }) => {
     await run("mint-h", {
-			address: "0x4fd4217427ce18e04bb266027e895a7000d6d0f7",
+			address: "0xDbcB30300cFD11C039aFD6afcF2262ad1a220E22",
       chainid: 4,
 			account: args.account,
+			id: args.id
     });
   });
 
 task("mint-h-dev", "Mint using the dev Honorary Pass Contract")
   .addParam("account", "account address")
+  .addParam("id", "nft id")
   .setAction(async (args, { run }) => {
     await run("mint-h", {
-			address: "0x49fe81f974d5d80c32bb47d46ce8b918e773f00e",
+			address: "0xFaceF8302B8D4544C02B3382eb02223aA1B1b294",
       chainid: 4,
 			account: args.account,
+			id: args.id
     });
   });
 
 task( "mint-h-prod", "Deploy Dopamine contracts to Ethereum Mainnet")
   .addParam("account", "account address")
+  .addParam("id", "nft id")
 	.setAction(async (args, { run }) => {
   await run("mint-h", {
 		address: "0x4fd4217427ce18e04bb266027e895a7000d6d0f7",
@@ -33,21 +41,18 @@ task( "mint-h-prod", "Deploy Dopamine contracts to Ethereum Mainnet")
 task("mint-h", "Mints a Doapmine honorary")
   .addParam("chainid", "expected network chain ID", undefined, types.int)
   .addParam(
+    "id",
+    "intended nft id",
+    undefined,
+    types.string
+  )
+  .addParam(
     "account",
     "account to mint honorary pass for",
     undefined,
     types.string
   )
-	.addOptionalParam(
-    "testrun",
-    "whether to test first",
-    false,
-    types.boolean
-	)
   .setAction(async (args, { ethers, run }) => {
-		console.log(args.address);
-		console.log(args.testrun);
-
     const gasPrice = await ethers.provider.getGasPrice();
     const network = await ethers.provider.getNetwork();
     if (network.chainId != args.chainid) {
@@ -76,9 +81,21 @@ task("mint-h", "Mints a Doapmine honorary")
 		const gas = await token.estimateGas.mint(args.account);
 		const cost = ethers.utils.formatUnits(gas.mul(gasPrice), "ether");
 		console.log(`Estimated minting cost to address ${args.address}: ${cost}ETH`);
-		if (!args.testrun) {
-			const receipt = await (await token.mint(args.account)).wait();
-			console.log(receipt);
+		const totalSupply = Number(await token.totalSupply());
+		if (Number(args.id) !== totalSupply + 1) {
+			console.log(`the id ${args.id} does not match totalSupply+1=${totalSupply + 1}`)
+			return
 		}
+		console.log(`YOU ARE ABOUT TO DEPLOY ${args.id}!`)
+		console.log(`THE RECIPIENT WILL BE ${args.account}!`)
+		console.log('SLEEPING FOR 30 SECONDS BEFORE MINTING!');
+		await sleep(5000);
+		const receipt = await (await token.mint(args.account)).wait();
+	  console.log(receipt);
 	});
 
+function sleep(ms: number) {
+  return new Promise((resolve) => {
+    setTimeout(resolve, ms);
+  });
+}

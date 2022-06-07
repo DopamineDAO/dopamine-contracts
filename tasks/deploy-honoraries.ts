@@ -21,7 +21,7 @@ task("deploy-h-rinkeby", "Deploy Dopamine contracts to Rinkeby")
       chainid: 4,
 			registry: "0x1e525eeaf261ca41b809884cbde9dd9e1619573a",
 			royalties: 750,
-			reserve: "0x69BABEc995611574eEb683e8801974795F2c4ccd",
+			reserve: "0x69BABE250214d876BeEEA087945F0B53F691D519",
       verify: args.verify,
     });
   });
@@ -47,7 +47,7 @@ task(
     chainid: 1,
     registry: "0xa5409ec958c83c3f309868babaca7c86dcb077c1",
 		royalties: 750,
-		reserve: "0xC51dCeF58241d126D8E571D64FcbEDBF79366fBf",
+		reserve: "0x86aBc3afF51f98BF635b78d87C2136A1c6a2757e",
 		verify: true
   });
 });

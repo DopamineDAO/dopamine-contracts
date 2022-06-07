@@ -35,7 +35,7 @@ task("deploy-rinkeby", "Deploy Rarity Society contracts to Rinkeby")
   .setAction(async (args, { run }) => {
     await run("deploy", {
       chainid: 4,
-      registry: "0xf57b2c51ded3a29e6891aba85459d600256cf317",
+      registry: "0x1e525eeaf261ca41b809884cbde9dd9e1619573a",
       verify: args.verify,
     });
   });

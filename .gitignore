@@ -39,3 +39,8 @@ abi/contracts/interfaces
 
 # Build files
 dist
+
+# Scripts (will delete later)
+mint-dev.sh
+mint-staging.sh
+mint-prod.sh

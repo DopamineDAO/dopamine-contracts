@@ -18,7 +18,7 @@ import {IERC2981} from "../interfaces/IERC2981.sol";
 
 import "../errors.sol";
 
-/// @title Dopamine ERC-721 contract built for Dopamine Honorary Passes.
+/// @title Dopamine ERC-721 contract built for Dopamine honorary tabs.
 /// @notice This is a minimal ERC-721 implementation that supports the metadata
 ///  extension, total supply tracking, and ERC-2981 royalties support.
 /// @dev This ERC-721 implementation is optimized for mints and transfers of
@@ -219,8 +219,9 @@ contract ERC721h is IERC721, IERC721Metadata, IERC2981 {
     }
 
     /// @notice Mints NFT of id `totalSupply + 1` to address `to`.
+    /// @param creator Address to which NFT creation attribution is assigned.
     /// @param to Address receiving the minted NFT.
-    function _mint(address to) internal {
+    function _mint(address creator, address to) internal {
         if (to == address(0)) {
             revert ReceiverInvalid();
         }
@@ -231,7 +232,8 @@ contract ERC721h is IERC721, IERC721Metadata, IERC2981 {
         }
 
         ownerOf[totalSupply] = to;
-        emit Transfer(address(0), to, totalSupply);
+        emit Transfer(address(0), creator, totalSupply);
+        emit Transfer(creator, to, totalSupply);
     }
 
     /// @notice Sets the royalty information for all NFTs in the collection.

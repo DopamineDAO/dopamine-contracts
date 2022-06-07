@@ -15,7 +15,7 @@ interface ITimelockEvents {
     /// @param target    Target addresses of the call to be queued.
     /// @param value     Amount (in wei) to send with the queued transaction.
     /// @param signature The function signature of the queued transaction.
-    /// @param data      Calldata to be passed with the queued transaction call.
+    /// @param data      Calldata to be tabed with the queued transaction call.
     /// @param eta       Timestamp at which call is eligible for execution. 
 	event TransactionQueued(
 		bytes32 indexed txHash,
@@ -47,7 +47,7 @@ interface ITimelockEvents {
     /// @param target    Target addresses of the executed call.
     /// @param value     Amount (in wei) that was sent with the transaction.
     /// @param signature The function signature of the executed transaction.
-    /// @param data      Calldata that was passed to the executed transaction.
+    /// @param data      Calldata that was tabed to the executed transaction.
     /// @param eta       Timestamp at which call became eligible for execution. 
 	event TransactionExecuted(
 		bytes32 indexed txHash,

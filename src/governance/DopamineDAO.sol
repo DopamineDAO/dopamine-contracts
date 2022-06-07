@@ -37,7 +37,7 @@ import {DopamineDAOStorage} from "./DopamineDAOStorage.sol";
 ///  and modified to be integrated with UUPS proxies for easier upgrades. Like 
 ///  Governor Bravo, governance token holders may make proposals and vote for 
 ///  them based on their delegated voting weights. In the Dopamine DAO model,
-///  governance tokens are ERC-721s  with a capped supply (Dopamine passes).
+///  governance tokens are ERC-721s  with a capped supply (Dopamine tabs).
 /// @dev It is intended for the admin to be configured as the  Timelock, and the
 ///  vetoer to initially be configured as the team multi-sig (revoked later).
 contract DopamineDAO is UUPSUpgradeable, DopamineDAOStorage, IDopamineDAO {
@@ -343,7 +343,7 @@ contract DopamineDAO is UUPSUpgradeable, DopamineDAOStorage, IDopamineDAO {
     /// @param votingPeriod_ Time a proposal is up for voting, in blocks.
     /// @param votingDelay_ Time before opening proposal for voting, in blocks.
     /// @param proposalThreshold_ Number of NFTs required to submit a proposal.
-    /// @param quorumThresholdBPS_ Supply % (bips) needed to pass a proposal.
+    /// @param quorumThresholdBPS_ Supply % (bips) needed to tab a proposal.
 	function initialize(
 		address timelock_,
 		address token_,

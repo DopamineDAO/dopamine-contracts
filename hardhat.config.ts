@@ -44,10 +44,14 @@ const config: HardhatUserConfig = {
       url: `https://eth-goerli.alchemyapi.io/v2/${process.env.GOERLI_API_KEY}`,
       accounts: [process.env.PRIVATE_KEY!].filter(Boolean),
     },
-    rinkeby: {
+    rinkebyDev: {
+      url: `https://eth-rinkeby.alchemyapi.io/v2/${process.env.RINKEBY_API_KEY}`,
+      accounts: [process.env.DEV_PRIVATE_KEY!].filter(Boolean),
+    },
+    rinkebyStaging: {
       url: `https://eth-rinkeby.alchemyapi.io/v2/${process.env.RINKEBY_API_KEY}`,
       accounts: [process.env.PRIVATE_KEY!].filter(Boolean),
-    },
+    }
   },
   gasReporter: {
     enabled: process.env.REPORT_GAS !== undefined,

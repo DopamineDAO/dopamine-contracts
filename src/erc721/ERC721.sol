@@ -145,7 +145,7 @@ contract ERC721 is IERC721, IERC721Metadata, IERC2981 {
     /// @param from The existing owner address of the NFT to be transferred.
     /// @param to   The address of the new owner of the NFT to be transferred.
     /// @param id   The id of the NFT being transferred.
-    /// @param data Additional transfer data to pass to the receiving contract.
+    /// @param data Additional transfer data to tab to the receiving contract.
     function safeTransferFrom(
         address from,
         address to,

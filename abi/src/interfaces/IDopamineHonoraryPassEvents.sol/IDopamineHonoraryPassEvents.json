@@ -1,5 +1,0 @@
-[
-  "event AdminChanged(address indexed oldAdmin, address indexed newAdmin)",
-  "event BaseURISet(string baseURI)",
-  "event StorageURISet(string storageURI)"
-]

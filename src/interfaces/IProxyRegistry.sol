@@ -7,7 +7,7 @@ pragma solidity ^0.8.13;
 ///              ░▒█▄▄█░█▄▄█░▒█░░░▒█░▒█░▒█░░▒█░▄█▄░▒█░░▀█░▒█▄▄▄              ///
 ////////////////////////////////////////////////////////////////////////////////
 
-/// @title OpenSea Proxy Registry Interface
+/// @title OpenSea proxy registry interface
 interface IProxyRegistry {
 
     /// @notice Returns the proxy account associated with an OS user address.
