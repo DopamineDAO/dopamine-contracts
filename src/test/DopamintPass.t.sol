@@ -76,6 +76,7 @@ contract DopamintPassTest is Test, IDopamintPassEvents {
         r.registerProxy(); // Register OS delegate on behalf of `TO`.
         PROXY_REGISTRY = IProxyRegistry(address(r));
 
+        vm.stopPrank();
         vm.startPrank(ADMIN);
 
         token = new DopamintPass(ADMIN, PROXY_REGISTRY, DROP_SIZE, DROP_DELAY, WHITELIST_SIZE, MAX_SUPPLY);
@@ -113,6 +114,7 @@ contract DopamintPassTest is Test, IDopamintPassEvents {
             inputs[i + 3] = whitelisted;
             proofInputs[i + 5] = whitelisted;
         }
+        vm.stopPrank();
     }
 
     function testIsApprovedForAll() public {
@@ -145,6 +147,7 @@ contract DopamintPassTest is Test, IDopamintPassEvents {
     }
 
     function testMint() public {
+        vm.startPrank(ADMIN);
         // Mint reverts with no drops created.
         vm.expectRevert(DropMaxCapacity.selector);
         token.mint();
@@ -164,9 +167,11 @@ contract DopamintPassTest is Test, IDopamintPassEvents {
 
         // Minting continues working on next drop
         token.mint();
+        vm.stopPrank();
     }
 
     function testCreateDrop() public {
+        vm.startPrank(ADMIN);
         // Successfully creates a drop.
         vm.expectEmit(true, true, true, true);
         emit DropCreated(0, 0, DROP_SIZE, WHITELIST_SIZE, bytes32(0), PROVENANCE_HASH);
@@ -198,16 +203,20 @@ contract DopamintPassTest is Test, IDopamintPassEvents {
         vm.expectEmit(true, true, true, true);
         emit DropCreated(1, DROP_SIZE, MAX_SUPPLY - DROP_SIZE, WHITELIST_SIZE, bytes32(0), PROVENANCE_HASH);
         token.createDrop(bytes32(0), PROVENANCE_HASH);
+        vm.stopPrank();
     }
 
     function testSetMinter() public {
+        vm.startPrank(ADMIN);
         vm.expectEmit(true, true, true, true);
         emit MinterChanged(ADMIN, TO);
         token.setMinter(TO);
         assertEq(token.minter(), TO);
+        vm.stopPrank();
     }
 
     function testSetDropDelay() public {
+        vm.startPrank(ADMIN);
         // Reverts if the drop delay is too low.
         uint256 minDropDelay = token.MIN_DROP_DELAY();
         vm.expectRevert(DropDelayInvalid.selector);
@@ -222,9 +231,11 @@ contract DopamintPassTest is Test, IDopamintPassEvents {
         vm.expectEmit(true, true, true, true);
         emit DropDelaySet(DROP_DELAY);
         token.setDropDelay(DROP_DELAY);
+        vm.stopPrank();
     }
 
     function testSetDropSize() public {
+        vm.startPrank(ADMIN);
         // Reverts if the drop size is too low.
         uint256 minDropSize = token.MIN_DROP_SIZE();
         vm.expectRevert(DropSizeInvalid.selector);
@@ -240,10 +251,12 @@ contract DopamintPassTest is Test, IDopamintPassEvents {
         emit DropSizeSet(DROP_SIZE);
         token.setDropSize(DROP_SIZE);
         assertEq(token.dropSize(), DROP_SIZE);
+        vm.stopPrank();
     }
 
 
     function testSetWhitelistSize() public {
+        vm.startPrank(ADMIN);
         // Reverts if whitelist size too large.
         uint256 maxWhitelistSize = token.MAX_WL_SIZE();
         vm.expectRevert(DropWhitelistOverCapacity.selector);
@@ -257,18 +270,22 @@ contract DopamintPassTest is Test, IDopamintPassEvents {
         vm.expectEmit(true, true, true, true);
         emit WhitelistSizeSet(WHITELIST_SIZE);
         token.setWhitelistSize(WHITELIST_SIZE);
+        vm.stopPrank();
     }
 
     function testSetBaseURI() public {
+        vm.startPrank(ADMIN);
         // Should change the base URI of the NFT.
         vm.expectEmit(true, true, true, true);
         emit BaseURISet("https://dopam1ne.xyz");
         token.setBaseURI("https://dopam1ne.xyz");
 
         assertEq(token.baseUri(), "https://dopam1ne.xyz");
+        vm.stopPrank();
     }
 
     function testSetDropURI() public {
+        vm.startPrank(ADMIN);
         // Reverts when drop has not yet been created.
         vm.expectRevert(DropNonExistent.selector);
         token.setDropURI(0, IPFS_URI);
@@ -278,10 +295,11 @@ contract DopamintPassTest is Test, IDopamintPassEvents {
         vm.expectEmit(true, true, true, true);
         emit DropURISet(0, IPFS_URI);
         token.setDropURI(0, IPFS_URI);
-
+        vm.stopPrank();
     }
 
     function testTokenURI() public {
+        vm.startPrank(ADMIN);
         // Reverts when token not yet minted.
         vm.expectRevert(TokenNonExistent.selector);
         token.tokenURI(NFT);
@@ -292,9 +310,11 @@ contract DopamintPassTest is Test, IDopamintPassEvents {
 
         token.setDropURI(0, IPFS_URI);
         assertEq(token.tokenURI(NFT), "https://ipfs.io/ipfs/Qme57kZ2VuVzcj5sC3tVHFgyyEgBTmAnyTK45YVNxKf6hi/5");
+        vm.stopPrank();
     }
 
     function testGetDropId() public {
+        vm.startPrank(ADMIN);
         // Reverts when token of drop has not yet been created.
         vm.expectRevert(DropNonExistent.selector);
         token.dropId(NFT);
@@ -314,9 +334,11 @@ contract DopamintPassTest is Test, IDopamintPassEvents {
         token.createDrop(bytes32(0), PROVENANCE_HASH);
         token.mint();
         assertEq(token.dropId(DROP_SIZE + WHITELIST_SIZE), 1);
+        vm.stopPrank();
     }
 
     function testClaim() public {
+        vm.startPrank(ADMIN);
         // Create drop with whitelist.
         bytes32 merkleRoot = bytes32(vm.ffi(inputs));
         token.createDrop(merkleRoot, PROVENANCE_HASH);
@@ -324,6 +346,7 @@ contract DopamintPassTest is Test, IDopamintPassEvents {
         // First whitelisted user can claim assigned NFT.
         proofInputs[CLAIM_SLOT] = addressToString(W1, 0);
         bytes32[] memory proof = abi.decode(vm.ffi(proofInputs), (bytes32[]));
+        vm.stopPrank();
         vm.startPrank(W1);
         token.claim(proof, 0);
         assertEq(token.ownerOf(0), W1);
@@ -343,16 +366,20 @@ contract DopamintPassTest is Test, IDopamintPassEvents {
         token.claim(proof, 2);
 
         // Works for whitelisted member.
+        vm.stopPrank();
         vm.startPrank(W2);
         token.claim(proof, 2);
         assertEq(token.ownerOf(2), W2);
+        vm.stopPrank();
     }
 
     function testAuctions() public {
+        vm.startPrank(ADMIN);
         token.setMinter(address(ah));
         token.createDrop(bytes32(0), PROVENANCE_HASH);
 
         ah.resumeNewAuctions();
+        vm.stopPrank();
     }
 
 	/// Returns input tom erkle encoder in format `{ADDRESS}:{TOKEN_ID}`.

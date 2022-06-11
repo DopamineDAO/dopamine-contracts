@@ -36,11 +36,11 @@ contract TimelockTest is Test, ITimelockEvents {
         timelock = new Timelock(ADMIN, DELAY);
         txHash = keccak256(abi.encode(address(timelock), 0, SIGNATURE, CALLDATA, BLOCK_TIMESTAMP + DELAY));
         revertTxHash = keccak256(abi.encode(address(timelock), 0, SIGNATURE, REVERT_CALLDATA, BLOCK_TIMESTAMP + DELAY));
-        vm.startPrank(FROM);
         vm.deal(FROM, 8888);
     }
 
     function testConstructor() public {
+        vm.startPrank(FROM);
         /// Reverts when setting invalid voting period.
         vm.expectRevert(TimelockDelayInvalid.selector);
         timelock = new Timelock(ADMIN, 0);
@@ -58,23 +58,30 @@ contract TimelockTest is Test, ITimelockEvents {
         assertEq(timelock.timelockDelay(), DELAY);
         assertEq(timelock.admin(), ADMIN);
         assertEq(timelock.pendingAdmin(), address(0));
+        vm.stopPrank();
     }
 
     function testReceive() public {
+        vm.startPrank(FROM);
         (bool ok, ) = address(timelock).call{ value: 1 }(new bytes(0));
         assertTrue(ok);
+        vm.stopPrank();
     }
 
     function testFallback() public {
+        vm.startPrank(FROM);
         (bool ok, ) = address(timelock).call{ value: 1 }("DEADBEEF");
         assertTrue(ok);
+        vm.stopPrank();
     }
 
     function testSetTimelockDelay() public {
+        vm.startPrank(FROM);
         // Reverts when not set by the timelock.
         vm.expectRevert(TimelockOnly.selector);
         timelock.setTimelockDelay(DELAY);
 
+        vm.stopPrank();
         vm.startPrank(address(timelock));
 
         // Reverts when delay too small.
@@ -93,13 +100,16 @@ contract TimelockTest is Test, ITimelockEvents {
         timelock.setTimelockDelay(DELAY);
 
         assertEq(timelock.timelockDelay(), DELAY);
+        vm.stopPrank();
     }
 
     function testSetPendingAdmin() public {
+        vm.startPrank(FROM);
         // Reverts when not set by the timelock.
         vm.expectRevert(TimelockOnly.selector);
         timelock.setPendingAdmin(FROM);
 
+        vm.stopPrank();
         vm.startPrank(address(timelock));
 
         // Emits the expected `PendingAdminSet` event.
@@ -108,6 +118,7 @@ contract TimelockTest is Test, ITimelockEvents {
         timelock.setPendingAdmin(FROM);
 
         assertEq(timelock.pendingAdmin(), FROM);
+        vm.stopPrank();
     }
 
     function testAcceptAdmin() public {
@@ -116,6 +127,7 @@ contract TimelockTest is Test, ITimelockEvents {
         timelock.setPendingAdmin(FROM);
         vm.expectRevert(PendingAdminOnly.selector);
         timelock.acceptAdmin();
+        vm.stopPrank();
 
         // Emits the expected `AdminChanged` event when executed by pending admin.
         vm.startPrank(FROM);
@@ -126,13 +138,16 @@ contract TimelockTest is Test, ITimelockEvents {
         // Properly assigns admin and clears pending admin.
         assertEq(timelock.admin(), FROM);
         assertEq(timelock.pendingAdmin(), address(0));
+        vm.stopPrank();
     }
 
     function testTransactionQueued() public {
+        vm.startPrank(FROM);
         // Reverts when not called by the admin.
         vm.expectRevert(AdminOnly.selector);
         timelock.queueTransaction(address(timelock), 0, SIGNATURE, CALLDATA, BLOCK_TIMESTAMP + DELAY);
 
+        vm.stopPrank();
         vm.startPrank(ADMIN);
         
         // Reverts when the ETA is too soon.
@@ -147,12 +162,15 @@ contract TimelockTest is Test, ITimelockEvents {
         timelock.queueTransaction(address(timelock), 0, SIGNATURE, CALLDATA, BLOCK_TIMESTAMP + DELAY);
 
         assertTrue(timelock.queuedTransactions(txHash));
+        vm.stopPrank();
     }
 
     function testTransactionCanceled() public {
+        vm.startPrank(FROM);
         // Reverts when not called by the admin.
         vm.expectRevert(AdminOnly.selector);
         timelock.cancelTransaction(address(timelock), 0, SIGNATURE, CALLDATA, BLOCK_TIMESTAMP + DELAY);
+        vm.stopPrank();
 
         vm.startPrank(ADMIN);
         timelock.queueTransaction(address(timelock), 0, SIGNATURE, CALLDATA, BLOCK_TIMESTAMP + DELAY);
@@ -164,13 +182,16 @@ contract TimelockTest is Test, ITimelockEvents {
         timelock.cancelTransaction(address(timelock), 0, SIGNATURE, CALLDATA, BLOCK_TIMESTAMP + DELAY);
 
         assertTrue(!timelock.queuedTransactions(txHash));
+        vm.stopPrank();
     }
 
     function testTransactionExecuted() public {
+        vm.startPrank(FROM);
         // Reverts when not called by the admin.
         vm.expectRevert(AdminOnly.selector);
         timelock.executeTransaction(address(timelock), 0, SIGNATURE, CALLDATA, BLOCK_TIMESTAMP + DELAY);
 
+        vm.stopPrank();
         vm.startPrank(ADMIN);
         /// Queue two transactions, one which succeeds and one which reverts.
         timelock.queueTransaction(address(timelock), 0, SIGNATURE, CALLDATA, BLOCK_TIMESTAMP + DELAY);
@@ -202,5 +223,6 @@ contract TimelockTest is Test, ITimelockEvents {
         timelock.executeTransaction(address(timelock), 0, SIGNATURE, CALLDATA, BLOCK_TIMESTAMP + DELAY);
         assertTrue(!timelock.queuedTransactions(txHash));
         assertEq(timelock.timelockDelay(), DELAY + 1);
+        vm.stopPrank();
     }
 }

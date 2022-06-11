@@ -39,3 +39,7 @@ abi/contracts/interfaces
 
 # Build files
 dist
+
+mint-dev.sh
+mint-prod.sh
+mint-staging.sh

@@ -54,7 +54,6 @@ contract ERC721VotableTest is Test {
         vm.roll(BLOCK_START);
         token.mint(FROM, NFT);
         vm.roll(BLOCK_START + 1);
-        vm.startPrank(FROM);
     }
 
     function setUp() public {
@@ -68,9 +67,11 @@ contract ERC721VotableTest is Test {
         vm.warp(TIMESTAMP_START);
         token.mint(FROM, NFT);
         vm.roll(BLOCK_START + 1);
+        vm.stopPrank();
     }
 
     function testTransfer() public {
+        vm.startPrank(FROM);
         vm.expectEmit(true, true, true, true);
         emit DelegateVotesChanged(FROM, 1, 0);
         vm.expectEmit(true, true, true, true);
@@ -87,9 +88,11 @@ contract ERC721VotableTest is Test {
         assertEq(token.priorVotes(FROM, BLOCK_START + 1), 0);
         assertEq(token.priorVotes(TO, BLOCK_START), 0);
         assertEq(token.priorVotes(TO, BLOCK_START + 1), 1);
+        vm.stopPrank();
     }
 
     function testMint() public {
+        vm.startPrank(FROM);
         vm.expectEmit(true, true, true, true);
         emit DelegateVotesChanged(TO, 0, 1);
         token.mint(TO, NFT_1);
@@ -99,9 +102,11 @@ contract ERC721VotableTest is Test {
         assertEq(token.priorVotes(TO, BLOCK_START + 1), 1);
         assertEq(token.currentVotes(TO), 1);
         assertEq(token.totalCheckpoints(TO), 1);
+        vm.stopPrank();
     }
 
     function testBurn() public {
+        vm.startPrank(FROM);
         vm.expectEmit(true, true, true, true);
         emit DelegateVotesChanged(FROM, 1, 0);
         token.burn(NFT);
@@ -111,6 +116,7 @@ contract ERC721VotableTest is Test {
         assertEq(token.priorVotes(FROM, BLOCK_START + 1), 0);
         assertEq(token.currentVotes(FROM), 0);
         assertEq(token.totalCheckpoints(FROM), 2);
+        vm.stopPrank();
     }
 
     function testDelegate() public {
@@ -176,7 +182,7 @@ contract ERC721VotableTest is Test {
 
     function _testDelegateZeroBalance(function(address) external fn) public reset {
 
-        vm.prank(OPERATOR); // zero balance
+        vm.startPrank(OPERATOR); // zero balance
 
         // Emits expected events.
         vm.expectEmit(true, true, true, true);
@@ -196,9 +202,11 @@ contract ERC721VotableTest is Test {
         vm.roll(BLOCK_START + 2);
         assertEq(token.priorVotes(OPERATOR, BLOCK_START), 0);
         assertEq(token.priorVotes(OPERATOR, BLOCK_START + 1), 0);
+        vm.stopPrank();
     }
 
     function _testDelegateToSelf(function(address) external fn) public reset {
+        vm.startPrank(FROM);
         // Emits expected events when delegating to self
         vm.expectEmit(true, true, true, true);
         emit DelegateChanged(FROM, FROM, FROM);
@@ -220,9 +228,11 @@ contract ERC721VotableTest is Test {
         vm.roll(BLOCK_START + 2);
         assertEq(token.priorVotes(FROM, BLOCK_START), 1);
         assertEq(token.priorVotes(FROM, BLOCK_START + 1), 1);
+        vm.stopPrank();
     }
 
     function _testDelegateToValidAddress(function(address) external fn) public reset {
+        vm.startPrank(FROM);
         // Emits expected events when delegating to a valid address.
         vm.expectEmit(true, true, true, true);
         emit DelegateChanged(FROM, FROM, TO);
@@ -259,9 +269,14 @@ contract ERC721VotableTest is Test {
         assertEq(token.priorVotes(FROM, BLOCK_START + 1), 0);
         assertEq(token.priorVotes(TO, BLOCK_START), 0);
         assertEq(token.priorVotes(TO, BLOCK_START + 1), 1);
+
+        vm.stopPrank();
     }
 
     function _testTransferWithSenderDelegate(function(address) external fn) public reset {
+
+        vm.startPrank(FROM);
+
         vm.expectEmit(true, true, true, true);
         emit DelegateChanged(FROM, FROM, OPERATOR);
         vm.expectEmit(true, true, true, true);
@@ -306,6 +321,8 @@ contract ERC721VotableTest is Test {
         assertEq(token.priorVotes(OPERATOR, BLOCK_START + 2), 0);
         assertEq(token.priorVotes(TO, BLOCK_START + 1), 0);
         assertEq(token.priorVotes(TO, BLOCK_START + 2), 1);
+
+        vm.stopPrank();
     }
 
     function _testTransferWithReceiverDelegate(function(address) external fn) public reset {
@@ -315,6 +332,7 @@ contract ERC721VotableTest is Test {
         fn(OPERATOR);
 
         vm.roll(BLOCK_START + 2);
+        vm.stopPrank();
         vm.startPrank(FROM);
         vm.expectEmit(true, true, true, true);
         emit DelegateVotesChanged(FROM, 1, 0);
@@ -343,9 +361,11 @@ contract ERC721VotableTest is Test {
         assertEq(token.priorVotes(FROM, BLOCK_START + 2), 0);
         assertEq(token.priorVotes(OPERATOR, BLOCK_START + 2), 1);
         assertEq(token.priorVotes(TO, BLOCK_START + 2), 0);
+        vm.stopPrank();
     }
 
     function _testDelegateWithMultipleTransfers(function(address) external fn) public reset {
+        vm.startPrank(FROM);
         token.mint(FROM, NFT_1);
         token.mint(FROM, NFT_2);
         vm.roll(BLOCK_START + 2);
@@ -374,6 +394,7 @@ contract ERC721VotableTest is Test {
 
         vm.roll(BLOCK_START + 4);
 
+        vm.stopPrank();
         vm.startPrank(TO);
         vm.expectEmit(true, true, true, true);
         emit DelegateChanged(TO, TO, OPERATOR);
@@ -384,6 +405,7 @@ contract ERC721VotableTest is Test {
         fn(OPERATOR);
 
         vm.roll(BLOCK_START + 5);
+        vm.stopPrank();
         vm.startPrank(OPERATOR);
         vm.expectEmit(true, true, true, true);
         emit DelegateVotesChanged(OPERATOR, 2, 1);
@@ -447,6 +469,7 @@ contract ERC721VotableTest is Test {
         assertEq(token.priorVotes(TO, BLOCK_START + 3), 2);
         assertEq(token.priorVotes(TO, BLOCK_START + 4), 1);
         assertEq(token.priorVotes(TO, BLOCK_START + 5), 2);
+        vm.stopPrank();
     }
 
 }

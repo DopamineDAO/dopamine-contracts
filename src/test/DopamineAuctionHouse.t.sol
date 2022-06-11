@@ -82,9 +82,11 @@ contract DopamineAuctionHouseTest is Test, IDopamineAuctionHouseEvents {
         );
 		ERC1967Proxy proxy = new ERC1967Proxy(address(ahImpl), data);
         ah = MockDopamineAuctionHouse(address(proxy));
+        vm.stopPrank();
     }
 
     function testInitialize() public {
+        vm.startPrank(ADMIN);
         /// Correctly sets all auction house parameters.
         assertEq(address(ah.token()), address(token));
         assertEq(ah.pendingAdmin(), address(0));
@@ -175,9 +177,11 @@ contract DopamineAuctionHouseTest is Test, IDopamineAuctionHouseEvents {
         );
         vm.expectRevert(AuctionDurationInvalid.selector);
 		proxy = new ERC1967Proxy(address(ahImpl), data);
+        vm.stopPrank();
     }
 
     function testSetTreasurySplit() public {
+        vm.startPrank(ADMIN);
         // Reverts when the treasury split is too high.
         vm.expectRevert(AuctionTreasurySplitInvalid.selector);
         ah.setTreasurySplit(101);
@@ -186,9 +190,11 @@ contract DopamineAuctionHouseTest is Test, IDopamineAuctionHouseEvents {
         vm.expectEmit(true, true, true, true);
         emit AuctionTreasurySplitSet(TREASURY_SPLIT);
         ah.setTreasurySplit(TREASURY_SPLIT);
+        vm.stopPrank();
     }
 
     function testSetTimeBuffer() public {
+        vm.startPrank(ADMIN);
         // Reverts when time buffer too small.
         uint256 minTimeBuffer = ah.MIN_TIME_BUFFER();
         vm.expectRevert(AuctionTimeBufferInvalid.selector);
@@ -203,9 +209,11 @@ contract DopamineAuctionHouseTest is Test, IDopamineAuctionHouseEvents {
         vm.expectEmit(true, true, true, true);
         emit AuctionTimeBufferSet(TIME_BUFFER);
         ah.setTimeBuffer(TIME_BUFFER);
+        vm.stopPrank();
     }
 
     function testSetReservePrice() public {
+        vm.startPrank(ADMIN);
         // Reverts when reserve price is too low.
         uint256 minReservePrice = ah.MIN_RESERVE_PRICE();
         vm.expectRevert(AuctionReservePriceInvalid.selector);
@@ -220,9 +228,11 @@ contract DopamineAuctionHouseTest is Test, IDopamineAuctionHouseEvents {
         vm.expectEmit(true, true, true, true);
         emit AuctionReservePriceSet(RESERVE_PRICE);
         ah.setReservePrice(RESERVE_PRICE);
+        vm.stopPrank();
     }
 
     function testSetAuctionDuration() public {
+        vm.startPrank(ADMIN);
         // Reverts when duration is too low.
         uint256 minAuctionDuration = ah.MIN_AUCTION_DURATION();
         vm.expectRevert(AuctionDurationInvalid.selector);
@@ -237,6 +247,7 @@ contract DopamineAuctionHouseTest is Test, IDopamineAuctionHouseEvents {
         vm.expectEmit(true, true, true, true);
         emit AuctionDurationSet(AUCTION_DURATION);
         ah.setAuctionDuration(AUCTION_DURATION);
+        vm.stopPrank();
     }
 
     function testResumeNewAuctions() public {
@@ -245,6 +256,7 @@ contract DopamineAuctionHouseTest is Test, IDopamineAuctionHouseEvents {
         vm.expectRevert(AdminOnly.selector);
         ah.resumeNewAuctions();
         
+        vm.stopPrank();
         vm.startPrank(ADMIN);
 
         // Remains suspended if called for first time and minting fails.
@@ -279,20 +291,24 @@ contract DopamineAuctionHouseTest is Test, IDopamineAuctionHouseEvents {
         emit AuctionCreationFailed();
         ah.resumeNewAuctions();
         assertTrue(ah.suspended());
+        vm.stopPrank();
 
     }
 
     function testSuspendNewAuctions() public {
+        vm.startPrank(ADMIN);
         // Reverts when trying to suspend an already suspended auction.
         vm.expectRevert(AuctionAlreadySuspended.selector);
         ah.suspendNewAuctions();
 
         ah.resumeNewAuctions();
+        vm.stopPrank();
 
         // Reverts when suspended by a non-admin.
         vm.startPrank(BIDDER);
         vm.expectRevert(AdminOnly.selector);
         ah.suspendNewAuctions();
+        vm.stopPrank();
 
         // Should succesfully suspended when called by admin.
         vm.startPrank(ADMIN);
@@ -303,6 +319,7 @@ contract DopamineAuctionHouseTest is Test, IDopamineAuctionHouseEvents {
     }
 
     function testCreateBid() public {
+        vm.startPrank(ADMIN);
         // Creating bid before auction creation throws.
         vm.expectRevert(AuctionExpired.selector);
         ah.createBid(NFT);
@@ -320,6 +337,7 @@ contract DopamineAuctionHouseTest is Test, IDopamineAuctionHouseEvents {
         // Throws when bidding below reserve price.
         vm.expectRevert(AuctionBidTooLow.selector);
         ah.createBid{ value: 0 }(NFT);
+        vm.stopPrank();
 
         // Successfully creates a bid.
         vm.startPrank(BIDDER);
@@ -343,6 +361,7 @@ contract DopamineAuctionHouseTest is Test, IDopamineAuctionHouseEvents {
         // Min time to forward for time extension to apply.
         uint256 et = BLOCK_TIMESTAMP + AUCTION_DURATION - TIME_BUFFER + 1;
         vm.warp(et);
+        vm.stopPrank();
         vm.startPrank(BIDDER_1);
 
         // Auctions get successfully extended if applicable.
@@ -364,18 +383,22 @@ contract DopamineAuctionHouseTest is Test, IDopamineAuctionHouseEvents {
         // Refunds the previous bidder.
         assertEq(BIDDER.balance, BIDDER_INITIAL_BAL);
         assertEq(BIDDER_1.balance, BIDDER_1_INITIAL_BAL - 2 ether);
+        vm.stopPrank();
         // Keeps eth and notifies via event in case of failed refunds.
         vm.startPrank(address(MALICIOUS_BIDDER));
         ah.createBid{ value: 4 ether }(NFT);
+        vm.stopPrank();
         vm.startPrank(BIDDER);
         vm.expectEmit(true, true, true, true);
         emit RefundFailed(address(MALICIOUS_BIDDER));
         ah.createBid{ value: 8 ether }(NFT);
         assertEq(address(ah).balance, 12 ether);
+        vm.stopPrank();
 
         // Check malicious gas burner bidders cannot exploit auction.
         vm.startPrank(address(GAS_BURNER_BIDDER));
         ah.createBid{ value: 9 ether }(NFT);
+        vm.stopPrank();
         vm.startPrank(BIDDER);
         uint256 gasStart = gasleft();
         vm.expectEmit(true, true, true, true);
@@ -388,9 +411,11 @@ contract DopamineAuctionHouseTest is Test, IDopamineAuctionHouseEvents {
         vm.warp(et + TIME_BUFFER + 1);
         vm.expectRevert(AuctionExpired.selector);
         ah.createBid(NFT);
+        vm.stopPrank();
     }
 
     function testSettleAuctionWhenSuspended() public {
+        vm.startPrank(ADMIN);
 
         // [TESTS SETTLEMENT WHEN SUSPENDED] 
 
@@ -401,6 +426,7 @@ contract DopamineAuctionHouseTest is Test, IDopamineAuctionHouseEvents {
         ah.resumeNewAuctions(); // Put NFT up for auction.
         ah.suspendNewAuctions(); // Suspend future NFTs from getting auctioned.
 
+        vm.stopPrank();
         vm.startPrank(BIDDER);
 
         // Reverts when settling an auction not yet settled.
@@ -427,12 +453,15 @@ contract DopamineAuctionHouseTest is Test, IDopamineAuctionHouseEvents {
         vm.expectRevert(AuctionAlreadySettled.selector);
         ah.settleAuction();
 
+        vm.stopPrank();
         vm.startPrank(ADMIN);
         ah.resumeNewAuctions();
 
         // Settling awards NFT to last bidder.
+        vm.stopPrank();
         vm.startPrank(BIDDER);
         ah.createBid{ value: 1 ether }(NFT_1);
+        vm.stopPrank();
         vm.startPrank(ADMIN);
         ah.suspendNewAuctions();
         vm.warp(BLOCK_TIMESTAMP + AUCTION_DURATION * 2);
@@ -457,6 +486,7 @@ contract DopamineAuctionHouseTest is Test, IDopamineAuctionHouseEvents {
     }
 
     function testSettleAuctionWhenLive() public {
+        vm.startPrank(ADMIN);
         // [TESTS SETTLEMENT WHEN NOT SUSPENDED]
         ah.resumeNewAuctions(); 
 
@@ -465,6 +495,7 @@ contract DopamineAuctionHouseTest is Test, IDopamineAuctionHouseEvents {
         ah.settleAuction();
 
         // Settles new auction and creates a new one.
+        vm.stopPrank();
         vm.startPrank(BIDDER);
         ah.createBid{ value: 1 ether }(NFT);
         vm.warp(BLOCK_TIMESTAMP + AUCTION_DURATION);
@@ -504,11 +535,14 @@ contract DopamineAuctionHouseTest is Test, IDopamineAuctionHouseEvents {
         
         // No bids here - check NFT transferred to the DAO.
         assertEq(token.ownerOf(NFT_1), address(dao));
+        vm.stopPrank();
     }
 
     function testUpgrade() public {
+        vm.startPrank(ADMIN);
         // Setup upgrade to be performed during live auction.
         ah.resumeNewAuctions();
+        vm.stopPrank();
         vm.startPrank(BIDDER);
         ah.createBid{ value: 2 ether }(NFT);
         IDopamineAuctionHouse.Auction memory auction = ah.getAuction();
@@ -520,11 +554,13 @@ contract DopamineAuctionHouseTest is Test, IDopamineAuctionHouseEvents {
         assertTrue(!auction.settled);
 
         MockDopamineAuctionHouseUpgraded upgradedImpl = new MockDopamineAuctionHouseUpgraded();
+        vm.stopPrank();
         
         // Upgrades should not work if called by unauthorized upgrader.
         vm.startPrank(BIDDER);
         vm.expectRevert(UpgradeUnauthorized.selector);
         ah.upgradeTo(address(upgradedImpl));
+        vm.stopPrank();
 
         // Perform an upgrade that initializes with faulty dao and reserve.
         vm.startPrank(ADMIN);
@@ -581,12 +617,14 @@ contract DopamineAuctionHouseTest is Test, IDopamineAuctionHouseEvents {
         );
 
         // Other actions fail due to faulty implementation initialization.
+        vm.stopPrank();
         vm.startPrank(BIDDER);
         vm.expectRevert(FunctionReentrant.selector);
         ahImpl.createBid{ value: 1 ether }(NFT);
 
         vm.expectRevert(FunctionReentrant.selector);
         ahImpl.settleAuction();
+        vm.stopPrank();
     }
 
 
