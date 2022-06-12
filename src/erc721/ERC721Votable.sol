@@ -29,8 +29,8 @@ import {ERC721} from "./ERC721.sol";
 /// @notice This voting contract allows any ERC-721 NFT with a maximum supply of
 ///  under `type(uint32).max` which inherits the contract to be integrated into
 ///  a Governor Bravo governance framework. In Dopamine's case, this contract is
-///  to be inherited by the Dopamine DAO ERC-721 membership pass, allowing 
-///  pass NFTs to act as governance tokens to be used for proposal voting and 
+///  to be inherited by the Dopamine DAO ERC-721 membership tab, allowing 
+///  tab NFTs to act as governance tokens to be used for proposal voting and 
 ///  membership delegation within Dopamine DAO (a Governor Bravo derivative).
 contract ERC721Votable is ERC721, IERC721Votable {
 

@@ -4,10 +4,10 @@
 
 pragma solidity ^0.8.13;
 
-import { IProxyRegistry } from '../../interfaces/IProxyRegistry.sol';
+import { IOpenSeaProxyRegistry } from '../../interfaces/IOpenSeaProxyRegistry.sol';
 import { MockProxy } from './MockProxy.sol';
 
-contract MockProxyRegistry is IProxyRegistry {
+contract MockProxyRegistry is IOpenSeaProxyRegistry {
 
     address public proxyImplementation;
 

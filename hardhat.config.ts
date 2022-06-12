@@ -12,6 +12,8 @@ import "hardhat-abi-exporter";
 import "./tasks/config";
 import "./tasks/merkle";
 import "./tasks/deploy";
+import "./tasks/deploy-honoraries";
+import "./tasks/mint-honorary";
 import "./tasks/propose";
 import "./tasks/mint";
 
@@ -34,14 +36,22 @@ const config: HardhatUserConfig = {
     outDir: "typechain",
   },
   networks: {
-    rinkeby: {
-      url: `https://eth-rinkeby.alchemyapi.io/v2/${process.env.API_KEY}`,
-      accounts: [process.env.PRIVATE_KEY!].filter(Boolean),
-    },
+		mainnet: {
+			url: `https://eth-mainnet.alchemyapi.io/v2/${process.env.MAINNET_API_KEY}`,
+			accounts: [process.env.PRIVATE_KEY!].filter(Boolean),
+		},
     goerli: {
-      url: `https://eth-goerli.alchemyapi.io/v2/${process.env.API_KEY}`,
+      url: `https://eth-goerli.alchemyapi.io/v2/${process.env.GOERLI_API_KEY}`,
       accounts: [process.env.PRIVATE_KEY!].filter(Boolean),
     },
+    rinkebyDev: {
+      url: `https://eth-rinkeby.alchemyapi.io/v2/${process.env.RINKEBY_API_KEY}`,
+      accounts: [process.env.DEV_PRIVATE_KEY!].filter(Boolean),
+    },
+    rinkebyStaging: {
+      url: `https://eth-rinkeby.alchemyapi.io/v2/${process.env.RINKEBY_API_KEY}`,
+      accounts: [process.env.PRIVATE_KEY!].filter(Boolean),
+    }
   },
   gasReporter: {
     enabled: process.env.REPORT_GAS !== undefined,

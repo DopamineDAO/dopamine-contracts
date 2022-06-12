@@ -7,34 +7,34 @@ pragma solidity ^0.8.13;
 ///              ░▒█▄▄█░█▄▄█░▒█░░░▒█░▒█░▒█░░▒█░▄█▄░▒█░░▀█░▒█▄▄▄              ///
 ////////////////////////////////////////////////////////////////////////////////
 
-import "./IDopamintPassEvents.sol";
+import "./IDopamineTabEvents.sol";
 
-/// @title Dopamine DAO ERC-721 membership pass interface
-interface IDopamintPass is IDopamintPassEvents {
+/// @title Dopamine DAO ERC-721 membership tab interface
+interface IDopamineTab is IDopamineTabEvents {
 
-    /// @notice Mints a dopamine pass to the minter address.
+    /// @notice Mints a dopamine tab to the minter address.
     /// @dev This function is only callable by the minter address.
-    /// @return Id of the minted pass, which is always equal to `_id`.
+    /// @return Id of the minted tab, which is always equal to `_id`.
     function mint() external returns (uint256);
 
-    /// @notice Burns a dopamine pass.
+    /// @notice Burns a dopamine tab.
     /// @param id The id of the NFT to be burned.
     function burn(uint256 id) external;
 
-    /// @notice Mints a whitelisted pass of id `id` to the sender address if
-    ///  merkle proof `proof` proves they were whitelisted with that pass id.
+    /// @notice Mints a whitelisted tab of id `id` to the sender address if
+    ///  merkle proof `proof` proves they were whitelisted with that tab id.
     /// @dev Reverts if invalid proof is provided or claimer isn't whitelisted.
     ///  The whitelist is formed using encoded tuple leaves (address, id). The
     ///  Merkle Tree JS library used: https://github.com/miguelmota/merkletreejs
     /// @param proof The Merkle proof of the claim as a bytes32 array.
-    /// @param id    The id of the Dopamine pass being claimed.
+    /// @param id    The id of the Dopamine tab being claimed.
     function claim(bytes32[] calldata proof, uint256 id) external;
 
-    /// @notice Creates a new Dopamine pass drop.
+    /// @notice Creates a new Dopamine tab drop.
     /// @dev This function is only callable by the admin address, and reverts if
     ///  an ongoing drop exists, call is too early, or maximum capacity reached.
     /// @param whitelist A merkle root whose tree is comprised of whitelisted 
-    ///  addresses and their assigned pass ids. This assignment is permanent.
+    ///  addresses and their assigned tab ids. This assignment is permanent.
     /// @param provenanceHash An immutable provenance hash equal to the SHA-256
     ///  hash of the concatenation of all SHA-256 image hashes of the drop.
     function createDrop(bytes32 whitelist, bytes32 provenanceHash) external;
@@ -42,7 +42,7 @@ interface IDopamintPass is IDopamintPassEvents {
     /// @notice Gets the admin address, which controls drop settings & creation.
     function admin() external view returns (address);
 
-    /// @notice Gets the minter address, which controls Dopamine pass emissions.
+    /// @notice Gets the minter address, which controls Dopamine tab emissions.
     function minter() external view returns (address);
 
     /// @notice Gets the time needed to wait in seconds between drop creations.
@@ -54,11 +54,11 @@ interface IDopamintPass is IDopamintPassEvents {
     /// @notice Gets the time at which a new drop can start (if last completed).
     function dropEndTime() external view returns (uint256);
 
-    /// @notice Gets the current number of passes to be distributed each drop.
-    /// @dev This includes the number of passes whitelisted for the drop.
+    /// @notice Gets the current number of tabs to be distributed each drop.
+    /// @dev This includes the number of tabs whitelisted for the drop.
     function dropSize() external view returns (uint256);
 
-    /// @notice Gets the number of passes allocated for whitelisting each drop.
+    /// @notice Gets the number of tabs allocated for whitelisting each drop.
     function whitelistSize() external view returns (uint256);
 
     /// @notice Retrieves the provenance hash for a drop with id `dropId`.
@@ -77,12 +77,12 @@ interface IDopamintPass is IDopamintPassEvents {
     /// @return The drop's whitelist, as a bytes32 merkle tree root.
     function dropWhitelist(uint256 dropId) external view returns (bytes32);
 
-    /// @notice Retrieves the drop id of the pass with id `id`.
-    /// @return The drop id of the queried pass.
+    /// @notice Retrieves the drop id of the tab with id `id`.
+    /// @return The drop id of the queried tab.
     function dropId(uint256 id) external view returns (uint256);
 
     /// @notice Retrieves a URI describing the overall contract-level metadata.
-    /// @return A string URI pointing to the pass contract metadata.
+    /// @return A string URI pointing to the tab contract metadata.
     function contractURI() external view returns (string memory);
 
     /// @notice Sets the minter address to `newMinter`.
@@ -116,7 +116,7 @@ interface IDopamintPass is IDopamintPassEvents {
     /// @notice Sets the drop size to `newDropSize`.
     /// @dev This function is only callable by the admin address, and reverts if
     ///  the specified drop size is too small or too large.
-    /// @param newDropSize The new drop size to set, in terms of pass units.
+    /// @param newDropSize The new drop size to set, in terms of tab units.
     function setDropSize(uint256 newDropSize) external;
 
     /// @notice Sets the drop whitelist size to `newWhitelistSize`.

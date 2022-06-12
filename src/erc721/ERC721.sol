@@ -14,6 +14,7 @@ pragma solidity ^0.8.13;
 import {IERC721} from "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import {IERC721Metadata} from "@openzeppelin/contracts/token/ERC721/extensions/IERC721Metadata.sol";
 import {IERC721Receiver} from "@openzeppelin/contracts/token/ERC721/IERC721Receiver.sol";
+import {IERC2981} from "../interfaces/IERC2981.sol";
 
 import "../errors.sol";
 
@@ -23,7 +24,7 @@ import "../errors.sol";
 /// @dev This ERC-721 implementation is optimized for mints and transfers of
 ///  individual tokens (as opposed to bulk). It also includes EIP-712 methods &
 ///  data structures to allow for signing processes to be built on top of it.
-contract ERC721 is IERC721, IERC721Metadata {
+contract ERC721 is IERC721, IERC721Metadata, IERC2981 {
 
     /// @notice The name of the token collection.
     string public name;
@@ -56,6 +57,9 @@ contract ERC721 is IERC721, IERC721Metadata {
     /// @dev Checks for an owner if an address is an authorized operator.
     mapping(address => mapping(address => bool)) internal _operatorApprovals;
 
+    /// @dev EIP-2981 collection-wide royalties information.
+    RoyaltiesInfo internal _royaltiesInfo;
+
     // EIP-712 immutables for signing messages.
     uint256 internal immutable _CHAIN_ID;
     bytes32 internal immutable _DOMAIN_SEPARATOR;
@@ -64,6 +68,7 @@ contract ERC721 is IERC721, IERC721Metadata {
     bytes4 private constant _ERC165_INTERFACE_ID = 0x01ffc9a7;
     bytes4 private constant _ERC721_INTERFACE_ID = 0x80ac58cd;
     bytes4 private constant _ERC721_METADATA_INTERFACE_ID = 0x5b5e139f;
+    bytes4 private constant _ERC2981_METADATA_INTERFACE_ID = 0x2a55205a;
     
     /// @notice Instantiates a new ERC-721 contract.
     /// @param name_      The name of the NFT.
@@ -80,6 +85,16 @@ contract ERC721 is IERC721, IERC721Metadata {
 
         _CHAIN_ID = block.chainid;
         _DOMAIN_SEPARATOR = _buildDomainSeparator();
+    }
+
+    /// @inheritdoc IERC2981
+    function royaltyInfo(
+        uint256 id,
+        uint256 salePrice
+    ) external view returns (address, uint256) {
+	 	RoyaltiesInfo memory royaltiesInfo = _royaltiesInfo;
+        uint256 royalties = (salePrice * royaltiesInfo.royalties) / 10000;
+        return (royaltiesInfo.receiver, royalties);
     }
 
     /// @notice Transfers NFT of id `id` from address `from` to address `to`,
@@ -218,7 +233,8 @@ contract ERC721 is IERC721, IERC721Metadata {
         return
             id == _ERC165_INTERFACE_ID ||
             id == _ERC721_INTERFACE_ID ||
-            id == _ERC721_METADATA_INTERFACE_ID;
+            id == _ERC721_METADATA_INTERFACE_ID ||
+			id == _ERC2981_METADATA_INTERFACE_ID;
     }
 
     /// @notice Mints NFT of id `id` to address `to`.
@@ -315,6 +331,19 @@ contract ERC721 is IERC721, IERC721Metadata {
         } else {
             return _buildDomainSeparator();
         }
+    }
+
+	/// @notice Sets the royalty information for all NFTs in the collection.
+    /// @param receiver Address which will receive token royalties.
+    /// @param royalties Royalties amount, in bips.
+    function _setRoyalties(address receiver, uint96 royalties) internal {
+        if (royalties > 10000) {
+            revert RoyaltiesTooHigh();
+        }
+        if (receiver == address(0)) {
+            revert ReceiverInvalid();
+        }
+        _royaltiesInfo = RoyaltiesInfo(receiver, royalties);
     }
 
 }

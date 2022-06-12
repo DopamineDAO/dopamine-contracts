@@ -7,19 +7,19 @@ pragma solidity ^0.8.13;
 ///              ░▒█▄▄█░█▄▄█░▒█░░░▒█░▒█░▒█░░▒█░▄█▄░▒█░░▀█░▒█▄▄▄              ///
 ////////////////////////////////////////////////////////////////////////////////
  
-/// @title Dopamine DAO ERC-721 Membership Pass Events Interface
-interface IDopamintPassEvents {
+/// @title Dopamine DAO ERC-721 Membership Tab Events Interface
+interface IDopamineTabEvents {
 
-    /// @notice Emits when the Dopamine pass base URI is set to `baseUri`.
-    /// @param baseUri The base URI of the Dopamine pass contract, as a string.
+    /// @notice Emits when the Dopamine tab base URI is set to `baseUri`.
+    /// @param baseUri The base URI of the Dopamine tab contract, as a string.
 	event BaseURISet(string baseUri);
 
-    /// @notice Emits when a new drop is created by the Dopamine pass admin.
+    /// @notice Emits when a new drop is created by the Dopamine tab admin.
     /// @param dropId         The id of the newly created drop.
-    /// @param startIndex     The id of the first passincluded in the drop.
-    /// @param dropSize       The number of passes to distribute in the drop.
-    /// @param whitelistSize  The number of whitelisted passes in the drop.
-    /// @param whitelist      A merkle root of the included address-pass pairs.
+    /// @param startIndex     The id of the first tabincluded in the drop.
+    /// @param dropSize       The number of tabs to distribute in the drop.
+    /// @param whitelistSize  The number of whitelisted tabs in the drop.
+    /// @param whitelist      A merkle root of the included address-tab pairs.
     /// @param provenanceHash SHA-256 hash of combined image hashes in the drop.
     event DropCreated(
         uint256 indexed dropId,
@@ -35,7 +35,7 @@ interface IDopamintPassEvents {
     event DropDelaySet(uint256 dropDelay);
 
     /// @notice Emits when a new drop size `dropSize` is set.
-    /// @param dropSize The new drop size, in number of passes to distribute.
+    /// @param dropSize The new drop size, in number of tabs to distribute.
     event DropSizeSet(uint256 dropSize);
 
     /// @notice Emits when the drop of id `id` has its URI set to `dropUr1`.
@@ -44,7 +44,7 @@ interface IDopamintPassEvents {
 	event DropURISet(uint256 indexed id, string dropUri);
 
     /// @notice Emits when a new whitelist size `whitelistSize` is set.
-    /// @param whitelistSize The number of passes to whitelist for drops.
+    /// @param whitelistSize The number of tabs to whitelist for drops.
     event WhitelistSizeSet(uint256 whitelistSize);
 
     /// @notice Emits when minter is changed from `oldMinter` to `newMinter`.

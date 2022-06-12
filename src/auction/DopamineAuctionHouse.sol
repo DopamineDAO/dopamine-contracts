@@ -38,7 +38,7 @@ import { IDopamineAuctionHouseToken } from "../interfaces/IDopamineAuctionHouseT
 /// @notice The DopamineAuctionHouse contract is an English auctions platform
 ///  that allows any integrated NFT to be auctioned one-at-a-time providing the
 ///  NFT conforms to the IDopamineAuctionHouseToken interface. In Dopamine DAO
-///  the tokens are meant to be the Dopamine passes, with the auction house
+///  the tokens are meant to be the Dopamine tabs, with the auction house
 ///  controlling its overall emissions schedule. 
 //// @dev It is intended for the admin to be the team multi-sig address.
 contract DopamineAuctionHouse is UUPSUpgradeable, DopamineAuctionHouseStorage, IDopamineAuctionHouse {

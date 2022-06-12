@@ -9,7 +9,7 @@ pragma solidity ^0.8.13;
   
 /// @title Dopamine DAO Governance Token
 /// @notice Although Dopamine DAO is intended to be integrated with the Dopamine
-///  ERC-721 pass (see DopamintPass.sol), any governance contract supporting the
+///  ERC-721 tab (see DopamineTab.sol), any governance contract supporting the
 ///  following interface definitions can be used. In the future, it is possible 
 ///  that Dopamine DAO will upgrade to support another second-tier governance 
 ///  If this happens, the token must support the IDopamineDAOToken interface.

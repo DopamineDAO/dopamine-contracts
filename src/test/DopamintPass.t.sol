@@ -3,12 +3,12 @@ pragma solidity >=0.8.0;
 
 import "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
 
-import "../interfaces/IDopamintPass.sol";
-import "../interfaces/IProxyRegistry.sol";
+import "../interfaces/IDopamineTab.sol";
+import "../interfaces/IOpenSeaProxyRegistry.sol";
 import "./mocks/MockDopamineAuctionHouse.sol";
 import "../auction/DopamineAuctionHouse.sol";
 import "../interfaces/IDopamineAuctionHouse.sol";
-import "../DopamintPass.sol";
+import "../DopamineTab.sol";
 import "./mocks/MockProxyRegistry.sol";
 
 import "./utils/test.sol";
@@ -17,8 +17,8 @@ import "./utils/console.sol";
 contract MockContractUnpayable { }
 contract MockContractPayable { receive() external payable {} }
 
-/// @title Dopamint Pass Test Suites
-contract DopamintPassTest is Test, IDopamintPassEvents {
+/// @title Dopamint Tab Test Suites
+contract DopamineTabTest is Test, IDopamineTabEvents {
 
     /// @notice Addresses used for testing.
     address constant ADMIN = address(1337);
@@ -34,8 +34,8 @@ contract DopamintPassTest is Test, IDopamintPassEvents {
     uint256 constant RESERVE_PRICE = 1 ether;
 
     uint256 constant AUCTION_DURATION = 60 * 60 * 12; // 12 hours
-    IProxyRegistry PROXY_REGISTRY;
-    DopamintPass token;
+    IOpenSeaProxyRegistry PROXY_REGISTRY;
+    DopamineTab token;
     DopamineAuctionHouse ah;
 
     /// @notice Block settings for testing.
@@ -74,12 +74,12 @@ contract DopamintPassTest is Test, IDopamintPassEvents {
 
         MockProxyRegistry r  = new MockProxyRegistry();
         r.registerProxy(); // Register OS delegate on behalf of `TO`.
-        PROXY_REGISTRY = IProxyRegistry(address(r));
+        PROXY_REGISTRY = IOpenSeaProxyRegistry(address(r));
 
         vm.stopPrank();
         vm.startPrank(ADMIN);
 
-        token = new DopamintPass(ADMIN, PROXY_REGISTRY, DROP_SIZE, DROP_DELAY, WHITELIST_SIZE, MAX_SUPPLY);
+        token = new DopamineTab(ADMIN, PROXY_REGISTRY, DROP_SIZE, DROP_DELAY, WHITELIST_SIZE, MAX_SUPPLY);
 
         DopamineAuctionHouse ahImpl = new DopamineAuctionHouse();
         address proxyAddr = getContractAddress(address(ADMIN), 0x02); 
@@ -137,12 +137,12 @@ contract DopamintPassTest is Test, IDopamintPassEvents {
         // Reverts when setting invalid drop size.
         uint256 minDropSize = token.MIN_DROP_SIZE();
         vm.expectRevert(DropSizeInvalid.selector);
-        new DopamintPass(ADMIN, IProxyRegistry(PROXY_REGISTRY), minDropSize - 1, DROP_DELAY, WHITELIST_SIZE, MAX_SUPPLY);
+        new DopamineTab(ADMIN, IOpenSeaProxyRegistry(PROXY_REGISTRY), minDropSize - 1, DROP_DELAY, WHITELIST_SIZE, MAX_SUPPLY);
         
         // Reverts when setting invalid drop delay.
         uint256 maxDropDelay = token.MAX_DROP_DELAY();
         vm.expectRevert(DropDelayInvalid.selector);
-        new DopamintPass(ADMIN, IProxyRegistry(PROXY_REGISTRY), DROP_SIZE, maxDropDelay + 1, WHITELIST_SIZE, MAX_SUPPLY);
+        new DopamineTab(ADMIN, IOpenSeaProxyRegistry(PROXY_REGISTRY), DROP_SIZE, maxDropDelay + 1, WHITELIST_SIZE, MAX_SUPPLY);
 
     }
 

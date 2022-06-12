@@ -45,7 +45,7 @@ contract DopamineDAOStorage {
     /// @notice The timelock, responsible for coordinating proposal execution.
     ITimelock public timelock;
 
-    /// @notice The Dopamine DAO governance token (the ERC-721 Dopamine pass).
+    /// @notice The Dopamine DAO governance token (the ERC-721 Dopamine tab).
     IDopamineDAOToken public token;
 
     /// @notice The ongoing proposal.

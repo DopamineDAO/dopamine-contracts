@@ -10,13 +10,13 @@ pragma solidity ^0.8.13;
 // This file is a shared repository of all errors used in Dopamine's contracts.
 
 ////////////////////////////////////////////////////////////////////////////////
-///                               DopamintPass                               /// 
+///                               DopamineTab                               /// 
 ////////////////////////////////////////////////////////////////////////////////
 
 /// @notice Configured drop delay is invalid.
 error DropDelayInvalid();
 
-/// @notice DopamintPass drop hit allocated capacity.
+/// @notice DopamineTab drop hit allocated capacity.
 error DropMaxCapacity();
 
 /// @notice No such drop exists.
@@ -234,3 +234,10 @@ error TransactionStale();
 
 /// @notice Proof for claim is invalid.
 error ProofInvalid();
+
+///////////////////////////////////////////////////////////////////////////////
+///                           EIP-2981 Royalties                             ///
+////////////////////////////////////////////////////////////////////////////////
+
+/// @notice Royalties are set too high.
+error RoyaltiesTooHigh();
