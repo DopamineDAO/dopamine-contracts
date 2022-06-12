@@ -121,6 +121,14 @@ contract DopamintPass is ERC721Votable, IDopamintPass {
     }
 
     /// @inheritdoc IDopamintPass
+    function burn(uint256 id) external {
+        if (msg.sender != ownerOf[id]) {
+            revert SenderUnauthorized();
+        }
+        _burn(id);
+    }
+
+    /// @inheritdoc IDopamintPass
     function mint() external onlyMinter returns (uint256) {
         if (_id >= dropEndIndex) {
             revert DropMaxCapacity();
@@ -233,12 +241,18 @@ contract DopamintPass is ERC721Votable, IDopamintPass {
 
     /// @inheritdoc IDopamintPass
     function setMinter(address newMinter) external onlyAdmin {
+        if (newMinter == address(0)) {
+            revert AddressInvalid();
+        }
         emit MinterChanged(minter, newMinter);
         minter = newMinter;
     }
 
     /// @inheritdoc IDopamintPass
     function setAdmin(address newAdmin) external onlyAdmin {
+        if (newAdmin == address(0)) {
+            revert AddressInvalid();
+        }
         emit AdminChanged(admin, newAdmin);
         admin = newAdmin;
     }

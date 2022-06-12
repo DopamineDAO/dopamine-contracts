@@ -111,6 +111,9 @@ error SignatureInvalid();
 ///                                 EIP-721                                  ///
 ////////////////////////////////////////////////////////////////////////////////
 
+/// @notice Administatrive address may not be set to the zero address.
+error AddressInvalid();
+
 /// @notice Originating address does not own the NFT.
 error OwnerInvalid();
 

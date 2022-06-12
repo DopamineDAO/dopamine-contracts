@@ -17,6 +17,10 @@ interface IDopamintPass is IDopamintPassEvents {
     /// @return Id of the minted pass, which is always equal to `_id`.
     function mint() external returns (uint256);
 
+    /// @notice Burns a dopamine pass.
+    /// @param id The id of the NFT to be burned.
+    function burn(uint256 id) external;
+
     /// @notice Mints a whitelisted pass of id `id` to the sender address if
     ///  merkle proof `proof` proves they were whitelisted with that pass id.
     /// @dev Reverts if invalid proof is provided or claimer isn't whitelisted.
