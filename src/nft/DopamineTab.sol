@@ -34,7 +34,7 @@ contract DopamineTab is ERC721Votable, IDopamineTab {
     uint256 public constant MAX_DROP_SIZE = 9999;
 
     /// @notice The minimum delay required to wait between creations of drops.
-    uint256 public constant MIN_DROP_DELAY = 4 weeks;
+    uint256 public constant MIN_DROP_DELAY = 1 minutes;
 
     /// @notice The maximum delay required to wait between creations of drops.
     uint256 public constant MAX_DROP_DELAY = 24 weeks;
@@ -106,7 +106,7 @@ contract DopamineTab is ERC721Votable, IDopamineTab {
     constructor(
         string memory baseURI_,
         address minter_,
-        IOpenSeaProxyRegistry proxyRegistry_,
+        address proxyRegistry_,
         uint256 dropSize_,
         uint256 dropDelay_,
         uint256 allowlistSize_,
@@ -118,7 +118,7 @@ contract DopamineTab is ERC721Votable, IDopamineTab {
         minter = minter_;
         emit MinterChanged(address(0), minter);
 
-        proxyRegistry = proxyRegistry_;
+        proxyRegistry = IOpenSeaProxyRegistry(proxyRegistry_);
 
         baseURI = baseURI_;
         emit BaseURISet(baseURI);

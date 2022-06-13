@@ -4,8 +4,6 @@ out = 'artifacts'
 libs = ['lib']
 remappings = [
     'ds-test/=lib/ds-test/src/',
-		'@openzeppelin/contracts/=lib/openzeppelin-contracts/contracts/',
+    '@openzeppelin/contracts/=lib/openzeppelin-contracts/contracts/',
     '@openzeppelin/contracts-upgradeable/=lib/openzeppelin-contracts-upgradeable/contracts/',
 ]
-
-# See more config options https://github.com/gakonst/foundry/tree/master/config

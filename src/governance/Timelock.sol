@@ -33,7 +33,7 @@ contract Timelock is ITimelock {
     uint256 public constant GRACE_PERIOD = 14 days;
 
     /// @notice Min settable wait time in seconds for execution queuing.
-    uint256 public constant MIN_TIMELOCK_DELAY = 2 days;
+    uint256 public constant MIN_TIMELOCK_DELAY = 1 days;
 
     /// @notice Max settable wait time in seconds for execution queuing.
     uint256 public constant MAX_TIMELOCK_DELAY = 30 days;

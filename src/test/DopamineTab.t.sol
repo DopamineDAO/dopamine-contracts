@@ -20,7 +20,7 @@ contract MockContractPayable { receive() external payable {} }
 /// @title Dopamint Tab Test Suites
 contract DopamineTabTest is Test, IDopamineTabEvents {
 
-    string constant BASE_URI = "https://dopamine.xyz/metadata/";
+    string constant BASE_URI = "https://api.dopamine.xyz/metadata/";
 
     /// @notice Addresses used for testing.
     address constant ADMIN = address(1337);
@@ -81,7 +81,7 @@ contract DopamineTabTest is Test, IDopamineTabEvents {
         vm.stopPrank();
         vm.startPrank(ADMIN);
 
-        token = new DopamineTab(BASE_URI, ADMIN, PROXY_REGISTRY, DROP_SIZE, DROP_DELAY, WHITELIST_SIZE, MAX_SUPPLY);
+        token = new DopamineTab(BASE_URI, ADMIN, address(PROXY_REGISTRY), DROP_SIZE, DROP_DELAY, WHITELIST_SIZE, MAX_SUPPLY);
 
         DopamineAuctionHouse ahImpl = new DopamineAuctionHouse();
         address proxyAddr = getContractAddress(address(ADMIN), 0x02); 
@@ -139,12 +139,12 @@ contract DopamineTabTest is Test, IDopamineTabEvents {
         // Reverts when setting invalid drop size.
         uint256 minDropSize = token.MIN_DROP_SIZE();
         vm.expectRevert(DropSizeInvalid.selector);
-        new DopamineTab(BASE_URI, ADMIN, IOpenSeaProxyRegistry(PROXY_REGISTRY), minDropSize - 1, DROP_DELAY, WHITELIST_SIZE, MAX_SUPPLY);
+        new DopamineTab(BASE_URI, ADMIN, address(PROXY_REGISTRY), minDropSize - 1, DROP_DELAY, WHITELIST_SIZE, MAX_SUPPLY);
         
         // Reverts when setting invalid drop delay.
         uint256 maxDropDelay = token.MAX_DROP_DELAY();
         vm.expectRevert(DropDelayInvalid.selector);
-        new DopamineTab(BASE_URI, ADMIN, IOpenSeaProxyRegistry(PROXY_REGISTRY), DROP_SIZE, maxDropDelay + 1, WHITELIST_SIZE, MAX_SUPPLY);
+        new DopamineTab(BASE_URI, ADMIN, address(PROXY_REGISTRY), DROP_SIZE, maxDropDelay + 1, WHITELIST_SIZE, MAX_SUPPLY);
 
     }
 
@@ -308,7 +308,7 @@ contract DopamineTabTest is Test, IDopamineTabEvents {
 
         token.createDrop(bytes32(0), PROVENANCE_HASH);
         token.mint();
-        assertEq(token.tokenURI(NFT), "https://dopamine.xyz/metadata/5");
+        assertEq(token.tokenURI(NFT), "https://api.dopamine.xyz/metadata/5");
 
         token.setDropURI(0, IPFS_URI);
         assertEq(token.tokenURI(NFT), "https://ipfs.io/ipfs/Qme57kZ2VuVzcj5sC3tVHFgyyEgBTmAnyTK45YVNxKf6hi/5");

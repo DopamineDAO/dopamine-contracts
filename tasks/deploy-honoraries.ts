@@ -19,7 +19,7 @@ task("deploy-h-rinkeby", "Deploy Dopamine contracts to Rinkeby")
   .setAction(async (args, { run }) => {
     await run("deploy-h", {
       chainid: 4,
-			registry: "0x1e525eeaf261ca41b809884cbde9dd9e1619573a",
+			registry: "0x1E525EEAF261cA41b809884CBDE9DD9E1619573A",
 			royalties: 750,
 			reserve: "0x69BABE250214d876BeEEA087945F0B53F691D519",
       verify: args.verify,

@@ -315,7 +315,9 @@ contract DopamineAuctionHouse is UUPSUpgradeable, DopamineAuctionHouseStorage, I
             uint256 treasuryProceeds = auction.amount * treasurySplit / 100;
             uint256 reserveProceeds = auction.amount - treasuryProceeds;
             _transferETH(treasury, treasuryProceeds);
-            _transferETH(reserve, reserveProceeds);
+            if (reserveProceeds != 0) {
+                _transferETH(reserve, reserveProceeds);
+            }
         }
 
         emit AuctionSettled(auction.tokenId, auction.bidder, auction.amount);

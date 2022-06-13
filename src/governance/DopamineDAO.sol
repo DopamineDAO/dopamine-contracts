@@ -2,7 +2,7 @@
 pragma solidity ^0.8.13;
 
 ////////////////////////////////////////////////////////////////////////////////
-///				 ░▒█▀▀▄░█▀▀█░▒█▀▀█░█▀▀▄░▒█▀▄▀█░▄█░░▒█▄░▒█░▒█▀▀▀              ///
+///              ░▒█▀▀▄░█▀▀█░▒█▀▀█░█▀▀▄░▒█▀▄▀█░▄█░░▒█▄░▒█░▒█▀▀▀              ///
 ///              ░▒█░▒█░█▄▀█░▒█▄▄█▒█▄▄█░▒█▒█▒█░░█▒░▒█▒█▒█░▒█▀▀▀              ///
 ///              ░▒█▄▄█░█▄▄█░▒█░░░▒█░▒█░▒█░░▒█░▄█▄░▒█░░▀█░▒█▄▄▄              ///
 ////////////////////////////////////////////////////////////////////////////////
@@ -59,7 +59,7 @@ contract DopamineDAO is UUPSUpgradeable, DopamineDAOStorage, IDopamineDAO {
     uint256 public constant MAX_VOTING_DELAY = 45000; // ~1 Week
 
     /// @notice The min quorum threshold that can be set for proposals, in bips.
-    uint256 public constant MIN_QUORUM_THRESHOLD_BPS = 200; // 2%
+    uint256 public constant MIN_QUORUM_THRESHOLD_BPS = 100; // 1%
 
     /// @notice The max quorum threshold that can be set for proposals, in bips.
     uint256 public constant MAX_QUORUM_THRESHOLD_BPS = 2_000; // 20%
@@ -137,6 +137,7 @@ contract DopamineDAO is UUPSUpgradeable, DopamineDAOStorage, IDopamineDAO {
         setQuorumThresholdBPS(quorumThresholdBPS_);
         setProposalThreshold(proposalThreshold_);
     }
+
     /// @inheritdoc IDopamineDAO
     function propose(
         address[] calldata targets,

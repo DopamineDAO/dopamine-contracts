@@ -139,7 +139,7 @@ contract ERC721 is IERC721, IERC721Metadata, IERC2981 {
 
     /// @inheritdoc IERC2981
     function royaltyInfo(
-        uint256 id,
+        uint256,
         uint256 salePrice
     ) external view returns (address, uint256) {
         RoyaltiesInfo memory royaltiesInfo = _royaltiesInfo;
