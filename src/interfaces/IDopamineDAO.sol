@@ -2,11 +2,11 @@
 pragma solidity ^0.8.13;
 
 ////////////////////////////////////////////////////////////////////////////////
-///				 ░▒█▀▀▄░█▀▀█░▒█▀▀█░█▀▀▄░▒█▀▄▀█░▄█░░▒█▄░▒█░▒█▀▀▀              ///
+///              ░▒█▀▀▄░█▀▀█░▒█▀▀█░█▀▀▄░▒█▀▄▀█░▄█░░▒█▄░▒█░▒█▀▀▀              ///
 ///              ░▒█░▒█░█▄▀█░▒█▄▄█▒█▄▄█░▒█▒█▒█░░█▒░▒█▒█▒█░▒█▀▀▀              ///
 ///              ░▒█▄▄█░█▄▄█░▒█░░░▒█░▒█░▒█░░▒█░▄█▄░▒█░░▀█░▒█▄▄▄              ///
 ////////////////////////////////////////////////////////////////////////////////
- 
+
 import {IDopamineDAOEvents} from "./IDopamineDAOEvents.sol";
 
 /// @title Dopamine DAO Implementation Interface
@@ -32,7 +32,7 @@ interface IDopamineDAO is IDopamineDAOEvents {
 
         /// @notice Queued represents a Succeeded proposal that was queued.
         Queued,
-        
+
         /// @notice Expired means failure to execute by ETA + grace period time.
         Expired,
 
@@ -61,13 +61,13 @@ interface IDopamineDAO is IDopamineDAOEvents {
         /// @notice The last block at which votes may be cast for the proposal.
         uint32 endBlock;
 
-        /// @notice The tally of the number of against votes (vote type = 0).
+        /// @notice The tally of the number of Against votes (vote type = 0).
         uint32 againstVotes;
 
-        /// @notice The tally of the number of for votes (vote type = 1).
+        /// @notice The tally of the number of For votes (vote type = 1).
         uint32 forVotes;
 
-        /// @notice The tally of the number of abstain votes (vote type = 2).
+        /// @notice The tally of the number of Abstain votes (vote type = 2).
         uint32 abstainVotes;
 
         /// @notice Boolean indicating whether the proposal was vetoed.
@@ -94,10 +94,10 @@ interface IDopamineDAO is IDopamineDAOEvents {
 
     /// @notice Creates a new proposal.
     /// @dev This reverts if the existing proposal has yet to be settled.
-    /// @param targets     Target addresses for the calls being executed.
-    /// @param values      Amounts (in wei) to send for the execution calls.
-    /// @param signatures  The function signatures of the execution calls.
-    /// @param calldatas   Calldata to be passed with each execution call.
+    /// @param targets Target addresses for the calls being executed.
+    /// @param values Amounts (in wei) to send for the execution calls.
+    /// @param signatures The function signatures of the execution calls.
+    /// @param calldatas Calldatas to be passed with the execution calls.
     /// @param description A string description of the overall proposal.
     /// @return The proposal identifier associated with the created proposal.
     function propose(
@@ -134,7 +134,7 @@ interface IDopamineDAO is IDopamineDAOEvents {
     /// @param support The vote type: 0 = against, 1 = for, 2 = abstain
     function castVote(uint256 id, uint8 support) external;
 
-    /// @notice Same as `castVote`, with an added`reason` message provided.
+    /// @notice Same as `castVote`, with an added `reason` message provided.
     /// @param id The current proposal id (for Governor Bravo compatibility).
     /// @param support The vote type: 0 = against, 1 = for, 2 = abstain
     /// @param reason A string message explaining the choice of vote selection.
@@ -153,16 +153,16 @@ interface IDopamineDAO is IDopamineDAOEvents {
     /// @param s Transaction signature output component #2.
     function castVoteBySig(
         uint256 id,
-		address voter,
+        address voter,
         uint8 support,
         uint8 v,
         bytes32 r,
         bytes32 s
     ) external;
 
-	/// @notice Retrieves the current quorum threshold, in number of NFTs.
-	/// @return The number of Dopamine DAO NFTs needed for a proposal to pass.
-	function quorumThreshold() external view returns (uint256);
+    /// @notice Retrieves the current quorum threshold, in number of NFTs.
+    /// @return The number of governance tokens needed for a proposal to pass.
+    function quorumThreshold() external view returns (uint256);
 
     /// @notice Retrieves the maximum allowed proposal threshold in NFT units.
     /// @dev This function ensures proposal threshold is non-zero in the case
@@ -179,9 +179,9 @@ interface IDopamineDAO is IDopamineDAOEvents {
     /// @return values      Amounts (in wei) to be sent for the execution calls.
     /// @return signatures  The function signatures of theexecution calls.
     /// @return calldatas   Calldata to be passed with each execution call.
-    function actions() 
-        external 
-        view 
+    function actions()
+        external
+        view
         returns (
             address[] memory targets,
             uint256[] memory values,
@@ -190,13 +190,13 @@ interface IDopamineDAO is IDopamineDAOEvents {
         );
 
     /// @notice Sets the proposal voting delay to `newVotingDelay`.
-    /// @dev This function is only callable by the admin, and throws if the 
+    /// @dev This function is only callable by the admin, and throws if the
     ///  voting delay is too low or too high.
     /// @param newVotingDelay The new voting delay to set, in blocks.
     function setVotingDelay(uint256 newVotingDelay) external;
 
     /// @notice Sets the proposal voting period to `newVotingPeriod`.
-    /// @dev This function is only callable by the admin, and throws if the 
+    /// @dev This function is only callable by the admin, and throws if the
     ///  voting period is too low or too high.
     /// @param newVotingPeriod The new voting period to set, in blocks.
     function setVotingPeriod(uint256 newVotingPeriod) external;
@@ -207,7 +207,7 @@ interface IDopamineDAO is IDopamineDAOEvents {
     /// @param newProposalThreshold The new NFT proposal threshold to set.
     function setProposalThreshold(uint256 newProposalThreshold) external;
 
-    /// @notice Sets the quorum threshold (in bips) to `newQuoruMThresholdBPS`.
+    /// @notice Sets the quorum threshold (in bips) to `newQuorumThresholdBPS`.
     /// @dev This function is only callable by the admin, and throws if the
     ///  quorum threshold bips value is too low or too high.
     /// @param newQuorumThresholdBPS The new quorum voting threshold, in bips.

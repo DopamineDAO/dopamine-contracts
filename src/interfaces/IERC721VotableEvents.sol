@@ -2,19 +2,19 @@
 pragma solidity ^0.8.13;
 
 ////////////////////////////////////////////////////////////////////////////////
-///				 ░▒█▀▀▄░█▀▀█░▒█▀▀█░█▀▀▄░▒█▀▄▀█░▄█░░▒█▄░▒█░▒█▀▀▀              ///
+///              ░▒█▀▀▄░█▀▀█░▒█▀▀█░█▀▀▄░▒█▀▄▀█░▄█░░▒█▄░▒█░▒█▀▀▀              ///
 ///              ░▒█░▒█░█▄▀█░▒█▄▄█▒█▄▄█░▒█▒█▒█░░█▒░▒█▒█▒█░▒█▀▀▀              ///
 ///              ░▒█▄▄█░█▄▄█░▒█░░░▒█░▒█░▒█░░▒█░▄█▄░▒█░░▀█░▒█▄▄▄              ///
 ////////////////////////////////////////////////////////////////////////////////
- 
-/// @title Dopamine DAO ERC-721 Voting Contract Events Interface
+
+/// @title Dopamine ERC-721 Voting Contract Events Interface
 interface IERC721VotableEvents {
 
     /// @notice Emits when address `delegator` has its delegate address changed
     ///  from `fromDelegate` to `toDelegate` (even if they're the same address).
-    /// @param delegator    Address whose delegate has changed.
+    /// @param delegator Address whose delegate has changed.
     /// @param fromDelegate The original delegate of the delegator.
-    /// @param toDelegate   The new delegate of the delegator.
+    /// @param toDelegate The new delegate of the delegator.
     event DelegateChanged(
         address indexed delegator,
         address indexed fromDelegate,

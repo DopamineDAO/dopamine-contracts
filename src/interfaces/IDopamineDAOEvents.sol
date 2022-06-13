@@ -2,23 +2,23 @@
 pragma solidity ^0.8.13;
 
 ////////////////////////////////////////////////////////////////////////////////
-///				 ░▒█▀▀▄░█▀▀█░▒█▀▀█░█▀▀▄░▒█▀▄▀█░▄█░░▒█▄░▒█░▒█▀▀▀              ///
+///              ░▒█▀▀▄░█▀▀█░▒█▀▀█░█▀▀▄░▒█▀▄▀█░▄█░░▒█▄░▒█░▒█▀▀▀              ///
 ///              ░▒█░▒█░█▄▀█░▒█▄▄█▒█▄▄█░▒█▒█▒█░░█▒░▒█▒█▒█░▒█▀▀▀              ///
 ///              ░▒█▄▄█░█▄▄█░▒█░░░▒█░▒█░▒█░░▒█░▄█▄░▒█░░▀█░▒█▄▄▄              ///
 ////////////////////////////////////////////////////////////////////////////////
- 
+
 /// @title Dopamine DAO Events Interface
 interface IDopamineDAOEvents {
 
     /// @notice Emits when a new proposal is created.
-    /// @param  id         The id of the newly created proposal.
-    /// @param proposer    The address which created the new proposal.
-    /// @param targets     Target addresses for the calls to be executed.
-    /// @param values      Amounts (in wei) to send for the execution calls.
-    /// @param signatures  The function signatures of the execution calls.
-    /// @param calldatas   Calldata to be passed with each execution call.
-    /// @param startBlock  The block at which voting opens for the proposal.
-    /// @param endBlock    The block at which voting ends for the proposal.
+    /// @param id The id of the newly created proposal.
+    /// @param proposer The address which created the new proposal.
+    /// @param targets Target addresses for the calls to be executed.
+    /// @param values Amounts (in wei) to send for the execution calls.
+    /// @param signatures The function signatures of the execution calls.
+    /// @param calldatas Calldatas to be passed with the execution calls.
+    /// @param startBlock The block at which voting opens for the proposal.
+    /// @param endBlock The block at which voting ends for the proposal.
     /// @param description A string description of the overall proposal.
     event ProposalCreated(
         uint256 id,
@@ -50,11 +50,11 @@ interface IDopamineDAOEvents {
     event ProposalVetoed(uint256 id);
 
     /// @notice Emits when voter `voter` casts `votes` votes of type `support`.
-    /// @param voter   The address of the voter whose vote was cast.
-    /// @param id      The id of the voted upon proposal.
+    /// @param voter The address of the voter whose vote was cast.
+    /// @param id The id of the voted upon proposal.
     /// @param support The vote type: 0 = against, 1 = for, 2 = abstain
-    /// @param votes   The total number of NFTs assigned to the vote's weight.
-    /// @param reason  A string message explaining the choice of vote selection.
+    /// @param votes The total number of NFTs assigned to the vote's weight.
+    /// @param reason A string message explaining the choice of vote selection.
     event VoteCast(
         address indexed voter,
         uint256 id,

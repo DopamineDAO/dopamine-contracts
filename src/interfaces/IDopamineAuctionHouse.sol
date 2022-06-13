@@ -2,7 +2,7 @@
 pragma solidity ^0.8.13;
 
 ////////////////////////////////////////////////////////////////////////////////
-///				 ░▒█▀▀▄░█▀▀█░▒█▀▀█░█▀▀▄░▒█▀▄▀█░▄█░░▒█▄░▒█░▒█▀▀▀              ///
+///              ░▒█▀▀▄░█▀▀█░▒█▀▀█░█▀▀▄░▒█▀▄▀█░▄█░░▒█▄░▒█░▒█▀▀▀              ///
 ///              ░▒█░▒█░█▄▀█░▒█▄▄█▒█▄▄█░▒█▒█▒█░░█▒░▒█▒█▒█░▒█▀▀▀              ///
 ///              ░▒█▄▄█░█▄▄█░▒█░░░▒█░▒█░▒█░░▒█░▄█▄░▒█░░▀█░▒█▄▄▄              ///
 ////////////////////////////////////////////////////////////////////////////////
@@ -35,7 +35,7 @@ interface IDopamineAuctionHouse is IDopamineAuctionHouseEvents {
     }
 
     /// @notice Indicates whether new auctions are suspened or not.
-    /// @return True if new auctions are suspended, false otherwise.
+    /// @return True if new auctions are suspended, False otherwise.
     function suspended() external view returns (bool);
 
     /// @notice Suspends new auctions from being created.
@@ -72,25 +72,25 @@ interface IDopamineAuctionHouse is IDopamineAuctionHouseEvents {
     function acceptAdmin() external;
 
     /// @notice Sets a new auctions bidding duration, `newAuctionDuration`.
-    /// @dev This function is only callable by the admin, and throws if the 
+    /// @dev This function is only callable by the admin, and throws if the
     ///  auction duration is set too low or too high.
     /// @param newAuctionDuration New auction duration to set, in seconds.
     function setAuctionDuration(uint256 newAuctionDuration) external;
 
     /// @notice Sets a new treasury split, `newTreasurySplit`.
-    /// @dev This function is only callable by the admin, and throws if the 
+    /// @dev This function is only callable by the admin, and throws if the
     ///  new treasury split is set to a percentage above 100%.
     /// @param newTreasurySplit The new treasury split to set, as a percentage.
     function setTreasurySplit(uint256 newTreasurySplit) external;
 
-    /// @notice Sets a new auction time buffer, `newTimeBuffer`.
-    /// @dev This function is only callable by the admin and throws if the time 
+    /// @notice Sets a new auction time buffer, `newAuctionBuffer`.
+    /// @dev This function is only callable by the admin and throws if the time
     ///  buffer is set too low or too high.
-    /// @param newTimeBuffer The time buffer to set, in seconds since epoch.
-    function setTimeBuffer(uint256 newTimeBuffer) external;
+    /// @param newAuctionBuffer The time buffer to set, in seconds since epoch.
+    function setAuctionBuffer(uint256 newAuctionBuffer) external;
 
     /// @notice Sets a new auction reserve price, `newReservePrice`.
-    /// @dev This function is only callable by the admin and throws if the 
+    /// @dev This function is only callable by the admin and throws if the
     ///  auction reserve price is set too low or too high.
     /// @param newReservePrice The new reserve price to set, in wei.
     function setReservePrice(uint256 newReservePrice) external;

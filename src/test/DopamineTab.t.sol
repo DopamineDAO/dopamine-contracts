@@ -8,7 +8,7 @@ import "../interfaces/IOpenSeaProxyRegistry.sol";
 import "./mocks/MockDopamineAuctionHouse.sol";
 import "../auction/DopamineAuctionHouse.sol";
 import "../interfaces/IDopamineAuctionHouse.sol";
-import "../DopamineTab.sol";
+import "../nft/DopamineTab.sol";
 import "./mocks/MockProxyRegistry.sol";
 
 import "./utils/test.sol";
@@ -19,6 +19,8 @@ contract MockContractPayable { receive() external payable {} }
 
 /// @title Dopamint Tab Test Suites
 contract DopamineTabTest is Test, IDopamineTabEvents {
+
+    string constant BASE_URI = "https://dopamine.xyz/metadata/";
 
     /// @notice Addresses used for testing.
     address constant ADMIN = address(1337);
@@ -53,7 +55,7 @@ contract DopamineTabTest is Test, IDopamineTabEvents {
     bytes32 PROVENANCE_HASH = 0xf21123649788fb044e6d832e66231b26867af618ea80221e57166f388c2efb2f;
     string constant IPFS_URI = "https://ipfs.io/ipfs/Qme57kZ2VuVzcj5sC3tVHFgyyEgBTmAnyTK45YVNxKf6hi/";
 
-    /// @notice Whitelist test addresses.
+    /// @notice Allowlist test addresses.
     address constant W1 = address(9210283791031090);
     address constant W2 = address(1928327197379129);
 
@@ -79,7 +81,7 @@ contract DopamineTabTest is Test, IDopamineTabEvents {
         vm.stopPrank();
         vm.startPrank(ADMIN);
 
-        token = new DopamineTab(ADMIN, PROXY_REGISTRY, DROP_SIZE, DROP_DELAY, WHITELIST_SIZE, MAX_SUPPLY);
+        token = new DopamineTab(BASE_URI, ADMIN, PROXY_REGISTRY, DROP_SIZE, DROP_DELAY, WHITELIST_SIZE, MAX_SUPPLY);
 
         DopamineAuctionHouse ahImpl = new DopamineAuctionHouse();
         address proxyAddr = getContractAddress(address(ADMIN), 0x02); 
@@ -110,9 +112,9 @@ contract DopamineTabTest is Test, IDopamineTabEvents {
         proofInputs[3] = "--input";
 
         for (uint256 i = 0; i < WHITELISTED.length; i++) {
-            string memory whitelisted = addressToString(WHITELISTED[i], i);
-            inputs[i + 3] = whitelisted;
-            proofInputs[i + 5] = whitelisted;
+            string memory allowlisted = addressToString(WHITELISTED[i], i);
+            inputs[i + 3] = allowlisted;
+            proofInputs[i + 5] = allowlisted;
         }
         vm.stopPrank();
     }
@@ -130,19 +132,19 @@ contract DopamineTabTest is Test, IDopamineTabEvents {
         assertEq(address(token.proxyRegistry()), address(PROXY_REGISTRY));
         assertEq(token.dropSize(), DROP_SIZE);
         assertEq(token.dropDelay(), DROP_DELAY);
-        assertEq(token.whitelistSize(), WHITELIST_SIZE);
+        assertEq(token.allowlistSize(), WHITELIST_SIZE);
         assertEq(token.dropEndIndex(), 0);
         assertEq(token.dropEndTime(), 0);
 
         // Reverts when setting invalid drop size.
         uint256 minDropSize = token.MIN_DROP_SIZE();
         vm.expectRevert(DropSizeInvalid.selector);
-        new DopamineTab(ADMIN, IOpenSeaProxyRegistry(PROXY_REGISTRY), minDropSize - 1, DROP_DELAY, WHITELIST_SIZE, MAX_SUPPLY);
+        new DopamineTab(BASE_URI, ADMIN, IOpenSeaProxyRegistry(PROXY_REGISTRY), minDropSize - 1, DROP_DELAY, WHITELIST_SIZE, MAX_SUPPLY);
         
         // Reverts when setting invalid drop delay.
         uint256 maxDropDelay = token.MAX_DROP_DELAY();
         vm.expectRevert(DropDelayInvalid.selector);
-        new DopamineTab(ADMIN, IOpenSeaProxyRegistry(PROXY_REGISTRY), DROP_SIZE, maxDropDelay + 1, WHITELIST_SIZE, MAX_SUPPLY);
+        new DopamineTab(BASE_URI, ADMIN, IOpenSeaProxyRegistry(PROXY_REGISTRY), DROP_SIZE, maxDropDelay + 1, WHITELIST_SIZE, MAX_SUPPLY);
 
     }
 
@@ -177,7 +179,7 @@ contract DopamineTabTest is Test, IDopamineTabEvents {
         emit DropCreated(0, 0, DROP_SIZE, WHITELIST_SIZE, bytes32(0), PROVENANCE_HASH);
         token.createDrop(bytes32(0), PROVENANCE_HASH);
 
-        assertEq(token.whitelistSize(), WHITELIST_SIZE);
+        assertEq(token.allowlistSize(), WHITELIST_SIZE);
         assertEq(token.dropEndIndex(), DROP_SIZE);
         assertEq(token.dropEndTime(), BLOCK_TIMESTAMP + DROP_DELAY);
 
@@ -255,21 +257,21 @@ contract DopamineTabTest is Test, IDopamineTabEvents {
     }
 
 
-    function testSetWhitelistSize() public {
+    function testSetAllowlistSize() public {
         vm.startPrank(ADMIN);
-        // Reverts if whitelist size too large.
-        uint256 maxWhitelistSize = token.MAX_WL_SIZE();
-        vm.expectRevert(DropWhitelistOverCapacity.selector);
-        token.setWhitelistSize(maxWhitelistSize + 1);
+        // Reverts if allowlist size too large.
+        uint256 maxAllowlistSize = token.MAX_WL_SIZE();
+        vm.expectRevert(DropAllowlistOverCapacity.selector);
+        token.setAllowlistSize(maxAllowlistSize + 1);
 
         // Reverts if larger than drop size.
-        vm.expectRevert(DropWhitelistOverCapacity.selector);
-        token.setWhitelistSize(DROP_SIZE + 1);
+        vm.expectRevert(DropAllowlistOverCapacity.selector);
+        token.setAllowlistSize(DROP_SIZE + 1);
 
-        // Emits expected WhitelistSizeSet event.
+        // Emits expected AllowlistSizeSet event.
         vm.expectEmit(true, true, true, true);
-        emit WhitelistSizeSet(WHITELIST_SIZE);
-        token.setWhitelistSize(WHITELIST_SIZE);
+        emit AllowlistSizeSet(WHITELIST_SIZE);
+        token.setAllowlistSize(WHITELIST_SIZE);
         vm.stopPrank();
     }
 
@@ -280,7 +282,7 @@ contract DopamineTabTest is Test, IDopamineTabEvents {
         emit BaseURISet("https://dopam1ne.xyz");
         token.setBaseURI("https://dopam1ne.xyz");
 
-        assertEq(token.baseUri(), "https://dopam1ne.xyz");
+        assertEq(token.baseURI(), "https://dopam1ne.xyz");
         vm.stopPrank();
     }
 
@@ -306,7 +308,7 @@ contract DopamineTabTest is Test, IDopamineTabEvents {
 
         token.createDrop(bytes32(0), PROVENANCE_HASH);
         token.mint();
-        assertEq(token.tokenURI(NFT), "https://dopamine.xyz/5");
+        assertEq(token.tokenURI(NFT), "https://dopamine.xyz/metadata/5");
 
         token.setDropURI(0, IPFS_URI);
         assertEq(token.tokenURI(NFT), "https://ipfs.io/ipfs/Qme57kZ2VuVzcj5sC3tVHFgyyEgBTmAnyTK45YVNxKf6hi/5");
@@ -339,11 +341,11 @@ contract DopamineTabTest is Test, IDopamineTabEvents {
 
     function testClaim() public {
         vm.startPrank(ADMIN);
-        // Create drop with whitelist.
+        // Create drop with allowlist.
         bytes32 merkleRoot = bytes32(vm.ffi(inputs));
         token.createDrop(merkleRoot, PROVENANCE_HASH);
 
-        // First whitelisted user can claim assigned NFT.
+        // First allowlisted user can claim assigned NFT.
         proofInputs[CLAIM_SLOT] = addressToString(W1, 0);
         bytes32[] memory proof = abi.decode(vm.ffi(proofInputs), (bytes32[]));
         vm.stopPrank();
@@ -365,7 +367,7 @@ contract DopamineTabTest is Test, IDopamineTabEvents {
         vm.expectRevert(ProofInvalid.selector);
         token.claim(proof, 2);
 
-        // Works for whitelisted member.
+        // Works for allowlisted member.
         vm.stopPrank();
         vm.startPrank(W2);
         token.claim(proof, 2);

@@ -14,7 +14,7 @@ import {IERC721Metadata} from "@openzeppelin/contracts/token/ERC721/extensions/I
 import {IERC721Receiver} from "@openzeppelin/contracts/token/ERC721/IERC721Receiver.sol";
 import {IERC2981} from "../interfaces/IERC2981.sol";
 
-import "../errors.sol";
+import "../interfaces/Errors.sol";
 
 /// @title ERC-721 contract built for Dopamine honorary tabs.
 /// @notice This is a minimal ERC-721 implementation that supports the metadata
@@ -183,7 +183,7 @@ contract ERC721H is IERC721, IERC721Metadata, IERC2981 {
     /// @param operator The address for the owner's operator.
     /// @return True if `operator` is approved operator of `owner`, else false.
     function isApprovedForAll(address owner, address operator)
-        public
+        external
         view
         virtual returns (bool)
     {

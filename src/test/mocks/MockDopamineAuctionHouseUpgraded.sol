@@ -6,21 +6,21 @@ import { MockDopamineAuctionHouse } from './MockDopamineAuctionHouse.sol';
 /// @title Mock upgraded auction house contract.
 contract MockDopamineAuctionHouseUpgraded is MockDopamineAuctionHouse {
 
-    function initializeV2(address payable newReserve, address payable newDAO) public {
+    function initializeV2(address payable newReserve, address payable newTreasury) public {
         reserve = newReserve;
-        dao = newDAO;
+        treasury = newTreasury;
     }
 
     function setReserve(address payable newReserve) public onlyAdmin {
         reserve = newReserve;
     }
 
-    function setDAO(address payable newDAO) public onlyAdmin {
-        dao = newDAO;
+    function setTreasury(address payable newTreasury) public onlyAdmin {
+        treasury = newTreasury;
     }
 
     function withdraw() public onlyAdmin {
-        (bool success, ) = dao.call{ value: address(this).balance, gas: 30_000 }(new bytes(0));
+        (bool success, ) = treasury.call{ value: address(this).balance, gas: 30_000 }(new bytes(0));
         if (!success) {
             revert();
         }

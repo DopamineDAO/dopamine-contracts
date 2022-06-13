@@ -7,12 +7,13 @@ pragma solidity ^0.8.13;
 ///              ░▒█▄▄█░█▄▄█░▒█░░░▒█░▒█░▒█░░▒█░▄█▄░▒█░░▀█░▒█▄▄▄              ///
 ////////////////////////////////////////////////////////////////////////////////
 
-import { IDopamineHonoraryTab } from "./interfaces/IDopamineHonoraryTab.sol";
-import { IOpenSeaProxyRegistry } from "./interfaces/IOpenSeaProxyRegistry.sol";
-import { ERC721H } from "./erc721/ERC721H.sol";
-import "./errors.sol";
+import "../interfaces/Errors.sol";
+import { IDopamineHonoraryTab } from "../interfaces/IDopamineHonoraryTab.sol";
+import { IOpenSeaProxyRegistry } from "../interfaces/IOpenSeaProxyRegistry.sol";
 
-/// @title Dopamine honorary ERC-721 membership tab
+import { ERC721H } from "../erc721/ERC721H.sol";
+
+/// @title Dopamine Honorary ERC-721 Membership Tab
 /// @notice Dopamine honorary tabs are vanity tabs for friends of Dopamine.
 contract DopamineHonoraryTab is ERC721H, IDopamineHonoraryTab {
 
@@ -24,7 +25,7 @@ contract DopamineHonoraryTab is ERC721H, IDopamineHonoraryTab {
 
     /// @notice The URI each tab initially points to for metadata resolution.
     /// @dev Before drop completion, `tokenURI()` resolves to "{baseURI}/{id}".
-    string public baseURI = "https://dev-api.dopamine.xyz/honoraries/metadata";
+    string public baseURI = "https://dev-api.dopamine.xyz/honoraries/metadata/";
 
     /// @notice The permanent URI tabs will point to on collection finality.
     /// @dev After drop completion, `tokenURI()` directs to "{storageURI}/{id}".
@@ -115,8 +116,8 @@ contract DopamineHonoraryTab is ERC721H, IDopamineHonoraryTab {
     /// @dev Ensures OS proxy is allowlisted for operating on behalf of owners.
     /// @inheritdoc ERC721H
     function isApprovedForAll(address owner, address operator)
-    public
-    view
+        external
+        view
         override
         returns (bool)
     {

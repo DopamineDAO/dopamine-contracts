@@ -2,18 +2,18 @@
 pragma solidity ^0.8.13;
 
 ////////////////////////////////////////////////////////////////////////////////
-///				 ░▒█▀▀▄░█▀▀█░▒█▀▀█░█▀▀▄░▒█▀▄▀█░▄█░░▒█▄░▒█░▒█▀▀▀              ///
+///              ░▒█▀▀▄░█▀▀█░▒█▀▀█░█▀▀▄░▒█▀▄▀█░▄█░░▒█▄░▒█░▒█▀▀▀              ///
 ///              ░▒█░▒█░█▄▀█░▒█▄▄█▒█▄▄█░▒█▒█▒█░░█▒░▒█▒█▒█░▒█▀▀▀              ///
 ///              ░▒█▄▄█░█▄▄█░▒█░░░▒█░▒█░▒█░░▒█░▄█▄░▒█░░▀█░▒█▄▄▄              ///
 ////////////////////////////////////////////////////////////////////////////////
- 
+
 /// @title Dopamine Auction House Events Interface
 interface IDopamineAuctionHouseEvents {
 
     /// @notice Emits when a new auction is created.
-    /// @param tokenId   The id of the NFT put up for auction.
+    /// @param tokenId The id of the NFT put up for auction.
     /// @param startTime The timestamp in epoch seconds the auction was created.
-    /// @param endTime   The projected end time of the auction in epoch seconds.
+    /// @param endTime The projected end time of the auction in epoch seconds.
     event AuctionCreated(
         uint256 indexed tokenId,
         uint256 startTime,
@@ -30,8 +30,8 @@ interface IDopamineAuctionHouseEvents {
 
     /// @notice Emits when auction for NFT of id `tokenId` is settled.
     /// @param tokenId The id of the NFT being auctioned.
-    /// @param winner  The address of the auction winner.
-    /// @param amount  The amount in wei the winner paid for the auction.
+    /// @param winner The address of the auction winner.
+    /// @param amount The amount in wei the winner paid for the auction.
     event AuctionSettled(
         uint256 indexed tokenId,
         address winner,
@@ -39,9 +39,9 @@ interface IDopamineAuctionHouseEvents {
     );
 
     /// @notice Emits when a new bid is placed for NFT of id `tokenId`.
-    /// @param tokenId  The id of the NFT being bid on.
-    /// @param bidder   The address which placed the bid.
-    /// @param extended True if the bid triggered extension, false otherwise.
+    /// @param tokenId The id of the NFT being bid on.
+    /// @param bidder The address which placed the bid.
+    /// @param extended True if the bid triggered extension, False otherwise.
     event AuctionBid(
         uint256 indexed tokenId,
         address bidder,
@@ -61,10 +61,10 @@ interface IDopamineAuctionHouseEvents {
 
     /// @notice Emits when the auction is unpaused.
     event AuctionResumed();
-    
-    /// @notice Emits when a new time buffer `timeBuffer` is set.
-    /// @param timeBuffer The new time buffer to set, in seconds.
-    event AuctionTimeBufferSet(uint256 timeBuffer);
+
+    /// @notice Emits when a new auctionbuffer `auctionBuffer` is set.
+    /// @param auctionBuffer The new auction buffer to set, in seconds.
+    event AuctionBufferSet(uint256 auctionBuffer);
 
     /// @notice Emits when a new auction reserve price, `reservePrice` is set.
     /// @param reservePrice The new auction reserve price in wei.

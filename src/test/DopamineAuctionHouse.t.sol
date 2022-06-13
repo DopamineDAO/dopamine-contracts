@@ -39,7 +39,7 @@ contract DopamineAuctionHouseTest is Test, IDopamineAuctionHouseEvents {
     address constant ADMIN = address(1337);
     address constant BIDDER = address(99);
     address constant BIDDER_1 = address(89);
-    address constant DAO = address(69);
+    address constant TREASURY = address(69);
     address constant RESERVE = address(1);
 
     MockDopamineAuctionHouseToken token;
@@ -50,7 +50,7 @@ contract DopamineAuctionHouseTest is Test, IDopamineAuctionHouseEvents {
     uint256 constant BIDDER_1_INITIAL_BAL = 10 ether;
 
     address payable reserve;
-    address payable dao;
+    address payable treasury;
     MockMaliciousBidder MALICIOUS_BIDDER = new MockMaliciousBidder();
     MockGasBurner GAS_BURNER_BIDDER = new MockGasBurner();
 
@@ -65,7 +65,7 @@ contract DopamineAuctionHouseTest is Test, IDopamineAuctionHouseEvents {
         vm.deal(address(GAS_BURNER_BIDDER), 100 ether);
 
         reserve = payable(address(new MockContractPayable()));
-        dao = payable(address(new MockContractPayable()));
+        treasury = payable(address(new MockContractPayable()));
         ahImpl = new MockDopamineAuctionHouse();
         address proxyAddr = getContractAddress(address(ADMIN), 0x04); 
 
@@ -74,7 +74,7 @@ contract DopamineAuctionHouseTest is Test, IDopamineAuctionHouseEvents {
             ahImpl.initialize.selector,
             address(token),
             reserve,
-            dao,
+            treasury,
             TREASURY_SPLIT,
             TIME_BUFFER,
             RESERVE_PRICE,
@@ -91,11 +91,11 @@ contract DopamineAuctionHouseTest is Test, IDopamineAuctionHouseEvents {
         assertEq(address(ah.token()), address(token));
         assertEq(ah.pendingAdmin(), address(0));
         assertEq(ah.admin(), ADMIN);
-        assertEq(ah.timeBuffer(), TIME_BUFFER);
+        assertEq(ah.auctionBuffer(), TIME_BUFFER);
         assertEq(ah.reservePrice(), RESERVE_PRICE);
         assertEq(ah.treasurySplit(), TREASURY_SPLIT);
         assertEq(ah.auctionDuration(), AUCTION_DURATION);
-        assertEq(ah.dao(), dao);
+        assertEq(ah.treasury(), treasury);
         assertEq(ah.reserve(), reserve);
         assertTrue(ah.suspended());
 
@@ -112,7 +112,7 @@ contract DopamineAuctionHouseTest is Test, IDopamineAuctionHouseEvents {
         ah.initialize(
             address(token),
             reserve,
-            dao,
+            treasury,
             TREASURY_SPLIT,
             TIME_BUFFER,
             RESERVE_PRICE,
@@ -124,7 +124,7 @@ contract DopamineAuctionHouseTest is Test, IDopamineAuctionHouseEvents {
             ahImpl.initialize.selector,
             address(token),
             reserve,
-            dao,
+            treasury,
             101,
             TIME_BUFFER,
             RESERVE_PRICE,
@@ -134,18 +134,18 @@ contract DopamineAuctionHouseTest is Test, IDopamineAuctionHouseEvents {
 		ERC1967Proxy proxy = new ERC1967Proxy(address(ahImpl), data);
 
         /// Reverts when setting an invalid time buffer.
-        uint256 invalidParam = ah.MIN_TIME_BUFFER() - 1;
+        uint256 invalidParam = ah.MIN_AUCTION_BUFFER() - 1;
         data = abi.encodeWithSelector(
             ahImpl.initialize.selector,
             address(token),
             reserve,
-            dao,
+            treasury,
             TREASURY_SPLIT,
             invalidParam,
             RESERVE_PRICE,
             AUCTION_DURATION
         );
-        vm.expectRevert(AuctionTimeBufferInvalid.selector);
+        vm.expectRevert(AuctionBufferInvalid.selector);
 		proxy = new ERC1967Proxy(address(ahImpl), data);
 
         /// Reverts when setting an invalid reserve price.
@@ -154,7 +154,7 @@ contract DopamineAuctionHouseTest is Test, IDopamineAuctionHouseEvents {
             ahImpl.initialize.selector,
             address(token),
             reserve,
-            dao,
+            treasury,
             TREASURY_SPLIT,
             TIME_BUFFER,
             invalidParam,
@@ -169,7 +169,7 @@ contract DopamineAuctionHouseTest is Test, IDopamineAuctionHouseEvents {
             ahImpl.initialize.selector,
             address(token),
             reserve,
-            dao,
+            treasury,
             TREASURY_SPLIT,
             TIME_BUFFER,
             RESERVE_PRICE,
@@ -196,19 +196,19 @@ contract DopamineAuctionHouseTest is Test, IDopamineAuctionHouseEvents {
     function testSetTimeBuffer() public {
         vm.startPrank(ADMIN);
         // Reverts when time buffer too small.
-        uint256 minTimeBuffer = ah.MIN_TIME_BUFFER();
-        vm.expectRevert(AuctionTimeBufferInvalid.selector);
-        ah.setTimeBuffer(minTimeBuffer - 1);
+        uint256 minTimeBuffer = ah.MIN_AUCTION_BUFFER();
+        vm.expectRevert(AuctionBufferInvalid.selector);
+        ah.setAuctionBuffer(minTimeBuffer - 1);
 
         // Reverts when time buffer too large.
-        uint256 maxTimeBuffer = ah.MAX_TIME_BUFFER();
-        vm.expectRevert(AuctionTimeBufferInvalid.selector);
-        ah.setTimeBuffer(maxTimeBuffer + 1);
+        uint256 maxTimeBuffer = ah.MAX_AUCTION_BUFFER();
+        vm.expectRevert(AuctionBufferInvalid.selector);
+        ah.setAuctionBuffer(maxTimeBuffer + 1);
 
-        // Emits expected `AuctionTimeBufferSet` event.
+        // Emits expected `AuctionBufferSet` event.
         vm.expectEmit(true, true, true, true);
-        emit AuctionTimeBufferSet(TIME_BUFFER);
-        ah.setTimeBuffer(TIME_BUFFER);
+        emit AuctionBufferSet(TIME_BUFFER);
+        ah.setAuctionBuffer(TIME_BUFFER);
         vm.stopPrank();
     }
 
@@ -433,12 +433,12 @@ contract DopamineAuctionHouseTest is Test, IDopamineAuctionHouseEvents {
         vm.expectRevert(AuctionOngoing.selector);
         ah.settleAuction();
 
-        // Transfers NFT to DAO when there were no bidders.
+        // Transfers NFT to TREASURY when there were no bidders.
         vm.warp(BLOCK_TIMESTAMP + AUCTION_DURATION);
         vm.expectEmit(true, true, true, true);
         emit AuctionSettled(NFT, address(0), 0);
         ah.settleAuction();
-        assertEq(token.ownerOf(NFT), address(dao));
+        assertEq(token.ownerOf(NFT), address(treasury));
 
         // Relevant attributes appropriately updated.
         IDopamineAuctionHouse.Auction memory auction = ah.getAuction();
@@ -470,9 +470,9 @@ contract DopamineAuctionHouseTest is Test, IDopamineAuctionHouseEvents {
         ah.settleAuction();
         assertEq(token.ownerOf(NFT_1), BIDDER);
 
-        // Revenue appropriately allocated to dao and reserve.
+        // Revenue appropriately allocated to treasury and reserve.
         uint256 treasuryProceeds = 1 ether * TREASURY_SPLIT / 100;
-        assertEq(dao.balance, treasuryProceeds);
+        assertEq(treasury.balance, treasuryProceeds);
         assertEq(reserve.balance, 1 ether - treasuryProceeds);
 
         // Relevant attributes appropriately updated.
@@ -510,7 +510,7 @@ contract DopamineAuctionHouseTest is Test, IDopamineAuctionHouseEvents {
 
         // Proceeds distributed.
         uint256 treasuryProceeds = 1 ether * TREASURY_SPLIT / 100;
-        assertEq(dao.balance, treasuryProceeds);
+        assertEq(treasury.balance, treasuryProceeds);
         assertEq(reserve.balance, 1 ether - treasuryProceeds);
 
         // Relevant attributes appropriately updated.
@@ -533,8 +533,8 @@ contract DopamineAuctionHouseTest is Test, IDopamineAuctionHouseEvents {
         emit AuctionSuspended();
         ah.settleAuction();
         
-        // No bids here - check NFT transferred to the DAO.
-        assertEq(token.ownerOf(NFT_1), address(dao));
+        // No bids here - check NFT transferred to the TREASURY.
+        assertEq(token.ownerOf(NFT_1), address(treasury));
         vm.stopPrank();
     }
 
@@ -562,7 +562,7 @@ contract DopamineAuctionHouseTest is Test, IDopamineAuctionHouseEvents {
         ah.upgradeTo(address(upgradedImpl));
         vm.stopPrank();
 
-        // Perform an upgrade that initializes with faulty dao and reserve.
+        // Perform an upgrade that initializes with faulty treasury and reserve.
         vm.startPrank(ADMIN);
         address faultyReserve = address(new MockContractUnpayable());
         address faultyDao = address(new MockContractUnpayable());
@@ -584,7 +584,7 @@ contract DopamineAuctionHouseTest is Test, IDopamineAuctionHouseEvents {
         assertTrue(!auction.settled);
 
         // Check that re-initialized parameters were updated.
-        assertEq(ahUpgraded.dao(), faultyDao);
+        assertEq(ahUpgraded.treasury(), faultyDao);
         assertEq(ahUpgraded.reserve(), faultyReserve);
 
         // Settle auction and check funds remain in auction contract.
@@ -595,12 +595,12 @@ contract DopamineAuctionHouseTest is Test, IDopamineAuctionHouseEvents {
         assertEq(address(ahUpgraded).balance, 2 ether);
 
         // Ensure new functions can be called.
-        ahUpgraded.setDAO(dao);
+        ahUpgraded.setTreasury(treasury);
         ahUpgraded.setReserve(reserve);
 
         // Withdraw funds with upgraded contract.
         ahUpgraded.withdraw();
-        assertEq(dao.balance, 2 ether);
+        assertEq(treasury.balance, 2 ether);
     }
 
     function testImplementationUnusable() public {
@@ -609,7 +609,7 @@ contract DopamineAuctionHouseTest is Test, IDopamineAuctionHouseEvents {
         ahImpl.initialize(
             address(token),
             reserve,
-            dao,
+            treasury,
             TREASURY_SPLIT,
             TIME_BUFFER,
             RESERVE_PRICE,

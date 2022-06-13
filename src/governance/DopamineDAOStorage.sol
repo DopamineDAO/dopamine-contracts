@@ -2,14 +2,14 @@
 pragma solidity ^0.8.13;
 
 ////////////////////////////////////////////////////////////////////////////////
-///				 ░▒█▀▀▄░█▀▀█░▒█▀▀█░█▀▀▄░▒█▀▄▀█░▄█░░▒█▄░▒█░▒█▀▀▀              ///
+///              ░▒█▀▀▄░█▀▀█░▒█▀▀█░█▀▀▄░▒█▀▄▀█░▄█░░▒█▄░▒█░▒█▀▀▀              ///
 ///              ░▒█░▒█░█▄▀█░▒█▄▄█▒█▄▄█░▒█▒█▒█░░█▒░▒█▒█▒█░▒█▀▀▀              ///
 ///              ░▒█▄▄█░█▄▄█░▒█░░░▒█░▒█░▒█░░▒█░▄█▄░▒█░░▀█░▒█▄▄▄              ///
 ////////////////////////////////////////////////////////////////////////////////
 
-import { ITimelock } from "../interfaces/ITimelock.sol";
-import { IDopamineDAOToken } from "../interfaces/IDopamineDAOToken.sol";
 import { IDopamineDAO } from "../interfaces/IDopamineDAO.sol";
+import { IDopamineDAOToken } from "../interfaces/IDopamineDAOToken.sol";
+import { ITimelock } from "../interfaces/ITimelock.sol";
 
 /// @title Dopamine DAO Storage Contract
 /// @dev Upgrades involving new storage variables should utilize a new contract
@@ -18,10 +18,10 @@ import { IDopamineDAO } from "../interfaces/IDopamineDAO.sol";
 ///  `contract DopamineDAOStorageV2 is DopamineDAOStorageV1 { ... }` (upgrade 2)
 contract DopamineDAOStorage {
 
-    /// @notice The id of the ongoing  proposal.
+    /// @notice The id of the ongoing proposal.
     uint32 public proposalId;
 
-    /// @notice The address administering proposal lifecycles and DAO settings.
+    /// @notice The address administering proposal lifecycle and DAO settings.
     address public admin;
 
     /// @notice Address of temporary admin that will become admin once accepted.
@@ -39,13 +39,13 @@ contract DopamineDAOStorage {
     /// @notice The number of voting units needed for a proposal to be created.
     uint256 public proposalThreshold;
 
-    /// @notice The quorum threshold, in bips, a proposal requires to pass.
+    /// @notice The quorum threshold in bips a proposal requires to pass.
     uint256 public quorumThresholdBPS;
 
     /// @notice The timelock, responsible for coordinating proposal execution.
     ITimelock public timelock;
 
-    /// @notice The Dopamine DAO governance token (the ERC-721 Dopamine tab).
+    /// @notice The Dopamine governance token (e.g. the Dopamine tab).
     IDopamineDAOToken public token;
 
     /// @notice The ongoing proposal.

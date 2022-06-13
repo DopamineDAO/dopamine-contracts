@@ -7,101 +7,94 @@ pragma solidity ^0.8.13;
 ///              ░▒█▄▄█░█▄▄█░▒█░░░▒█░▒█░▒█░░▒█░▄█▄░▒█░░▀█░▒█▄▄▄              ///
 ////////////////////////////////////////////////////////////////////////////////
 
-/// This file is under the copyright license: Copyright 2020 Compound Labs, Inc.
-/// 
-/// DopamineDAO.sol is a modification of Nouns DAO's NounsDAOLogicV1.sol:
-/// https://github.com/nounsDAO/nouns-monorepo/blob/master/packages/nouns-contracts/contracts/governance/NounsDAOLogicV1.sol
+/// DopamineDAO.sol is a modification of Nouns DAO's NounsDAOLogicV1.sol.
 ///
 /// Copyright licensing is under the BSD-3-Clause license, as the above contract
 /// is a rework of Compound Lab's GovernorBravoDelegate.sol (of same license).
-/// 
+///
 /// The following major changes were made from the original Nouns DAO contract:
 /// - Proxy was changed from a modified Governor Bravo Delegator to a UUPS Proxy
 /// - Only 1 proposal may be operated at a time (as opposed to 1 per proposer)
-/// - Proposal thresholds use fixed number floors (n NFTs), BPS-based ceilings
-/// - Voter receipts were removed in favor of event-based off-chain storage
+/// - Proposal thresholds use fixed number floors (n NFTs), %-based ceilings
+/// - Voter receipts were removed in favor of events-based off-chain storage
 /// - Most `Proposal` struct fields were changed to uint32 for tighter packing
 /// - Global proposal id uses a uint32 instead of a uint256
-/// - Bakes in EIP-712 data structures as immutables for more efficient caching
+/// - Bakes in EIP-712 data structures as immutables to save some gas
+
 import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 
-import "../errors.sol";
+import "../interfaces/Errors.sol";
+import {IDopamineDAO} from "../interfaces/IDopamineDAO.sol";
 import {IDopamineDAOToken} from "../interfaces/IDopamineDAOToken.sol";
 import {ITimelock} from "../interfaces/ITimelock.sol";
-import {IDopamineDAO} from "../interfaces/IDopamineDAO.sol";
 import {DopamineDAOStorage} from "./DopamineDAOStorage.sol";
 
 /// @title Dopamine DAO Implementation Contract
-/// @notice The DopamineDAO contract is a Governor Bravo variant originally 
+/// @notice The Dopamine DAO contract is a Governor Bravo variant originally
 ///  forked from Nouns DAO, constrained to support only one proposal at a time,
-///  and modified to be integrated with UUPS proxies for easier upgrades. Like 
-///  Governor Bravo, governance token holders may make proposals and vote for 
+///  and modified to be integrated with UUPS proxies for easier upgrades. Like
+///  Governor Bravo, governance token holders may make proposals and vote for
 ///  them based on their delegated voting weights. In the Dopamine DAO model,
-///  governance tokens are ERC-721s  with a capped supply (Dopamine tabs).
+///  governance tokens are ERC-721s (Dopamine tabs)  with a capped supply.
 /// @dev It is intended for the admin to be configured as the  Timelock, and the
-///  vetoer to initially be configured as the team multi-sig (revoked later).
+///  vetoer to be configured as the team multi-sig (veto power revoked later).
 contract DopamineDAO is UUPSUpgradeable, DopamineDAOStorage, IDopamineDAO {
 
     /// @notice The lowest settable threshold for proposals, in number of NFTs.
-	uint256 public constant MIN_PROPOSAL_THRESHOLD = 1;
+    uint256 public constant MIN_PROPOSAL_THRESHOLD = 1;
 
     /// @notice The max settable threshold for proposals, in supply % (bips).
-	uint256 public constant MAX_PROPOSAL_THRESHOLD_BPS = 1_000; // 10%
+    uint256 public constant MAX_PROPOSAL_THRESHOLD_BPS = 1_000; // 10%
 
-    /// @notice The minimum settable time in blocks proposals can be voted on.
-	uint256 public constant MIN_VOTING_PERIOD = 6400; // ~1 day
+    /// @notice The min settable time period (blocks) proposals may be voted on.
+    uint256 public constant MIN_VOTING_PERIOD = 6400; // ~1 day
 
-    /// @notice The maximum settable time in blocks proposals can be voted on.
-	uint256 public constant MAX_VOTING_PERIOD = 134000; // ~3 Weeks
+    /// @notice The max settable time period (blocks) proposals may be voted on.
+    uint256 public constant MAX_VOTING_PERIOD = 134000; // ~3 Weeks
 
-    /// @notice The minimum settable wait time in blocks for starting proposals.
-	uint256 public constant MIN_VOTING_DELAY = 1; // Next block
+    /// @notice The min settable waiting time (blocks) before voting starts.
+    uint256 public constant MIN_VOTING_DELAY = 1; // Next block
 
-    /// @notice The maximum settable wait time in blocks for starting proposals.
-	uint256 public constant MAX_VOTING_DELAY = 45000; // ~1 Week
+    /// @notice The max settable waiting time (blocks) before voting starts.
+    uint256 public constant MAX_VOTING_DELAY = 45000; // ~1 Week
 
-    /// @notice The minimum quorum threshold in bips settable for proposals.
-	uint256 public constant MIN_QUORUM_THRESHOLD_BPS = 200; // 2%
+    /// @notice The min quorum threshold that can be set for proposals, in bips.
+    uint256 public constant MIN_QUORUM_THRESHOLD_BPS = 200; // 2%
 
-    /// @notice The maximum quorum threshold in bips settable for proposals.
-	uint256 public constant MAX_QUORUM_THRESHOLD_BPS = 2_000; // 20%
+    /// @notice The max quorum threshold that can be set for proposals, in bips.
+    uint256 public constant MAX_QUORUM_THRESHOLD_BPS = 2_000; // 20%
 
-    /// @notice The maximum number of allowed executions for a single proposal.
-	uint256 public constant PROPOSAL_MAX_OPERATIONS = 10;
-	
+    /// @notice The max number of allowed executions for a single proposal.
+    uint256 public constant PROPOSAL_MAX_OPERATIONS = 10;
+
     /// @notice The typehash used for EIP-712 voting (see `castVoteBySig`).
-	bytes32 public constant VOTE_TYPEHASH = keccak256("Vote(address voter,uint256 proposalId,uint8 support)");
+    bytes32 internal constant VOTE_TYPEHASH = keccak256("Vote(address voter,uint256 proposalId,uint8 support)");
 
-    // EIP-712 immutables for signing messages.
+    /// @dev  EIP-712 immutables for signing messages.
     uint256 internal immutable _CHAIN_ID;
     bytes32 internal immutable _DOMAIN_SEPARATOR;
 
-    // EIP-165 identifiers for all supported interfaces.
-    bytes4 private constant _ERC165_INTERFACE_ID = 0x01ffc9a7;
-    bytes4 private constant _RARITY_SOCIETY_DAO_INTERFACE_ID = 0x8a5da15c;
-
-    /// @notice This modifier restrict calls to only the admin.
-	modifier onlyAdmin() {
+    /// @dev This modifier restrict calls to only the admin.
+    modifier onlyAdmin() {
         if (msg.sender != admin) {
             revert AdminOnly();
         }
-		_;
-	}
+        _;
+    }
 
     /// @notice Instantiates the Dopamine DAO implementation contract.
     /// @param proxy Address of the proxy to be linked to the contract via UUPS.
     /// @dev The reason a constructor is used here despite this needing to be
-    ///  initialized via a UUPS proxy is so that EIP-712 signing can be built 
-    ///  off of proxy immutables (the proxy domain separator and chain ID).
+    ///  initialized via a UUPS proxy is so that EIP-712 signing constants  can
+    ///  be built off proxy immutables (proxy domain separator and chain ID).
     constructor(
         address proxy
     ) {
-        // Prevent implementation re-initialization.
         _CHAIN_ID = block.chainid;
         _DOMAIN_SEPARATOR = keccak256(
             abi.encode(
-				keccak256("EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)"),
-				keccak256(bytes("Dopamine DAO")),
+                keccak256("EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)"),
+                keccak256(bytes("Dopamine DAO")),
                 keccak256(bytes("1")),
                 block.chainid,
                 proxy
@@ -109,6 +102,41 @@ contract DopamineDAO is UUPSUpgradeable, DopamineDAOStorage, IDopamineDAO {
         );
     }
 
+    /// @notice Initializes the Dopamine DAO governance contract.
+    /// @dev This function may only be called via a proxy contract (e.g. UUPS).
+    /// @param timelock_ Timelock address, which controls proposal execution.
+    /// @param token_ Governance token, from which voting weights are derived.
+    /// @param vetoer_ Address with temporary veto power (revoked later on).
+    /// @param votingPeriod_ Time a proposal is up for voting, in blocks.
+    /// @param votingDelay_ Time before opening proposal for voting, in blocks.
+    /// @param proposalThreshold_ Number of NFTs required to submit a proposal.
+    /// @param quorumThresholdBPS_ Supply % (bips) needed to pass a proposal.
+    function initialize(
+        address timelock_,
+        address token_,
+        address vetoer_,
+        uint256 votingPeriod_,
+        uint256 votingDelay_,
+        uint256 proposalThreshold_,
+        uint256 quorumThresholdBPS_
+    ) onlyProxy external {
+        if (address(token) != address(0)) {
+            revert ContractAlreadyInitialized();
+        }
+
+        admin = msg.sender;
+        emit AdminChanged(address(0), admin);
+        vetoer = vetoer_;
+        emit VetoerChanged(address(0), vetoer);
+
+        token = IDopamineDAOToken(token_);
+        timelock = ITimelock(timelock_);
+
+        setVotingPeriod(votingPeriod_);
+        setVotingDelay(votingDelay_);
+        setQuorumThresholdBPS(quorumThresholdBPS_);
+        setProposalThreshold(proposalThreshold_);
+    }
     /// @inheritdoc IDopamineDAO
     function propose(
         address[] calldata targets,
@@ -118,14 +146,14 @@ contract DopamineDAO is UUPSUpgradeable, DopamineDAOStorage, IDopamineDAO {
         string memory description
     ) external returns (uint256) {
         if (
-            token.priorVotes(msg.sender, block.number - 1) < proposalThreshold) 
+            token.priorVotes(msg.sender, block.number - 1) < proposalThreshold)
         {
             revert VotingPowerInsufficient();
         }
 
         if (
-            targets.length != values.length     || 
-            targets.length != signatures.length || 
+            targets.length != values.length     ||
+            targets.length != signatures.length ||
             targets.length != calldatas.length
         ) {
             revert ArityMismatch();
@@ -137,7 +165,7 @@ contract DopamineDAO is UUPSUpgradeable, DopamineDAOStorage, IDopamineDAO {
 
         ProposalState proposalState = state();
         if (
-            proposal.startBlock != 0 && 
+            proposal.startBlock != 0 &&
                 (
                     proposalState == ProposalState.Pending ||
                     proposalState == ProposalState.Active ||
@@ -279,137 +307,64 @@ contract DopamineDAO is UUPSUpgradeable, DopamineDAOStorage, IDopamineDAO {
     }
 
     /// @inheritdoc IDopamineDAO
-	function castVote(uint256 id, uint8 support) external {
-		 emit VoteCast(
+    function castVote(uint256 id, uint8 support) external {
+        emit VoteCast(
              msg.sender,
              id,
              support,
              _castVote(id, msg.sender, support),
              ""
          );
-	}
+    }
 
     /// @inheritdoc IDopamineDAO
-	function castVoteWithReason(
+    function castVoteWithReason(
         uint256 id,
         uint8 support,
         string calldata reason
-    ) 
-    external 
-    {
-		 emit VoteCast(
-             msg.sender,
-             id,
-             support,
-             _castVote(id, msg.sender, support),
-             reason
-         );
-	}
+    ) external {
+        emit VoteCast(
+            msg.sender,
+            id,
+            support,
+            _castVote(id, msg.sender, support),
+            reason
+        );
+    }
 
     /// @inheritdoc IDopamineDAO
-	function castVoteBySig(
+    function castVoteBySig(
         uint256 id,
         address voter,
-		uint8 support,
-		uint8 v,
-		bytes32 r,
-		bytes32 s
-	) external override {
-		address signatory = ecrecover(
-			_hashTypedData(
+        uint8 support,
+        uint8 v,
+        bytes32 r,
+        bytes32 s
+    ) external override {
+        address signatory = ecrecover(
+            _hashTypedData(
                 keccak256(abi.encode(VOTE_TYPEHASH, voter, id, support))
             ),
-			v,
-			r,
-			s
-		);
+            v,
+            r,
+            s
+        );
         if (signatory == address(0) || signatory != voter) {
             revert SignatureInvalid();
         }
-		emit VoteCast(
+        emit VoteCast(
             signatory,
             id,
             support,
             _castVote(id, signatory, support),
             ""
         );
-	}
-
-    /// @notice Initializes the Dopamine DAO governance contract.
-    /// @dev This function may only be called via a proxy contract (e.g. UUPS).
-    /// @param timelock_ Timelock address, which controls proposal execution.
-    /// @param token_ Governance token, from which voting weights are derived.
-    /// @param vetoer_ Address with temporary veto power (revoked later on).
-    /// @param votingPeriod_ Time a proposal is up for voting, in blocks.
-    /// @param votingDelay_ Time before opening proposal for voting, in blocks.
-    /// @param proposalThreshold_ Number of NFTs required to submit a proposal.
-    /// @param quorumThresholdBPS_ Supply % (bips) needed to pass a proposal.
-	function initialize(
-		address timelock_,
-		address token_,
-		address vetoer_,
-		uint256 votingPeriod_,
-		uint256 votingDelay_,
-		uint256 proposalThreshold_,
-        uint256 quorumThresholdBPS_
-    ) onlyProxy public {
-        if (address(token) != address(0)) {
-            revert ContractAlreadyInitialized();
-        }
-
-        admin = msg.sender;
-        emit AdminChanged(address(0), admin);
-		vetoer = vetoer_;
-        emit VetoerChanged(address(0), vetoer);
-
-        token = IDopamineDAOToken(token_);
-		timelock = ITimelock(timelock_);
-
-        setVotingPeriod(votingPeriod_);
-		setVotingDelay(votingDelay_);
-		setQuorumThresholdBPS(quorumThresholdBPS_);
-		setProposalThreshold(proposalThreshold_);
-	}
-
-	/// @inheritdoc IDopamineDAO
-	function quorumThreshold() external view returns (uint256) {
-           return max(1, bps2Uint(quorumThresholdBPS, token.totalSupply()));
-	}
+    }
 
     /// @inheritdoc IDopamineDAO
-	function maxProposalThreshold() public view returns (uint256) {
-		return max(
-            MIN_PROPOSAL_THRESHOLD,
-            bps2Uint(MAX_PROPOSAL_THRESHOLD_BPS, token.totalSupply())
-        );
-	}
-
-    /// @inheritdoc IDopamineDAO
-    /// @dev Until the first proposal creation, this will return "Defeated".
-	function state() public view override returns (ProposalState) {
-		if (proposal.vetoed) {
-			return ProposalState.Vetoed;
-		} else if (proposal.canceled) {
-			return ProposalState.Canceled;
-		} else if (block.number < proposal.startBlock) {
-			return ProposalState.Pending;
-		} else if (block.number <= proposal.endBlock) {
-			return ProposalState.Active;
-		} else if (
-            proposal.forVotes <= proposal.againstVotes || 
-            proposal.forVotes < proposal.quorumThreshold
-        ) {
-			return ProposalState.Defeated;
-		} else if (proposal.eta == 0) {
-			return ProposalState.Succeeded;
-		} else if (proposal.executed) {
-			return ProposalState.Executed;
-		} else if (block.timestamp > proposal.eta + timelock.GRACE_PERIOD()) {
-			return ProposalState.Expired;
-		} else {
-			return ProposalState.Queued;
-		}
-	}
+    function quorumThreshold() external view returns (uint256) {
+        return max(1, bps2Uint(quorumThresholdBPS, token.totalSupply()));
+    }
 
     /// @inheritdoc IDopamineDAO
     function actions() external view returns (
@@ -429,67 +384,62 @@ contract DopamineDAO is UUPSUpgradeable, DopamineDAOStorage, IDopamineDAO {
     /// @inheritdoc IDopamineDAO
 	function setVotingDelay(uint256 newVotingDelay) public override onlyAdmin {
         if (
-            newVotingDelay < MIN_VOTING_DELAY || 
+            newVotingDelay < MIN_VOTING_DELAY ||
             newVotingDelay > MAX_VOTING_DELAY
-        ) 
-        {
+        ) {
             revert ProposalVotingDelayInvalid();
         }
-		votingDelay = newVotingDelay;
-		emit VotingDelaySet(votingDelay);
-	}
+        votingDelay = newVotingDelay;
+        emit VotingDelaySet(votingDelay);
+    }
 
     /// @inheritdoc IDopamineDAO
-	function setVotingPeriod(uint256 newVotingPeriod)
-        public 
-        override 
-        onlyAdmin 
+    function setVotingPeriod(uint256 newVotingPeriod)
+        public
+        override
+        onlyAdmin
     {
         if (
-            newVotingPeriod < MIN_VOTING_PERIOD || 
+            newVotingPeriod < MIN_VOTING_PERIOD ||
             newVotingPeriod > MAX_VOTING_PERIOD
-        ) 
-        {
+        ) {
             revert ProposalVotingPeriodInvalid();
         }
-		votingPeriod = newVotingPeriod;
-		emit VotingPeriodSet(votingPeriod);
-	}
-
+        votingPeriod = newVotingPeriod;
+        emit VotingPeriodSet(votingPeriod);
+    }
 
     /// @inheritdoc IDopamineDAO
-	function setProposalThreshold(uint256 newProposalThreshold) 
-        public 
-        override 
-        onlyAdmin 
+    function setProposalThreshold(uint256 newProposalThreshold)
+        public
+        override
+        onlyAdmin
     {
         if (
-            newProposalThreshold < MIN_PROPOSAL_THRESHOLD || 
+            newProposalThreshold < MIN_PROPOSAL_THRESHOLD ||
             newProposalThreshold > maxProposalThreshold()
-        ) 
-        {
+        ) {
             revert ProposalThresholdInvalid();
         }
-		proposalThreshold = newProposalThreshold;
-		emit ProposalThresholdSet(proposalThreshold);
-	}
+        proposalThreshold = newProposalThreshold;
+        emit ProposalThresholdSet(proposalThreshold);
+    }
 
     /// @inheritdoc IDopamineDAO
-	function setQuorumThresholdBPS(uint256 newQuorumThresholdBPS) 
-        public 
-        override 
-        onlyAdmin 
+    function setQuorumThresholdBPS(uint256 newQuorumThresholdBPS)
+        public
+        override
+        onlyAdmin
     {
         if (
             newQuorumThresholdBPS < MIN_QUORUM_THRESHOLD_BPS ||
             newQuorumThresholdBPS > MAX_QUORUM_THRESHOLD_BPS
-        ) 
-        {
+        ) {
             revert ProposalQuorumThresholdInvalid();
         }
-		quorumThresholdBPS = newQuorumThresholdBPS;
-		emit QuorumThresholdBPSSet(quorumThresholdBPS);
-	}
+        quorumThresholdBPS = newQuorumThresholdBPS;
+        emit QuorumThresholdBPSSet(quorumThresholdBPS);
+    }
 
     /// @inheritdoc IDopamineDAO
     function setVetoer(address newVetoer) external {
@@ -501,29 +451,64 @@ contract DopamineDAO is UUPSUpgradeable, DopamineDAOStorage, IDopamineDAO {
     }
 
     /// @inheritdoc IDopamineDAO
-	function setPendingAdmin(address newPendingAdmin) 
-        public 
-        override 
-        onlyAdmin 
+    function setPendingAdmin(address newPendingAdmin)
+        public
+        override
+        onlyAdmin
     {
-		pendingAdmin = newPendingAdmin;
-		emit PendingAdminSet(pendingAdmin);
-	}
+        pendingAdmin = newPendingAdmin;
+        emit PendingAdminSet(pendingAdmin);
+    }
 
     /// @inheritdoc IDopamineDAO
-	function acceptAdmin() public override {
+    function maxProposalThreshold() public view returns (uint256) {
+        return max(
+            MIN_PROPOSAL_THRESHOLD,
+            bps2Uint(MAX_PROPOSAL_THRESHOLD_BPS, token.totalSupply())
+        );
+    }
+
+    /// @inheritdoc IDopamineDAO
+    /// @dev Until the first proposal creation, this will return "Defeated".
+    function state() public view override returns (ProposalState) {
+        if (proposal.vetoed) {
+            return ProposalState.Vetoed;
+        } else if (proposal.canceled) {
+            return ProposalState.Canceled;
+        } else if (block.number < proposal.startBlock) {
+            return ProposalState.Pending;
+        } else if (block.number <= proposal.endBlock) {
+            return ProposalState.Active;
+        } else if (
+            proposal.forVotes <= proposal.againstVotes ||
+            proposal.forVotes < proposal.quorumThreshold
+        ) {
+            return ProposalState.Defeated;
+        } else if (proposal.eta == 0) {
+            return ProposalState.Succeeded;
+        } else if (proposal.executed) {
+            return ProposalState.Executed;
+        } else if (block.timestamp > proposal.eta + timelock.GRACE_PERIOD()) {
+            return ProposalState.Expired;
+        } else {
+            return ProposalState.Queued;
+        }
+    }
+
+    /// @inheritdoc IDopamineDAO
+    function acceptAdmin() public override {
         if (msg.sender != pendingAdmin) {
             revert PendingAdminOnly();
         }
 
-		emit AdminChanged(admin, pendingAdmin);
-		admin = pendingAdmin;
+        emit AdminChanged(admin, pendingAdmin);
+        admin = pendingAdmin;
         pendingAdmin = address(0);
-	}
+    }
 
-    /// @notice Queues a current proposal's execution call through the Timelock.
+    /// @dev Queues a current proposal's execution call through the Timelock.
     /// @param target Target address for which the call will be executed.
-    /// @param value Eth value in wei  to send with the call.
+    /// @param value Eth value in wei to send with the call.
     /// @param signature Function signature associated with the call.
     /// @param data Function calldata associated with the call.
     /// @param eta Timestamp in seconds after which the call may be executed.
@@ -538,23 +523,25 @@ contract DopamineDAO is UUPSUpgradeable, DopamineDAOStorage, IDopamineDAO {
             timelock.queuedTransactions(
                 keccak256(abi.encode(target, value, signature, data, eta))
             )
-        ) 
-        {
+        ) {
             revert TransactionAlreadyQueued();
         }
         timelock.queueTransaction(target, value, signature, data, eta);
     }
 
-    /// @notice Casts a `support` vote as `voter` for the current proposal.
+    /// @dev Casts a `support` vote as `voter` for the current proposal.
     /// @param id The current proposal id (for Governor Bravo compatibility).
     /// @param voter The address of the voter whose vote is being cast.
     /// @param support The vote type: 0 = against, 1 = for, 2 = abstain
     /// @return The number of votes (total number of NFTs delegated to voter).
-	function _castVote(
+    function _castVote(
         uint256 id,
-		address voter,
-		uint8 support
-	) internal returns (uint256) {
+        address voter,
+        uint8 support
+    )
+        internal
+        returns (uint256)
+    {
         if (id != proposalId || state() != ProposalState.Active) {
             revert ProposalInactive();
         }
@@ -566,39 +553,38 @@ contract DopamineDAO is UUPSUpgradeable, DopamineDAOStorage, IDopamineDAO {
             revert VoteAlreadyCast();
         }
 
-		uint32 votes = token.priorVotes(
+        uint32 votes = token.priorVotes(
             voter,
             proposal.startBlock - votingDelay
         );
-		if (support == 0) {
-			proposal.againstVotes = proposal.againstVotes + votes;
-		} else if (support == 1) {
-			proposal.forVotes = proposal.forVotes + votes;
-		} else {
-			proposal.abstainVotes = proposal.abstainVotes + votes;
-		}
+        if (support == 0) {
+            proposal.againstVotes = proposal.againstVotes + votes;
+        } else if (support == 1) {
+            proposal.forVotes = proposal.forVotes + votes;
+        } else {
+            proposal.abstainVotes = proposal.abstainVotes + votes;
+        }
 
         _lastVotedProposal[voter] = id;
 
-		return uint256(votes);
-	}
+        return uint256(votes);
+    }
 
-    /// @notice Performs an authorization check for UUPS upgrades.
-    /// @dev This function ensures only the admin & vetoer can upgrade the DAO.
+    /// @dev Performs an authorization check for UUPS upgrades. This function
+    ///  ensures only the admin & vetoer can upgrade the DAO contract.
     function _authorizeUpgrade(address) internal view override {
         if (msg.sender != admin && msg.sender != vetoer) {
             revert UpgradeUnauthorized();
         }
     }
 
-	/// @notice Generates an EIP-712 Dopamine DAO domain separator.
-    /// @dev See https://eips.ethereum.org/EIPS/eip-712 for details.
-    /// @return A 256-bit domain separator.
+    /// @dev Generates an EIP-712 Dopamine DAO domain separator.
+    /// @return A 256-bit domain separator tied to this contract.
     function _buildDomainSeparator() internal view returns (bytes32) {
         return keccak256(
             abi.encode(
-				keccak256("EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)"),
-				keccak256(bytes("Dopamine DAO")),
+                keccak256("EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)"),
+                keccak256(bytes("Dopamine DAO")),
                 keccak256("1"),
                 block.chainid,
                 address(this)
@@ -606,21 +592,20 @@ contract DopamineDAO is UUPSUpgradeable, DopamineDAOStorage, IDopamineDAO {
         );
     }
 
-	/// @notice Returns an EIP-712 encoding of structured data `structHash`.
+    /// @dev Returns an EIP-712 encoding of structured data `structHash`.
     /// @param structHash The structured data to be encoded and signed.
     /// @return A byte string suitable for signing in accordance to EIP-712.
-    function _hashTypedData(bytes32 structHash) 
-        internal 
-        view 
-        returns (bytes32) 
+    function _hashTypedData(bytes32 structHash)
+        internal
+        view
+        returns (bytes32)
     {
         return keccak256(
             abi.encodePacked("\x19\x01", _domainSeparator(), structHash)
         );
     }
 
-    /// @notice Returns the domain separator tied to the contract.
-    /// @dev Recreated if chain id changes, otherwise a cached value is used.
+    /// @dev Returns the domain separator tied to the contract.
     /// @return 256-bit domain separator tied to this contract.
     function _domainSeparator() internal view returns (bytes32) {
         if (block.chainid == _CHAIN_ID) {
@@ -630,20 +615,20 @@ contract DopamineDAO is UUPSUpgradeable, DopamineDAOStorage, IDopamineDAO {
         }
     }
 
-    /// @notice Converts bips `bps` and number `number` to an integer.
+    /// @dev Converts number `number` to an integer based on bips `bps`.
     /// @param bps Number of basis points (1 BPS = 0.01%).
     /// @param number Decimal number being converted.
-	function bps2Uint(uint256 bps, uint256 number) 
-        private 
-        pure 
-        returns (uint256) 
+    function bps2Uint(uint256 bps, uint256 number)
+        private
+        pure
+        returns (uint256)
     {
-		return (number * bps) / 10000;
-	}
+        return (number * bps) / 10000;
+    }
 
     /// @notice Returns the max between uints `a` and `b`.
-	function max(uint256 a, uint256 b) private pure returns (uint256) {
-		return a >= b ? a : b;
-	}
+    function max(uint256 a, uint256 b) private pure returns (uint256) {
+        return a >= b ? a : b;
+    }
 
 }
