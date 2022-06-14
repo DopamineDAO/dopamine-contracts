@@ -10,11 +10,17 @@ pragma solidity ^0.8.13;
 // This file is a shared repository of all errors used in Dopamine's contracts.
 
 ////////////////////////////////////////////////////////////////////////////////
-///                               DopamineTab                                ///
+///                              Dopamine Tab                                ///
 ////////////////////////////////////////////////////////////////////////////////
 
 /// @notice Configured drop delay is invalid.
 error DropDelayInvalid();
+
+/// @notice Drop identifier is invalid.
+error DropInvalid();
+
+/// @notice Drop details may no longer be modified.
+error DropImmutable();
 
 /// @notice DopamineTab drop hit allocated capacity.
 error DropMaxCapacity();
@@ -27,6 +33,9 @@ error DropOngoing();
 
 /// @notice Configured drop size is invalid.
 error DropSizeInvalid();
+
+/// @notice Drop starting index is incorrect.
+error DropStartInvalid();
 
 /// @notice Insufficient time passed since last drop was created.
 error DropTooEarly();
@@ -231,6 +240,9 @@ error TransactionStale();
 ////////////////////////////////////////////////////////////////////////////////
 ///                             Merkle Allowlist                             ///
 ////////////////////////////////////////////////////////////////////////////////
+
+/// @notice Claim drop identifier is invalid.
+error ClaimInvalid();
 
 /// @notice Proof for claim is invalid.
 error ProofInvalid();

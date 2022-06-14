@@ -17,10 +17,6 @@ interface IDopamineTab is IDopamineTabEvents {
     /// @return Id of the minted tab, which is always equal to `_id`.
     function mint() external returns (uint256);
 
-    /// @notice Burns a dopamine tab.
-    /// @param id The id of the tab to be burned.
-    function burn(uint256 id) external;
-
     /// @notice Mints an allowlisted tab of id `id` to the sender address if
     ///  merkle proof `proof` proves they were allowlisted with that tab id.
     /// @dev Reverts if invalid proof is provided or claimer isn't allowlisted.
@@ -32,12 +28,24 @@ interface IDopamineTab is IDopamineTabEvents {
 
     /// @notice Creates a new Dopamine tab drop.
     /// @dev This function is only callable by the admin address, and reverts if
-    ///  an ongoing drop exists, call is too early, or max capacity was reached.
-    /// @param allowlist A merkle root whose tree is comprised of allowlisted
-    ///  addresses and their assigned tab ids. This assignment is permanent.
+    ///  an ongoing drop exists, drop starting index is invalid, call is too
+    //   early, drop identifier is invalid, allowlist size is too large,
+    ///  drop size is too small or too large, or max capacity was reached.
+    /// @param dropId The drop's id (must 1 + last drop id).
+    /// @param startIndex The drop's start index (must be last `dropEndIndex`).
+    /// @param dropSize The total number of tabs of the drop (incl. allowlist).
     /// @param provenanceHash An immutable provenance hash equal to the SHA-256
     ///  hash of the concatenation of all SHA-256 image hashes of the drop.
-    function createDrop(bytes32 allowlist, bytes32 provenanceHash) external;
+    /// @param allowlistSize The total number of allowlisted tabs of the drop.
+    /// @param allowlist Merkle root comprised of allowlisted address-tab pairs.
+    function createDrop(
+        uint256 dropId,
+        uint256 startIndex,
+        uint256 dropSize,
+        bytes32 provenanceHash,
+        uint256 allowlistSize,
+        bytes32 allowlist
+    ) external;
 
     /// @notice Gets the admin address, which controls drop settings & creation.
     function admin() external view returns (address);
@@ -53,13 +61,6 @@ interface IDopamineTab is IDopamineTabEvents {
 
     /// @notice Gets the time at which a new drop can start (if last completed).
     function dropEndTime() external view returns (uint256);
-
-    /// @notice Gets the current number of tabs to be distributed each drop.
-    /// @dev This includes the number of tabs allowlisted for the drop.
-    function dropSize() external view returns (uint256);
-
-    /// @notice Gets the number of tabs allocated for allowlisting each drop.
-    function allowlistSize() external view returns (uint256);
 
     /// @notice Retrieves the provenance hash for a drop with id `dropId`.
     /// @param dropId The id of the drop being queried.
@@ -80,8 +81,9 @@ interface IDopamineTab is IDopamineTabEvents {
     /// @notice Retrieves the drop id of the tab with id `id`.
     /// @dev This function reverts for non-existent drops. For existing drops, 
     ///  the drop id will be returned even if a drop's tab has yet to mint.
+    /// @param dropId The id of the drop being queried.
     /// @return The drop id of the queried tab.
-    function dropId(uint256 id) external view returns (uint256);
+    function dropId(uint256 dropId) external view returns (uint256);
 
     /// @notice Retrieves a URI describing the overall contract-level metadata.
     /// @return A string URI pointing to the tab contract metadata.
@@ -105,9 +107,9 @@ interface IDopamineTab is IDopamineTabEvents {
     /// @notice Sets the final metadata URI for drop `dropId` to `dropURI`.
     /// @dev This function is only callable by the admin address, and reverts
     ///  if the specified drop `dropId` does not exist.
-    /// @param id The id of the drop whose final metadata URI is being set.
+    /// @param dropId The id of the drop whose final metadata URI is being set.
     /// @param uri The finalized IPFS / Arweave metadata URI.
-    function setDropURI(uint256 id, string calldata uri) external;
+    function setDropURI(uint256 dropId, string calldata uri) external;
 
     /// @notice Sets the drop delay `dropDelay` to `newDropDelay`.
     /// @dev This function is only callable by the admin address, and reverts if
@@ -115,16 +117,16 @@ interface IDopamineTab is IDopamineTabEvents {
     /// @param newDropDelay The new drop delay to set, in seconds.
     function setDropDelay(uint256 newDropDelay) external;
 
-    /// @notice Sets the drop size to `newDropSize`.
-    /// @dev This function is only callable by the admin address, and reverts if
-    ///  the specified drop size is too small or too large.
-    /// @param newDropSize The new drop size to set, in terms of tab units.
-    function setDropSize(uint256 newDropSize) external;
-
-    /// @notice Sets the drop allowlist size to `newAllowlistSize`.
-    /// @dev This function is only callable by the admin address, and reverts if
-    ///  the allowlist size is too large or greater than the existing drop size.
-    /// @param newAllowlistSize The new drop allowlist size to set.
-    function setAllowlistSize(uint256 newAllowlistSize) external;
-
+    /// @notice Updates the drop provenance hash and allowlist.
+    /// @dev This function is only callable by the admin address, and will
+    ///  revert when called after drop finalization (when drop URI is set).
+    ///  Note: This function should NOT be called unless drop is misconfigured.
+    /// @param dropId The id of the drop being queried.
+    /// @param provenanceHash The drop's provenance hash (SHA-256 of images).
+    /// @param allowlist Merkle root of drop's allowlisted address-NFT pairs.
+    function updateDrop(
+        uint256 dropId,
+        bytes32 provenanceHash,
+        bytes32 allowlist
+    ) external;
 }

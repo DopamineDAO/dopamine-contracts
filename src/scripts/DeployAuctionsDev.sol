@@ -60,27 +60,6 @@ contract DeployDev is Test {
         assertEq(address(ahProxy), ahAddress);
         ah = DopamineAuctionHouse(ahAddress);
 
-        // 4. Deploy timelock.
-        timelock = new Timelock(daoAddress, 1 days); // 1-day timelock delay
-
-        // 5. Deploy Dopamine DAO implementation contract.
-        daoImpl = new DopamineDAO(daoAddress);
-
-        // 6. Deploy the Dopamine DAO proxy contract.
-        bytes memory daoData = abi.encodeWithSelector(
-            ahImpl.initialize.selector,
-            address(timelock),
-            address(tab),
-            msg.sender,
-            6400,                // ~1-day voting period
-            1,                   // 1-block voting delay
-            1,                   // 1-unit proposal threshold
-            100                 // 1% quorum threshold (input is bips)
-        );
-        daoProxy = new DopamineDAOProxy(address(daoImpl), daoData);
-        assertEq(address(daoProxy), daoAddress);
-        dao = DopamineDAO(daoAddress);
-
         vm.stopBroadcast();
     }
 

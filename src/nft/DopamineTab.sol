@@ -25,7 +25,7 @@ import { ERC721Votable } from "../erc721/ERC721Votable.sol";
 contract DopamineTab is ERC721Votable, IDopamineTab {
 
     /// @notice The maximum number of tabs that may be allowlisted per drop.
-    uint256 public constant MAX_WL_SIZE = 99;
+    uint256 public constant MAX_AL_SIZE = 99;
 
     /// @notice The minimum number of tabs that can be minted for a drop.
     uint256 public constant MIN_DROP_SIZE = 1;
@@ -58,23 +58,17 @@ contract DopamineTab is ERC721Votable, IDopamineTab {
     /// @notice The current drop's ending tab id (exclusive boundary).
     uint256 public dropEndIndex;
 
-    /// @notice The time at which a new drop can start (if last drop completed).
+    /// @notice The time at which a new drop can start (if last drop completes).
     uint256 public dropEndTime;
 
-    /// @notice The number of tabs for each drop (includes those allowlisted).
-    uint256 public dropSize;
+    /// @notice Maps a drop to its allowlist (merkle tree root).
+    mapping(uint256 => bytes32) public dropAllowlist;
 
-    /// @notice The number of tabs to allocate for allowlisting for each drop.
-    uint256 public allowlistSize;
-
-    /// @notice Maps a drop to its provenance hash.
+    /// @notice Maps a drop to its provenance hash (concatenated image hash).
     mapping(uint256 => bytes32) public dropProvenanceHash;
 
     /// @notice Maps a drop to its finalized IPFS / Arweave tab metadata URI.
     mapping(uint256 => string) public dropURI;
-
-    /// @notice Maps a drop to its allowlist (merkle tree root).
-    mapping(uint256 => bytes32) public dropAllowlist;
 
     /// @dev Maps a drop id to its ending tab id (exclusive boundary).
     uint256[] private _dropEndIndices;
@@ -101,15 +95,13 @@ contract DopamineTab is ERC721Votable, IDopamineTab {
     /// @notice Initializes the membership tab with the specified drop settings.
     /// @param minter_ The address which will control tab emissions.
     /// @param proxyRegistry_ The OS proxy registry address.
-    /// @param dropSize_ The number of tabs to issue for each drop.
     /// @param dropDelay_ The minimum delay to wait between drop creations.
+    /// @param maxSupply_ The supply for the tab collection.
     constructor(
         string memory baseURI_,
         address minter_,
         address proxyRegistry_,
-        uint256 dropSize_,
         uint256 dropDelay_,
-        uint256 allowlistSize_,
         uint256 maxSupply_
     ) ERC721Votable("Dopamine Tabs", "TAB", maxSupply_) {
         admin = msg.sender;
@@ -118,14 +110,12 @@ contract DopamineTab is ERC721Votable, IDopamineTab {
         minter = minter_;
         emit MinterChanged(address(0), minter);
 
-        proxyRegistry = IOpenSeaProxyRegistry(proxyRegistry_);
-
         baseURI = baseURI_;
         emit BaseURISet(baseURI);
 
-        setDropSize(dropSize_);
+        proxyRegistry = IOpenSeaProxyRegistry(proxyRegistry_);
+
         setDropDelay(dropDelay_);
-        setAllowlistSize(allowlistSize_);
     }
 
     /// @inheritdoc IDopamineTab
@@ -178,17 +168,12 @@ contract DopamineTab is ERC721Votable, IDopamineTab {
         return _mint(minter, _id++);
     }
 
-
-    /// @inheritdoc IDopamineTab
-    function burn(uint256 id) external {
-        if (msg.sender != ownerOf[id]) {
-            revert SenderUnauthorized();
-        }
-        _burn(id);
-    }
-
     /// @inheritdoc IDopamineTab
     function claim(bytes32[] calldata proof, uint256 id) external {
+        if (id >= _id) {
+            revert ClaimInvalid();
+        }
+
         bytes32 allowlist = dropAllowlist[dropId(id)];
         bytes32 leaf = keccak256(abi.encodePacked(msg.sender, id));
 
@@ -200,38 +185,58 @@ contract DopamineTab is ERC721Votable, IDopamineTab {
     }
 
     /// @inheritdoc IDopamineTab
-    function createDrop(bytes32 allowlist,  bytes32 provenanceHash)
+    function createDrop(
+        uint256 dropId,
+        uint256 startIndex,
+        uint256 dropSize,
+        bytes32 provenanceHash,
+        uint256 allowlistSize,
+        bytes32 allowlist
+    )
         external
         onlyAdmin
     {
         if (_id < dropEndIndex) {
             revert DropOngoing();
         }
+        if (startIndex != _id) {
+            revert DropStartInvalid();
+        }
+        if (dropId != _dropEndIndices.length) {
+            revert DropInvalid();
+        }
         if (block.timestamp < dropEndTime) {
             revert DropTooEarly();
+        }
+        if (allowlistSize > MAX_AL_SIZE || allowlistSize > dropSize) {
+            revert DropAllowlistOverCapacity();
+        }
+        if (
+            dropSize < MIN_DROP_SIZE ||
+            dropSize > MAX_DROP_SIZE
+        ) {
+            revert DropSizeInvalid();
         }
         if (_id + dropSize > maxSupply) {
             revert DropMaxCapacity();
         }
-
-        uint256 startIndex = _id;
-        uint256 dropNumber = _dropEndIndices.length;
 
         _id += allowlistSize;
         dropEndIndex = startIndex + dropSize;
         _dropEndIndices.push(dropEndIndex);
 
         dropEndTime = block.timestamp + dropDelay;
-        dropProvenanceHash[dropNumber] = provenanceHash;
-        dropAllowlist[dropNumber] = allowlist;
+
+        dropProvenanceHash[dropId] = provenanceHash;
+        dropAllowlist[dropId] = allowlist;
 
         emit DropCreated(
-            dropNumber,
+            dropId,
             startIndex,
             dropSize,
+            provenanceHash
             allowlistSize,
             allowlist,
-            provenanceHash
         );
     }
 
@@ -266,12 +271,38 @@ contract DopamineTab is ERC721Votable, IDopamineTab {
         emit DropURISet(id, uri);
     }
 
+
     /// @inheritdoc IDopamineTab
-    function setBaseURI(string calldata newBaseURI) external onlyAdmin {
+    function updateDrop(
+        uint256 dropId,
+        bytes32 provenanceHash,
+        bytes32 allowlist
+    ) external onlyAdmin {
+        uint256 numDrops = _dropEndIndices.length;
+        if (dropId >= numDrops) {
+            revert DropNonExistent();
+        }
+
+        // Once a drop's URI is set, it may not be modified.
+        if (bytes(dropURI[dropId]).length != 0) {
+            revert DropImmutable();
+        }
+
+        dropProvenanceHash[dropId] = provenanceHash;
+        dropAllowlist[dropId] = allowlist;
+
+        emit DropUpdated(
+            dropId,
+            provenanceHash,
+            allowlist
+        );
+    }
+
+    /// @inheritdoc IDopamineTab
+    function setBaseURI(string calldata newBaseURI) public onlyAdmin {
         baseURI = newBaseURI;
         emit BaseURISet(newBaseURI);
     }
-
 
     /// @inheritdoc IDopamineTab
     function setDropDelay(uint256 newDropDelay) public override onlyAdmin {
@@ -280,28 +311,6 @@ contract DopamineTab is ERC721Votable, IDopamineTab {
         }
         dropDelay = newDropDelay;
         emit DropDelaySet(dropDelay);
-    }
-
-    /// @inheritdoc IDopamineTab
-    function setDropSize(uint256 newDropSize) public onlyAdmin {
-        if (
-            newDropSize < allowlistSize ||
-            newDropSize < MIN_DROP_SIZE ||
-            newDropSize > MAX_DROP_SIZE
-        ) {
-            revert DropSizeInvalid();
-        }
-        dropSize = newDropSize;
-        emit DropSizeSet(dropSize);
-    }
-
-    /// @inheritdoc IDopamineTab
-    function setAllowlistSize(uint256 newAllowlistSize) public onlyAdmin {
-        if (newAllowlistSize > MAX_WL_SIZE || newAllowlistSize > dropSize) {
-            revert DropAllowlistOverCapacity();
-        }
-        allowlistSize = newAllowlistSize;
-        emit AllowlistSizeSet(allowlistSize);
     }
 
     /// @inheritdoc IDopamineTab

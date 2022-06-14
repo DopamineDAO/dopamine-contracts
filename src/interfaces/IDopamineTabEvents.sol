@@ -35,6 +35,12 @@ interface IDopamineTabEvents {
     event DropDelaySet(uint256 dropDelay);
 
     /// @notice Emits when a new drop size `dropSize` is set.
+    /// @param dropId The id of the queried drop.
+    /// @param provenanceHash The drop collection provenance hash.
+    /// @param allowlist Merkle root of drop's allowlisted address-tab pairs.
+    event DropUpdated(uint256 dropId, bytes32 provenanceHash, bytes32 allowlist);
+
+    /// @notice Emits when a new drop size `dropSize` is set.
     /// @param dropSize The new drop size, in number of tabs to distribute.
     event DropSizeSet(uint256 dropSize);
 

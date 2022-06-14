@@ -47,24 +47,22 @@ contract DopamineTabTest is Test, IDopamineTabEvents {
     uint256 constant MAX_SUPPLY = 19;
     uint256 constant DROP_SIZE = 9;
     uint256 constant DROP_DELAY = 4 weeks;
-    uint256 constant WHITELIST_SIZE = 5;
+    uint256 constant ALLOWLIST_SIZE = 2;
 
-    uint256 constant NFT = WHITELIST_SIZE;
-    uint256 constant NFT_1 = WHITELIST_SIZE + 1;
+    uint256 constant NFT = ALLOWLIST_SIZE;
+    uint256 constant NFT_1 = ALLOWLIST_SIZE + 1;
 
     bytes32 PROVENANCE_HASH = 0xf21123649788fb044e6d832e66231b26867af618ea80221e57166f388c2efb2f;
     string constant IPFS_URI = "https://ipfs.io/ipfs/Qme57kZ2VuVzcj5sC3tVHFgyyEgBTmAnyTK45YVNxKf6hi/";
 
     /// @notice Allowlist test addresses.
-    address constant W1 = address(9210283791031090);
-    address constant W2 = address(1928327197379129);
+    address constant W1 = address(0x683C3ac15e4E024E1509505B9a8F3f7B1A1cFf1e);
+    address constant W2 = address(0x69BABE250214d876BeEEA087945F0B53F691D519);
 
-    address[4] WHITELISTED = [
+    address[2] WHITELISTED = [
         W1, 
-        address(291909102),
-        W2,
-        address(21828118)
-    ];
+		W2
+	];
     string[] proofInputs;
     string[] inputs;
     uint256 constant CLAIM_SLOT = 4;
@@ -81,7 +79,7 @@ contract DopamineTabTest is Test, IDopamineTabEvents {
         vm.stopPrank();
         vm.startPrank(ADMIN);
 
-        token = new DopamineTab(BASE_URI, ADMIN, address(PROXY_REGISTRY), DROP_SIZE, DROP_DELAY, WHITELIST_SIZE, MAX_SUPPLY);
+        token = new DopamineTab(BASE_URI, ADMIN, address(PROXY_REGISTRY), DROP_DELAY, MAX_SUPPLY);
 
         DopamineAuctionHouse ahImpl = new DopamineAuctionHouse();
         address proxyAddr = getContractAddress(address(ADMIN), 0x02); 
@@ -130,21 +128,14 @@ contract DopamineTabTest is Test, IDopamineTabEvents {
     function testConstructor() public {
         assertEq(token.minter(), ADMIN);
         assertEq(address(token.proxyRegistry()), address(PROXY_REGISTRY));
-        assertEq(token.dropSize(), DROP_SIZE);
         assertEq(token.dropDelay(), DROP_DELAY);
-        assertEq(token.allowlistSize(), WHITELIST_SIZE);
         assertEq(token.dropEndIndex(), 0);
         assertEq(token.dropEndTime(), 0);
 
-        // Reverts when setting invalid drop size.
-        uint256 minDropSize = token.MIN_DROP_SIZE();
-        vm.expectRevert(DropSizeInvalid.selector);
-        new DopamineTab(BASE_URI, ADMIN, address(PROXY_REGISTRY), minDropSize - 1, DROP_DELAY, WHITELIST_SIZE, MAX_SUPPLY);
-        
         // Reverts when setting invalid drop delay.
         uint256 maxDropDelay = token.MAX_DROP_DELAY();
         vm.expectRevert(DropDelayInvalid.selector);
-        new DopamineTab(BASE_URI, ADMIN, address(PROXY_REGISTRY), DROP_SIZE, maxDropDelay + 1, WHITELIST_SIZE, MAX_SUPPLY);
+        new DopamineTab(BASE_URI, ADMIN, address(PROXY_REGISTRY), maxDropDelay + 1, MAX_SUPPLY);
 
     }
 
@@ -154,9 +145,9 @@ contract DopamineTabTest is Test, IDopamineTabEvents {
         vm.expectRevert(DropMaxCapacity.selector);
         token.mint();
 
-        token.createDrop(bytes32(0), PROVENANCE_HASH);
+        token.createDrop(0, 0, DROP_SIZE, PROVENANCE_HASH, ALLOWLIST_SIZE, bytes32(0));
         // Mints should succeed till drop size is reached.
-        for (uint256 i = 0; i < DROP_SIZE - WHITELIST_SIZE; i++) {
+        for (uint256 i = 0; i < DROP_SIZE - ALLOWLIST_SIZE; i++) {
             token.mint();
         }
 
@@ -165,7 +156,7 @@ contract DopamineTabTest is Test, IDopamineTabEvents {
         token.mint();
 
         vm.warp(BLOCK_TIMESTAMP + DROP_DELAY);
-        token.createDrop(bytes32(0), PROVENANCE_HASH);
+        token.createDrop(1, DROP_SIZE, DROP_SIZE, PROVENANCE_HASH, ALLOWLIST_SIZE, bytes32(0));
 
         // Minting continues working on next drop
         token.mint();
@@ -176,35 +167,51 @@ contract DopamineTabTest is Test, IDopamineTabEvents {
         vm.startPrank(ADMIN);
         // Successfully creates a drop.
         vm.expectEmit(true, true, true, true);
-        emit DropCreated(0, 0, DROP_SIZE, WHITELIST_SIZE, bytes32(0), PROVENANCE_HASH);
-        token.createDrop(bytes32(0), PROVENANCE_HASH);
+        emit DropCreated(0, 0, DROP_SIZE, ALLOWLIST_SIZE, bytes32(0), PROVENANCE_HASH);
+        token.createDrop(0, 0, DROP_SIZE, PROVENANCE_HASH, ALLOWLIST_SIZE, bytes32(0));
 
-        assertEq(token.allowlistSize(), WHITELIST_SIZE);
         assertEq(token.dropEndIndex(), DROP_SIZE);
         assertEq(token.dropEndTime(), BLOCK_TIMESTAMP + DROP_DELAY);
 
         // Should revert if drop creation called during ongoing drop.
         vm.expectRevert(DropOngoing.selector);
-        token.createDrop(bytes32(0), PROVENANCE_HASH);
-        for (uint256 i = 0; i < DROP_SIZE - WHITELIST_SIZE; i++) {
+        token.createDrop(1, DROP_SIZE, DROP_SIZE, bytes32(0), ALLOWLIST_SIZE, PROVENANCE_HASH);
+        for (uint256 i = 0; i < DROP_SIZE - ALLOWLIST_SIZE; i++) {
             token.mint();
         }
 
         // Should revert if insufficient time has passed.
         vm.expectRevert(DropTooEarly.selector);
-        token.createDrop(bytes32(0), PROVENANCE_HASH);
+        token.createDrop(1, DROP_SIZE, DROP_SIZE, PROVENANCE_HASH, ALLOWLIST_SIZE, bytes32(0));
 
         // Should revert on creating a new drop if supply surpasses maximum.
         vm.warp(BLOCK_TIMESTAMP + DROP_DELAY);
-        token.setDropSize(MAX_SUPPLY - DROP_SIZE + 1);
         vm.expectRevert(DropMaxCapacity.selector);
-        token.createDrop(bytes32(0), PROVENANCE_HASH);
+        token.createDrop(1, DROP_SIZE, MAX_SUPPLY - DROP_SIZE + 1, bytes32(0), ALLOWLIST_SIZE, PROVENANCE_HASH);
+
+        // Reverts if allowlist size too large.
+        uint256 maxAllowlistSize = token.MAX_AL_SIZE();
+        vm.expectRevert(DropAllowlistOverCapacity.selector);
+        token.createDrop(1, DROP_SIZE, DROP_SIZE, PROVENANCE_HASH, maxAllowlistSize + 1, bytes32(0));
+
+        // Reverts if larger than drop size.
+        vm.expectRevert(DropAllowlistOverCapacity.selector);
+        token.createDrop(1, DROP_SIZE, DROP_SIZE, PROVENANCE_HASH, DROP_SIZE + 1, bytes32(0));
+
+        // Reverts if the drop size is too low.
+        uint256 minDropSize = token.MIN_DROP_SIZE();
+        vm.expectRevert(DropSizeInvalid.selector);
+        token.createDrop(1, DROP_SIZE, minDropSize - 1, PROVENANCE_HASH, 0, bytes32(0));
+
+        // Reverts if the drop size is too high.
+        uint256 maxDropSize = token.MAX_DROP_SIZE();
+        vm.expectRevert(DropSizeInvalid.selector);
+        token.createDrop(1, DROP_SIZE, maxDropSize + 1, PROVENANCE_HASH, ALLOWLIST_SIZE, bytes32(0));
 
         // Should not revert and emit the expected DropCreated logs otherwise.
-        token.setDropSize(MAX_SUPPLY - DROP_SIZE);
         vm.expectEmit(true, true, true, true);
-        emit DropCreated(1, DROP_SIZE, MAX_SUPPLY - DROP_SIZE, WHITELIST_SIZE, bytes32(0), PROVENANCE_HASH);
-        token.createDrop(bytes32(0), PROVENANCE_HASH);
+        emit DropCreated(1, DROP_SIZE, MAX_SUPPLY - DROP_SIZE, PROVENANCE_HASH, ALLOWLIST_SIZE, bytes32(0));
+        token.createDrop(1, DROP_SIZE, MAX_SUPPLY - DROP_SIZE, PROVENANCE_HASH, ALLOWLIST_SIZE, bytes32(0));
         vm.stopPrank();
     }
 
@@ -238,41 +245,6 @@ contract DopamineTabTest is Test, IDopamineTabEvents {
 
     function testSetDropSize() public {
         vm.startPrank(ADMIN);
-        // Reverts if the drop size is too low.
-        uint256 minDropSize = token.MIN_DROP_SIZE();
-        vm.expectRevert(DropSizeInvalid.selector);
-        token.setDropSize(minDropSize - 1);
-
-        // Reverts if the drop size is too high.
-        uint256 maxDropSize = token.MAX_DROP_SIZE();
-        vm.expectRevert(DropSizeInvalid.selector);
-        token.setDropSize(maxDropSize + 1);
-
-        // Emits expected DropSizeSet event.
-        vm.expectEmit(true, true, true, true);
-        emit DropSizeSet(DROP_SIZE);
-        token.setDropSize(DROP_SIZE);
-        assertEq(token.dropSize(), DROP_SIZE);
-        vm.stopPrank();
-    }
-
-
-    function testSetAllowlistSize() public {
-        vm.startPrank(ADMIN);
-        // Reverts if allowlist size too large.
-        uint256 maxAllowlistSize = token.MAX_WL_SIZE();
-        vm.expectRevert(DropAllowlistOverCapacity.selector);
-        token.setAllowlistSize(maxAllowlistSize + 1);
-
-        // Reverts if larger than drop size.
-        vm.expectRevert(DropAllowlistOverCapacity.selector);
-        token.setAllowlistSize(DROP_SIZE + 1);
-
-        // Emits expected AllowlistSizeSet event.
-        vm.expectEmit(true, true, true, true);
-        emit AllowlistSizeSet(WHITELIST_SIZE);
-        token.setAllowlistSize(WHITELIST_SIZE);
-        vm.stopPrank();
     }
 
     function testSetBaseURI() public {
@@ -292,7 +264,7 @@ contract DopamineTabTest is Test, IDopamineTabEvents {
         vm.expectRevert(DropNonExistent.selector);
         token.setDropURI(0, IPFS_URI);
 
-        token.createDrop(bytes32(0), PROVENANCE_HASH);
+        token.createDrop(0, 0, DROP_SIZE, PROVENANCE_HASH, ALLOWLIST_SIZE, bytes32(0));
 
         vm.expectEmit(true, true, true, true);
         emit DropURISet(0, IPFS_URI);
@@ -306,12 +278,12 @@ contract DopamineTabTest is Test, IDopamineTabEvents {
         vm.expectRevert(TokenNonExistent.selector);
         token.tokenURI(NFT);
 
-        token.createDrop(bytes32(0), PROVENANCE_HASH);
+        token.createDrop(0, 0, DROP_SIZE, PROVENANCE_HASH, ALLOWLIST_SIZE, bytes32(0));
         token.mint();
-        assertEq(token.tokenURI(NFT), "https://api.dopamine.xyz/metadata/5");
+        assertEq(token.tokenURI(NFT), "https://api.dopamine.xyz/metadata/2");
 
         token.setDropURI(0, IPFS_URI);
-        assertEq(token.tokenURI(NFT), "https://ipfs.io/ipfs/Qme57kZ2VuVzcj5sC3tVHFgyyEgBTmAnyTK45YVNxKf6hi/5");
+        assertEq(token.tokenURI(NFT), "https://ipfs.io/ipfs/Qme57kZ2VuVzcj5sC3tVHFgyyEgBTmAnyTK45YVNxKf6hi/2");
         vm.stopPrank();
     }
 
@@ -322,20 +294,20 @@ contract DopamineTabTest is Test, IDopamineTabEvents {
         token.dropId(NFT);
 
         // Once minted, NFT assigned the correct drop.
-        token.createDrop(bytes32(0), PROVENANCE_HASH);
+        token.createDrop(0, 0, DROP_SIZE, PROVENANCE_HASH, ALLOWLIST_SIZE, bytes32(0));
         token.mint();
         assertEq(token.dropId(NFT), 0);
 
         // Last token of collection assigned correct drop id.
-        for (uint256 i = 0; i < DROP_SIZE - WHITELIST_SIZE - 1; i++) {
+        for (uint256 i = 0; i < DROP_SIZE - ALLOWLIST_SIZE - 1; i++) {
             token.mint();
         }
         assertEq(token.dropId(DROP_SIZE - 1), 0);
 
         vm.warp(BLOCK_TIMESTAMP + DROP_DELAY);
-        token.createDrop(bytes32(0), PROVENANCE_HASH);
+        token.createDrop(1, DROP_SIZE, DROP_SIZE, PROVENANCE_HASH, ALLOWLIST_SIZE, bytes32(0));
         token.mint();
-        assertEq(token.dropId(DROP_SIZE + WHITELIST_SIZE), 1);
+        assertEq(token.dropId(DROP_SIZE + ALLOWLIST_SIZE), 1);
         vm.stopPrank();
     }
 
@@ -343,7 +315,7 @@ contract DopamineTabTest is Test, IDopamineTabEvents {
         vm.startPrank(ADMIN);
         // Create drop with allowlist.
         bytes32 merkleRoot = bytes32(vm.ffi(inputs));
-        token.createDrop(merkleRoot, PROVENANCE_HASH);
+        token.createDrop(0, 0, DROP_SIZE, PROVENANCE_HASH, ALLOWLIST_SIZE, merkleRoot);
 
         // First allowlisted user can claim assigned NFT.
         proofInputs[CLAIM_SLOT] = addressToString(W1, 0);
@@ -362,23 +334,23 @@ contract DopamineTabTest is Test, IDopamineTabEvents {
         token.claim(proof, 1);
 
         // Proof presented by wrong owner fails.
-        proofInputs[CLAIM_SLOT] = addressToString(W2, 2);
+        proofInputs[CLAIM_SLOT] = addressToString(W2, 1);
         proof = abi.decode(vm.ffi(proofInputs), (bytes32[]));
         vm.expectRevert(ProofInvalid.selector);
-        token.claim(proof, 2);
+        token.claim(proof, 0);
 
         // Works for allowlisted member.
         vm.stopPrank();
         vm.startPrank(W2);
-        token.claim(proof, 2);
-        assertEq(token.ownerOf(2), W2);
+        token.claim(proof, 1);
+        assertEq(token.ownerOf(1), W2);
         vm.stopPrank();
     }
 
     function testAuctions() public {
         vm.startPrank(ADMIN);
         token.setMinter(address(ah));
-        token.createDrop(bytes32(0), PROVENANCE_HASH);
+        token.createDrop(0, 0, DROP_SIZE, PROVENANCE_HASH, ALLOWLIST_SIZE, bytes32(0));
 
         ah.resumeNewAuctions();
         vm.stopPrank();
