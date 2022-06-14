@@ -234,9 +234,9 @@ contract DopamineTab is ERC721Votable, IDopamineTab {
             dropId,
             startIndex,
             dropSize,
-            provenanceHash
             allowlistSize,
             allowlist,
+            provenanceHash
         );
     }
 
