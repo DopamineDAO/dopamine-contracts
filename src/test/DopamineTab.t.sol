@@ -210,7 +210,7 @@ contract DopamineTabTest is Test, IDopamineTabEvents {
 
         // Should not revert and emit the expected DropCreated logs otherwise.
         vm.expectEmit(true, true, true, true);
-        emit DropCreated(1, DROP_SIZE, MAX_SUPPLY - DROP_SIZE, PROVENANCE_HASH, ALLOWLIST_SIZE, bytes32(0));
+        emit DropCreated(1, DROP_SIZE, MAX_SUPPLY - DROP_SIZE, ALLOWLIST_SIZE,  bytes32(0), PROVENANCE_HASH);
         token.createDrop(1, DROP_SIZE, MAX_SUPPLY - DROP_SIZE, PROVENANCE_HASH, ALLOWLIST_SIZE, bytes32(0));
         vm.stopPrank();
     }
