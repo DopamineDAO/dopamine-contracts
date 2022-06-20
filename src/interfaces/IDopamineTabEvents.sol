@@ -38,20 +38,12 @@ interface IDopamineTabEvents {
     /// @param dropId The id of the queried drop.
     /// @param provenanceHash The drop collection provenance hash.
     /// @param allowlist Merkle root of drop's allowlisted address-tab pairs.
-    event DropUpdated(uint256 dropId, bytes32 provenanceHash, bytes32 allowlist);
-
-    /// @notice Emits when a new drop size `dropSize` is set.
-    /// @param dropSize The new drop size, in number of tabs to distribute.
-    event DropSizeSet(uint256 dropSize);
+    event DropUpdated(uint256 indexed dropId, bytes32 provenanceHash, bytes32 allowlist);
 
     /// @notice Emits when the drop of id `id` has its URI set to `dropUr1`.
     /// @param id  The id of the drop whose URI was set.
     /// @param dropUri The metadata URI of the drop, as a string.
     event DropURISet(uint256 indexed id, string dropUri);
-
-    /// @notice Emits when a new allowlist size `allowlistSize` is set.
-    /// @param allowlistSize The number of tabs to allowlist for drops.
-    event AllowlistSizeSet(uint256 allowlistSize);
 
     /// @notice Emits when minter is changed from `oldMinter` to `newMinter`.
     /// @param oldMinter The address of the previous minter.

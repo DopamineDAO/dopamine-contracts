@@ -1,4 +1,0 @@
-[
-  "event DelegateChanged(address indexed delegator, address indexed fromDelegate, address indexed toDelegate)",
-  "event DelegateVotesChanged(address indexed delegate, uint256 oldVotes, uint256 newVotes)"
-]

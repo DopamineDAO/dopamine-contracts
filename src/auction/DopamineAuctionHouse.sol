@@ -182,6 +182,7 @@ contract DopamineAuctionHouse is UUPSUpgradeable, DopamineAuctionHouseStorage, I
             !_transferETH(lastBidder, auction.amount)
         )
         {
+            _transferETH(treasury, auction.amount);
             emit RefundFailed(lastBidder);
         }
 
