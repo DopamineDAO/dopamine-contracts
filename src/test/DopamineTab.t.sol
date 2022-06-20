@@ -386,7 +386,7 @@ contract DopamineTabTest is Test, IDopamineTabEvents {
         assertEq(token.ownerOf(9), W3);
         vm.stopPrank();
 
-        // Second allowlisted user can\t claim unclaimed NFT for drop #0.
+        // Second allowlisted user can claim unclaimed NFT for drop #0.
         vm.startPrank(W2);
         proofInputs[CLAIM_SLOT] = addressToString(W2, 1);
         proofInputs[5] = addressToString(W1, 0);
@@ -406,12 +406,23 @@ contract DopamineTabTest is Test, IDopamineTabEvents {
         vm.stopPrank();
     }
 
-    function testFuzz(uint96 amount) public {
-        vm.assume(amount < 0.1 ether);
-        vm.startPrank(ADMIN);
-        console.log(amount);
-        vm.stopPrank();
+    function testFuzz(uint96 dropSize) public {
+        vm.assume(dropSize < 15_000);
         
+        vm.startPrank(ADMIN);
+        token = new DopamineTab(BASE_URI, ADMIN, address(PROXY_REGISTRY), DROP_DELAY, 1e10);
+        console.log(dropSize);
+        // Create drop with allowlist.
+        if (ALLOWLIST_SIZE > dropSize) {
+            vm.expectRevert(DropAllowlistOverCapacity.selector);
+        } else if (dropSize <= token.MIN_DROP_SIZE()) {
+            vm.expectRevert(DropSizeInvalid.selector);
+        } else if (dropSize >= token.MAX_DROP_SIZE()) {
+            vm.expectRevert(DropSizeInvalid.selector);
+        }
+        token.createDrop(0, 0, dropSize, PROVENANCE_HASH, ALLOWLIST_SIZE, bytes32(0));
+        
+        vm.stopPrank();
     }
 
 	/// Returns input tom erkle encoder in format `{ADDRESS}:{TOKEN_ID}`.
