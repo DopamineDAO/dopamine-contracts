@@ -376,7 +376,7 @@ contract DopamineTabTest is Test, IDopamineTabEvents {
         vm.warp(BLOCK_TIMESTAMP + DROP_DELAY);
         token.createDrop(1, DROP_SIZE, DROP_SIZE, PROVENANCE_HASH, 1, merkleRoot);
 
-        // Second allowlisted user can claim unclaimed NFT for drop #0.
+        // Third allowlisted user can claim unclaimed NFT for drop #1.
         vm.stopPrank();
 
         vm.startPrank(W3);
@@ -386,14 +386,14 @@ contract DopamineTabTest is Test, IDopamineTabEvents {
         assertEq(token.ownerOf(9), W3);
         vm.stopPrank();
 
+        // Second allowlisted user can\t claim unclaimed NFT for drop #0.
         vm.startPrank(W2);
         proofInputs[CLAIM_SLOT] = addressToString(W2, 1);
+        proofInputs[5] = addressToString(W1, 0);
+        proofInputs[6] = addressToString(W2, 1);
         proof = abi.decode(vm.ffi(proofInputs), (bytes32[]));
-        for (uint256 i = 0; i < 5 + WHITELISTED.length; i++) {
-            console.log(proofInputs[i]);
-        }
         token.claim(proof, 1);
-        assertEq(token.ownerOf(9), W2);
+        assertEq(token.ownerOf(1), W2);
         vm.stopPrank();
     }
 
@@ -404,6 +404,14 @@ contract DopamineTabTest is Test, IDopamineTabEvents {
 
         ah.resumeNewAuctions();
         vm.stopPrank();
+    }
+
+    function testFuzz(uint96 amount) public {
+        vm.assume(amount < 0.1 ether);
+        vm.startPrank(ADMIN);
+        console.log(amount);
+        vm.stopPrank();
+        
     }
 
 	/// Returns input tom erkle encoder in format `{ADDRESS}:{TOKEN_ID}`.
