@@ -11,11 +11,8 @@ import "hardhat-abi-exporter";
 
 import "./tasks/config";
 import "./tasks/merkle";
-import "./tasks/deploy";
 import "./tasks/deploy-honoraries";
 import "./tasks/mint-honorary";
-import "./tasks/propose";
-import "./tasks/mint";
 
 dotenv.config();
 

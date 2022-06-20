@@ -392,7 +392,7 @@ contract DopamineAuctionHouseTest is Test, IDopamineAuctionHouseEvents {
         vm.expectEmit(true, true, true, true);
         emit RefundFailed(address(MALICIOUS_BIDDER));
         ah.createBid{ value: 8 ether }(NFT);
-        assertEq(address(ah).balance, 12 ether);
+        assertEq(address(ah).balance, 8 ether);
         vm.stopPrank();
 
         // Check malicious gas burner bidders cannot exploit auction.

@@ -60,9 +60,10 @@ contract DopamineTabTest is Test, IDopamineTabEvents {
     address constant W2 = address(0x69BABE250214d876BeEEA087945F0B53F691D519);
     address constant W3 = address(0xA32F30ce77AAbBBfcB926FB449Ae44A5Cb2a8b77);
 
-    address[2] WHITELISTED = [
+    address[3] WHITELISTED = [
         W1, 
-		W2
+		W2,
+        W3
 	];
     string[] proofInputs;
     string[] inputs;

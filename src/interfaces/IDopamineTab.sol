@@ -94,10 +94,13 @@ interface IDopamineTab is IDopamineTabEvents {
     /// @dev This function is only callable by the admin address.
     function setMinter(address newMinter) external;
 
-    /// @notice Sets the admin address to `newAdmin`.
-    /// @param newAdmin The address of the new admin.
-    /// @dev This function is only callable by the admin address.
-    function setAdmin(address newAdmin) external;
+    /// @notice Sets the pending admin address to  `newPendingAdmin`.
+    /// @param newPendingAdmin The address of the new pending admin.
+    function setPendingAdmin(address newPendingAdmin) external;
+
+    /// @notice Assigns the `pendingAdmin` address to the `admin` address.
+    /// @dev This function is only callable by the pending admin.
+    function acceptAdmin() external;
 
     /// @notice Sets the base URI to `newBaseURI`.
     /// @param newBaseURI The new base metadata URI to set for the collection.

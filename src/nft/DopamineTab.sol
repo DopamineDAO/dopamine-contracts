@@ -20,8 +20,6 @@ import { ERC721Votable } from "../erc721/ERC721Votable.sol";
 ///  with each drop featuring different sets of attributes. Drop parameters are
 ///  configurable by the admin address, with emissions controlled by the minter
 ///  address. A drop is completed once all non-allowlisted tabs are minted.
-/// @dev It is intended for the admin to be the team multi-sig, with the minter
-///  being the Dopamine Auction House address (minter controls emissions).
 contract DopamineTab is ERC721Votable, IDopamineTab {
 
     /// @notice The maximum number of tabs that may be allowlisted per drop.
@@ -41,6 +39,9 @@ contract DopamineTab is ERC721Votable, IDopamineTab {
 
     /// @notice The address administering drop creation, sizing, and scheduling.
     address public admin;
+
+    /// @notice The temporary address that will become admin once accepted.
+    address public pendingAdmin;
 
     /// @notice The address responsible for controlling tab emissions.
     address public minter;
@@ -250,12 +251,24 @@ contract DopamineTab is ERC721Votable, IDopamineTab {
     }
 
     /// @inheritdoc IDopamineTab
-    function setAdmin(address newAdmin) external onlyAdmin {
-        if (newAdmin == address(0)) {
-            revert AddressInvalid();
+    function setPendingAdmin(address newPendingAdmin)
+        public
+        override
+        onlyAdmin
+    {
+        pendingAdmin = newPendingAdmin;
+        emit PendingAdminSet(pendingAdmin);
+    }
+
+    /// @inheritdoc IDopamineTab
+    function acceptAdmin() public override {
+        if (msg.sender != pendingAdmin) {
+            revert PendingAdminOnly();
         }
-        emit AdminChanged(admin, newAdmin);
-        admin = newAdmin;
+
+        emit AdminChanged(admin, pendingAdmin);
+        admin = pendingAdmin;
+        pendingAdmin = address(0);
     }
 
     /// @inheritdoc IDopamineTab

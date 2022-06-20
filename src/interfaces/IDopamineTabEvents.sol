@@ -45,6 +45,10 @@ interface IDopamineTabEvents {
     /// @param dropUri The metadata URI of the drop, as a string.
     event DropURISet(uint256 indexed id, string dropUri);
 
+    /// @notice Emits when a new pending admin `pendingAdmin` is set.
+    /// @param pendingAdmin The new address of the pending admin that was set.
+    event PendingAdminSet(address pendingAdmin);
+
     /// @notice Emits when minter is changed from `oldMinter` to `newMinter`.
     /// @param oldMinter The address of the previous minter.
     /// @param newMinter The address of the new minter.
