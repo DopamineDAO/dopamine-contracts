@@ -243,9 +243,6 @@ contract DopamineTab is ERC721Votable, IDopamineTab {
 
     /// @inheritdoc IDopamineTab
     function setMinter(address newMinter) external onlyAdmin {
-        if (newMinter == address(0)) {
-            revert AddressInvalid();
-        }
         emit MinterChanged(minter, newMinter);
         minter = newMinter;
     }

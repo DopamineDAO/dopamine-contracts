@@ -25,16 +25,16 @@ import {IERC2981} from "../interfaces/IERC2981.sol";
 contract ERC721 is IERC721, IERC721Metadata, IERC2981 {
 
     /// @notice The maximum number of NFTs that can ever exist.
-    /// @dev For tabs this is also capped by the emissions plan (e.g. 2 / day).
+    /// @dev For tabs this is also capped by the emissions plan (e.g. 1 / day).
     uint256 public immutable maxSupply;
 
-    /// @notice The name of the token collection.
+    /// @notice The name of the NFT collection.
     string public name;
 
-    /// @notice The abbreviated name of the token collection.
+    /// @notice The abbreviated name of the NFT collection.
     string public symbol;
 
-    /// @notice The total number of tokens in circulation.
+    /// @notice The total number of NFTs in circulation.
     uint256 public totalSupply;
 
     /// @notice Gets the number of NFTs owned by an address.

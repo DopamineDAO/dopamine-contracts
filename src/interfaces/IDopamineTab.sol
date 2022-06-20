@@ -96,10 +96,11 @@ interface IDopamineTab is IDopamineTabEvents {
 
     /// @notice Sets the pending admin address to  `newPendingAdmin`.
     /// @param newPendingAdmin The address of the new pending admin.
+    /// @dev This function is only callable by the admin address.
     function setPendingAdmin(address newPendingAdmin) external;
 
     /// @notice Assigns the `pendingAdmin` address to the `admin` address.
-    /// @dev This function is only callable by the pending admin.
+    /// @dev This function is only callable by the pending admin address.
     function acceptAdmin() external;
 
     /// @notice Sets the base URI to `newBaseURI`.

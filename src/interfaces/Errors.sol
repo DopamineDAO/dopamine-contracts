@@ -22,7 +22,7 @@ error DropInvalid();
 /// @notice Drop details may no longer be modified.
 error DropImmutable();
 
-/// @notice DopamineTab drop hit allocated capacity.
+/// @notice Drop hit max allocatable capacity.
 error DropMaxCapacity();
 
 /// @notice No such drop exists.
@@ -40,7 +40,7 @@ error DropStartInvalid();
 /// @notice Insufficient time passed since last drop was created.
 error DropTooEarly();
 
-/// @notice Configured whitelist size is too large.
+/// @notice Configured allowlist size is too large.
 error DropAllowlistOverCapacity();
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -50,10 +50,13 @@ error DropAllowlistOverCapacity();
 /// @notice Auction has already been settled.
 error AuctionAlreadySettled();
 
+/// @notice Operation cannot be performed as auction is already suspended.
+error AuctionAlreadySuspended();
+
 /// @notice The NFT specified in the auction bid is invalid.
 error AuctionBidInvalid();
 
-/// @notice Bid placed was too low (see `reservePrice` and `MIN_BID_DIFF`).
+/// @notice Bid placed was too low.
 error AuctionBidTooLow();
 
 /// @notice Auction duration set is invalid.
@@ -64,9 +67,6 @@ error AuctionExpired();
 
 /// @notice Operation cannot be performed as auction is not suspended.
 error AuctionNotSuspended();
-
-/// @notice Operation cannot be performed as auction is already suspended.
-error AuctionAlreadySuspended();
 
 /// @notice Auction has yet to complete.
 error AuctionOngoing();
@@ -120,22 +120,19 @@ error SignatureInvalid();
 ///                                 EIP-721                                  ///
 ////////////////////////////////////////////////////////////////////////////////
 
-/// @notice Administatrive address may not be set to the zero address.
-error AddressInvalid();
-
 /// @notice Originating address does not own the NFT.
 error OwnerInvalid();
 
 /// @notice Receiving address cannot be the zero address.
 error ReceiverInvalid();
 
-/// @notice Receiving contract does not implement the ERC721 wallet interface.
+/// @notice Receiving contract does not implement the ERC-721 wallet interface.
 error SafeTransferUnsupported();
 
 /// @notice Sender is not NFT owner, approved address, or owner operator.
 error SenderUnauthorized();
 
-/// @notice NFT collection has hit maximum supply capacity.
+/// @notice NFT supply has hit maximum capacity.
 error SupplyMaxCapacity();
 
 /// @notice Token has already minted.
