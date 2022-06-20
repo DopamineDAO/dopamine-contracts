@@ -58,6 +58,7 @@ contract DopamineTabTest is Test, IDopamineTabEvents {
     /// @notice Allowlist test addresses.
     address constant W1 = address(0x683C3ac15e4E024E1509505B9a8F3f7B1A1cFf1e);
     address constant W2 = address(0x69BABE250214d876BeEEA087945F0B53F691D519);
+    address constant W3 = address(0xA32F30ce77AAbBBfcB926FB449Ae44A5Cb2a8b77);
 
     address[2] WHITELISTED = [
         W1, 
@@ -344,6 +345,55 @@ contract DopamineTabTest is Test, IDopamineTabEvents {
         vm.startPrank(W2);
         token.claim(proof, 1);
         assertEq(token.ownerOf(1), W2);
+        vm.stopPrank();
+    }
+
+    function testUnclaimed() public {
+        vm.startPrank(ADMIN);
+        // Create drop with allowlist.
+        bytes32 merkleRoot = bytes32(vm.ffi(inputs));
+        token.createDrop(0, 0, DROP_SIZE, PROVENANCE_HASH, ALLOWLIST_SIZE, merkleRoot);
+        vm.stopPrank();
+
+        vm.startPrank(W1);
+        // First allowlisted user can claim assigned NFT.
+        proofInputs[CLAIM_SLOT] = addressToString(W1, 0);
+        bytes32[] memory proof = abi.decode(vm.ffi(proofInputs), (bytes32[]));
+        token.claim(proof, 0);
+        assertEq(token.ownerOf(0), W1);
+        vm.stopPrank();
+        
+        vm.startPrank(ADMIN);
+        inputs[3] = addressToString(W2, 1);
+        inputs[4] = addressToString(W3, 9);
+        proofInputs[5] = addressToString(W2, 1);
+        proofInputs[6] = addressToString(W3, 9);
+        // Create drop with unclaimed allowlist.
+        merkleRoot = bytes32(vm.ffi(inputs));
+        for (uint256 i = 0; i < DROP_SIZE - ALLOWLIST_SIZE; i++) {
+            token.mint();
+        }
+        vm.warp(BLOCK_TIMESTAMP + DROP_DELAY);
+        token.createDrop(1, DROP_SIZE, DROP_SIZE, PROVENANCE_HASH, 1, merkleRoot);
+
+        // Second allowlisted user can claim unclaimed NFT for drop #0.
+        vm.stopPrank();
+
+        vm.startPrank(W3);
+        proofInputs[CLAIM_SLOT] = addressToString(W3, 9);
+        proof = abi.decode(vm.ffi(proofInputs), (bytes32[]));
+        token.claim(proof, 9);
+        assertEq(token.ownerOf(9), W3);
+        vm.stopPrank();
+
+        vm.startPrank(W2);
+        proofInputs[CLAIM_SLOT] = addressToString(W2, 1);
+        proof = abi.decode(vm.ffi(proofInputs), (bytes32[]));
+        for (uint256 i = 0; i < 5 + WHITELISTED.length; i++) {
+            console.log(proofInputs[i]);
+        }
+        token.claim(proof, 1);
+        assertEq(token.ownerOf(9), W2);
         vm.stopPrank();
     }
 
