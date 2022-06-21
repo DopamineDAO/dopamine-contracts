@@ -11,7 +11,7 @@ import "../interfaces/Errors.sol";
 import { IDopamineHonoraryTab } from "../interfaces/IDopamineHonoraryTab.sol";
 import { IOpenSeaProxyRegistry } from "../interfaces/IOpenSeaProxyRegistry.sol";
 
-import { ERC721H } from "../erc721/ERC721H.sol";
+import { ERC721H } from "../erc721/ERC721h.sol";
 
 /// @title Dopamine Honorary ERC-721 Membership Tab
 /// @notice Dopamine honorary tabs are vanity tabs for friends of Dopamine.

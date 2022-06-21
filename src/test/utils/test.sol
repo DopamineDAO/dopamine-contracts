@@ -3,7 +3,7 @@ pragma solidity >=0.8.0;
 
 import "ds-test/test.sol";
 import "./console.sol";
-import "./Hevm.sol";
+import "./HEVM.sol";
 
 
 /// @title Extended testing framework

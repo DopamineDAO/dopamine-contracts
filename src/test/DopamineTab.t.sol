@@ -186,6 +186,9 @@ contract DopamineTabTest is Test, IDopamineTabEvents {
         vm.expectRevert(DropTooEarly.selector);
         token.createDrop(1, DROP_SIZE, DROP_SIZE, PROVENANCE_HASH, ALLOWLIST_SIZE, bytes32(0));
 
+        vm.expectRevert(DropInvalid.selector);
+        token.createDrop(2, DROP_SIZE, DROP_SIZE, PROVENANCE_HASH, ALLOWLIST_SIZE, bytes32(0));
+
         // Should revert on creating a new drop if supply surpasses maximum.
         vm.warp(BLOCK_TIMESTAMP + DROP_DELAY);
         vm.expectRevert(DropMaxCapacity.selector);
@@ -347,6 +350,16 @@ contract DopamineTabTest is Test, IDopamineTabEvents {
         token.claim(proof, 1);
         assertEq(token.ownerOf(1), W2);
         vm.stopPrank();
+
+        // Can't claim not whitelisted Tab
+        vm.startPrank(W3);
+        vm.expectRevert(ClaimInvalid.selector);
+        token.claim(proof, 3);
+        vm.expectRevert(ClaimInvalid.selector);
+        token.claim(proof, 4);
+        vm.expectRevert(ClaimInvalid.selector);
+        token.claim(proof, 6);
+        vm.stopPrank();
     }
 
     function testUnclaimed() public {
@@ -412,7 +425,6 @@ contract DopamineTabTest is Test, IDopamineTabEvents {
         
         vm.startPrank(ADMIN);
         token = new DopamineTab(BASE_URI, ADMIN, address(PROXY_REGISTRY), DROP_DELAY, 1e10);
-        console.log(dropSize);
         // Create drop with allowlist.
         if (ALLOWLIST_SIZE > dropSize) {
             vm.expectRevert(DropAllowlistOverCapacity.selector);
@@ -423,6 +435,27 @@ contract DopamineTabTest is Test, IDopamineTabEvents {
         }
         token.createDrop(0, 0, dropSize, PROVENANCE_HASH, ALLOWLIST_SIZE, bytes32(0));
         
+        vm.stopPrank();
+    }
+
+    /// @notice Tests `acceptAdmin` functionality.
+    function testAcceptAdmin() public {
+        vm.startPrank(ADMIN);
+        // Reverts when caller is not the pending admin.
+        token.setPendingAdmin(FROM);
+        vm.expectRevert(PendingAdminOnly.selector);
+        token.acceptAdmin(); // Still called by current admin, hence fails..
+
+        // Emits the expected `AdminChanged` event when executed by pending admin.
+        vm.stopPrank();
+        vm.startPrank(FROM);
+        vm.expectEmit(true, true, true, true);
+        emit AdminChanged(ADMIN, FROM);
+        token.acceptAdmin();
+
+        // Properly assigns admin and clears pending admin.
+        assertEq(token.admin(), FROM);
+        assertEq(token.pendingAdmin(), address(0));
         vm.stopPrank();
     }
 
