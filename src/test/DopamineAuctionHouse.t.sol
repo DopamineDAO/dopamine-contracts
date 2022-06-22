@@ -54,6 +54,13 @@ contract DopamineAuctionHouseTest is Test, IDopamineAuctionHouseEvents {
     MockMaliciousBidder MALICIOUS_BIDDER = new MockMaliciousBidder();
     MockGasBurner GAS_BURNER_BIDDER = new MockGasBurner();
 
+    uint256 public constant MIN_AUCTION_BUFFER = 60 seconds;
+    uint256 public constant MAX_AUCTION_BUFFER = 24 hours;
+    uint256 public constant MIN_RESERVE_PRICE = 1 wei;
+    uint256 public constant MAX_RESERVE_PRICE = 99 ether;
+    uint256 public constant MIN_AUCTION_DURATION = 10 minutes;
+    uint256 public constant MAX_AUCTION_DURATION = 1 weeks;
+
     function setUp() public virtual {
         vm.roll(BLOCK_START);
         vm.warp(BLOCK_TIMESTAMP);
@@ -627,5 +634,64 @@ contract DopamineAuctionHouseTest is Test, IDopamineAuctionHouseEvents {
         vm.stopPrank();
     }
 
+    function testFuzzInitialize(uint96 treasurySplit, uint256 timeBuffer, uint256 reservePrice, uint256 auctionDuration) public {
+        vm.assume(treasurySplit <= 100);
+        vm.assume(timeBuffer >= MIN_AUCTION_BUFFER);
+        vm.assume(timeBuffer <= MAX_AUCTION_BUFFER);
+        // vm.assume(reservePrice >= MIN_RESERVE_PRICE);
+        // vm.assume(reservePrice <= MAX_RESERVE_PRICE);
+        // vm.assume(auctionDuration >= MIN_AUCTION_DURATION);
+        // vm.assume(auctionDuration <= MIN_AUCTION_DURATION);
 
+        vm.startPrank(ADMIN);
+
+        if (reservePrice < MIN_RESERVE_PRICE || reservePrice > MAX_RESERVE_PRICE) {
+            vm.expectRevert(AuctionReservePriceInvalid.selector);
+        } else if (auctionDuration < MIN_AUCTION_DURATION || auctionDuration > MAX_AUCTION_DURATION) {
+            vm.expectRevert(AuctionDurationInvalid.selector);
+        }
+        
+        bytes memory data = abi.encodeWithSelector(
+            ahImpl.initialize.selector,
+            address(token),
+            reserve,
+            treasury,
+            treasurySplit,
+            timeBuffer,
+            reservePrice,
+            auctionDuration
+        );
+		ERC1967Proxy proxy = new ERC1967Proxy(address(ahImpl), data);
+        
+        vm.stopPrank();
+    }
+
+    function testFuzzSetTreasurySplit(uint256 newTreasurySplit) public {
+        vm.assume(newTreasurySplit <= 100);
+
+        vm.startPrank(ADMIN);
+        // Emits expected `AuctionTreasurySplitSet` event.
+        vm.expectEmit(true, true, true, true);
+        emit AuctionTreasurySplitSet(newTreasurySplit);
+        ah.setTreasurySplit(newTreasurySplit);
+        vm.stopPrank();
+    }
+
+    function testFuzzCreateBid(uint256 bidAmount) public {
+        vm.assume(bidAmount <= 10 ether);
+        vm.startPrank(ADMIN);
+        ah.resumeNewAuctions();
+        vm.stopPrank();
+
+        vm.startPrank(BIDDER);
+        if (bidAmount < 1 ether) {
+            vm.expectRevert(AuctionBidTooLow.selector);
+        } else {
+            vm.expectEmit(true, true, true, true);
+            emit AuctionBid(NFT, BIDDER, bidAmount, false);
+        }
+
+        ah.createBid{ value: bidAmount }(NFT);
+        vm.stopPrank();
+    }
 }

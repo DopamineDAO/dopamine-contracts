@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0
 pragma solidity >=0.8.0;
 
-import "../scripts/Deploy_Stag.sol";
+import "../scripts/DeployTabAndAuction.sol";
 
 import "./utils/test.sol";
 import "./utils/console.sol";
@@ -9,14 +9,14 @@ import "./utils/console.sol";
 /// @title Dopamine Dev Deployment Test Suite
 contract DeployDevTest is Test {
 
-    Deploy_Stag script;
+    Deploy script;
 
     function setUp() public virtual {
-        script = new Deploy_Stag();
+        script = new Deploy();
     }
 
     function testRun() public {
-        script.run();
+        script.runDev();
     }
 
 
