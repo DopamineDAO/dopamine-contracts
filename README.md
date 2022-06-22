@@ -29,14 +29,14 @@ dopamineDAOProxy: 0x6b858afa4e31422b8fee272b449b6c802174962e.
 ### Script
 | Deploy contract using script (staging)
 source .env
-forge script src/scripts/DeployStaging.sol --fork-url https://eth-rinkeby.alchemyapi.io/v2/$ALCHEMY_API_KEY --private-key $DEV_PRIVATE_KEY --broadcast --verify --etherscan-api-key $ETHERSCAN_API_KEY
+forge script src/scripts/DeployTabAndAuction.sol --sig "runStaging()" --fork-url https://eth-rinkeby.alchemyapi.io/v2/$ALCHEMY_API_KEY --private-key $DEV_PRIVATE_KEY --broadcast --verify --etherscan-api-key $ETHERSCAN_API_KEY
 
 | Deploy contract using script (production)
 source .env
-forge script src/scripts/DeployStaging.sol --fork-url https://eth-mainnet.alchemyapi.io/v2/$ALCHEMY_API_KEY --private-key $PRIVATE_KEY --broadcast --verify --etherscan-api-key $ETHERSCAN_API_KEY
+forge script src/scripts/DeployTabAndAuction.sol --sig "runProd()" --fork-url https://eth-mainnet.alchemyapi.io/v2/$ALCHEMY_API_KEY --private-key $PRIVATE_KEY --broadcast --verify --etherscan-api-key $ETHERSCAN_API_KEY
 
-| Run createDrop function
-forge script src/scripts/CreateDropStaging.sol --sig "createFirstDrop()" --fork-url https://eth-rinkeby.alchemyapi.io/v2/$ALCHEMY_API_KEY --private-key $DEV_PRIVATE_KEY --broadcast
+| Run Drop function
+forge script src/scripts/Drop.sol --sig "createFirstDrop()" --fork-url https://eth-rinkeby.alchemyapi.io/v2/$ALCHEMY_API_KEY --private-key $DEV_PRIVATE_KEY --broadcast
 
 ### Forge Command
 forge test --match-path src/test/LaunchTest.t.sol --ffi

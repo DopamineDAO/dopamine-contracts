@@ -11,7 +11,7 @@ import { Timelock } from "../governance/Timelock.sol";
 import { Test } from "../test/utils/test.sol";
 import "../test/utils/console.sol";
 
-contract Deploy_Stag is Test {
+contract Deploy is Test {
 
     // Contracts
     DopamineAuctionHouse ah;
