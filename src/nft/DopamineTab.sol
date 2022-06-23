@@ -222,8 +222,8 @@ contract DopamineTab is ERC721Votable, IDopamineTab {
             revert DropMaxCapacity();
         }
 
+        dropEndIndex = _id + dropSize;
         _id += allowlistSize;
-        dropEndIndex = startIndex + dropSize;
         _dropEndIndices.push(dropEndIndex);
 
         dropEndTime = block.timestamp + dropDelay;

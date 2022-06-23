@@ -82,4 +82,12 @@ interface IDopamineAuctionHouseEvents {
     /// @param pendingAdmin The new address of the pending admin that was set.
     event PendingAdminSet(address indexed pendingAdmin);
 
+    /// @notice Emits when a new treasury address `treasury` is set.
+    /// @param treasury The new address of the treasury that was set.
+    event TreasurySet(address indexed treasury);
+
+    /// @notice Emits when a new reserve address `reserve` is set.
+    /// @param reserve The new address of the reserve that was set.
+    event ReserveSet(address indexed reserve);
+
 }

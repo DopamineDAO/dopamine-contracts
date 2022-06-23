@@ -53,4 +53,5 @@ contract DopamineAuctionHouseStorage {
 
     /// @dev A boolean indicating whether or not the auction is suspended.
     uint256 internal _suspended;
+
 }

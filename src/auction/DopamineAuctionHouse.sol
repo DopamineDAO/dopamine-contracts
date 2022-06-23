@@ -108,10 +108,10 @@ contract DopamineAuctionHouse is UUPSUpgradeable, DopamineAuctionHouseStorage, I
         emit AdminChanged(address(0), admin);
 
         token = IDopamineAuctionHouseToken(token_);
-        reserve = reserve_;
-        treasury = treasury_;
         auction.settled = true;
 
+        setTreasury(treasury_);
+        setReserve(reserve_);
         setTreasurySplit(treasurySplit_);
         setAuctionBuffer(auctionBuffer_);
         setReservePrice(reservePrice_);
@@ -201,12 +201,6 @@ contract DopamineAuctionHouse is UUPSUpgradeable, DopamineAuctionHouseStorage, I
     }
 
     /// @inheritdoc IDopamineAuctionHouse
-    function setPendingAdmin(address newPendingAdmin) public override onlyAdmin {
-        pendingAdmin = newPendingAdmin;
-        emit PendingAdminSet(pendingAdmin);
-    }
-
-    /// @inheritdoc IDopamineAuctionHouse
     function acceptAdmin() public override {
         if (msg.sender != pendingAdmin) {
             revert PendingAdminOnly();
@@ -215,6 +209,25 @@ contract DopamineAuctionHouse is UUPSUpgradeable, DopamineAuctionHouseStorage, I
         emit AdminChanged(admin, pendingAdmin);
         admin = pendingAdmin;
         pendingAdmin = address(0);
+    }
+
+    /// @inheritdoc IDopamineAuctionHouse
+    function setPendingAdmin(address newPendingAdmin) public override onlyAdmin {
+        pendingAdmin = newPendingAdmin;
+        emit PendingAdminSet(pendingAdmin);
+    }
+
+
+    /// @inheritdoc IDopamineAuctionHouse
+    function setTreasury(address payable newTreasury) public onlyAdmin {
+        treasury = newTreasury;
+        emit TreasurySet(treasury);
+    }
+
+    /// @inheritdoc IDopamineAuctionHouse
+    function setReserve(address payable newReserve) public onlyAdmin {
+        reserve = newReserve;
+        emit ReserveSet(reserve);
     }
 
     /// @inheritdoc IDopamineAuctionHouse
@@ -300,6 +313,7 @@ contract DopamineAuctionHouse is UUPSUpgradeable, DopamineAuctionHouseStorage, I
         if (auction.settled) {
             revert AuctionAlreadySettled();
         }
+
         if (block.timestamp < auction.endTime) {
             revert AuctionOngoing();
         }

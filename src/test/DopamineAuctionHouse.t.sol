@@ -593,6 +593,8 @@ contract DopamineAuctionHouseTest is Test, IDopamineAuctionHouseEvents {
         // Check that re-initialized parameters were updated.
         assertEq(ahUpgraded.treasury(), faultyDao);
         assertEq(ahUpgraded.reserve(), faultyReserve);
+        assertEq(ahUpgraded.treasury2(), address(ahUpgraded));
+        assertEq(ahUpgraded.reserve2(), address(ahUpgraded));
 
         // Settle auction and check funds remain in auction contract.
         vm.warp(BLOCK_TIMESTAMP + AUCTION_DURATION);
@@ -602,8 +604,8 @@ contract DopamineAuctionHouseTest is Test, IDopamineAuctionHouseEvents {
         assertEq(address(ahUpgraded).balance, 2 ether);
 
         // Ensure new functions can be called.
-        ahUpgraded.setTreasury(treasury);
-        ahUpgraded.setReserve(reserve);
+        ahUpgraded.setTreasury2(treasury);
+        ahUpgraded.setReserve2(reserve);
 
         // Withdraw funds with upgraded contract.
         ahUpgraded.withdraw();

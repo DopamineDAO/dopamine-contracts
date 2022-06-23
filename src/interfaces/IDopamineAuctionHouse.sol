@@ -95,4 +95,14 @@ interface IDopamineAuctionHouse is IDopamineAuctionHouseEvents {
     /// @param newReservePrice The new reserve price to set, in wei.
     function setReservePrice(uint256 newReservePrice) external;
 
+    /// @notice Sets the treasury address to `newTreasury`.
+    /// @dev This function is only callable by the admin.
+    /// @param newTreasury The new treasury address to set.
+    function setTreasury(address payable newTreasury) external;
+
+    /// @notice Sets the reserve address to `newReserve`.
+    /// @dev This function is only callable by the admin.
+    /// @param newReserve The new reserve address to set.
+    function setReserve(address payable newReserve) external;
+
 }
