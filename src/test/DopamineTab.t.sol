@@ -411,6 +411,29 @@ contract DopamineTabTest is Test, IDopamineTabEvents {
         vm.stopPrank();
     }
 
+    function testAllowlist() public {
+        vm.startPrank(ADMIN);
+        // Create drop with allowlist.
+        inputs[3] = addressToString(W1, 2);
+        inputs[4] = addressToString(W2, 3);
+        bytes32 merkleRoot = bytes32(vm.ffi(inputs));
+        token.createDrop(0, 0, DROP_SIZE, PROVENANCE_HASH, ALLOWLIST_SIZE, merkleRoot);
+
+        // First allowlisted user can claim assigned NFT.
+        proofInputs[CLAIM_SLOT] = addressToString(W1, 2);
+        bytes32[] memory proof = abi.decode(vm.ffi(proofInputs), (bytes32[]));
+        vm.stopPrank();
+        vm.startPrank(W1);
+        vm.expectRevert(ClaimInvalid.selector);
+        token.claim(proof, 2);
+        vm.stopPrank();
+
+        vm.startPrank(ADMIN);
+        token.mint();
+        assertEq(token.ownerOf(2), ADMIN);
+        vm.stopPrank();
+    }
+
     function testAuctions() public {
         vm.startPrank(ADMIN);
         token.setMinter(address(ah));
